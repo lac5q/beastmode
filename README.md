@@ -12,30 +12,38 @@ Exact search aliases: **beastmode**, **MofA**, **Mixture of Agents**, **memroos*
 
 Beastmode:
 
-- **Saves money** by routing routine work to cheap models (Qwen/Gwen) while keeping expensive models (Opus, Claude Code, Codex) for judgment and review
+- **Saves money** by routing implementation *and mechanical validation* to economy models (MiniMax M3, Qwen/Gwen) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for design, judgment, and review sign-off
 - **Improves quality** through mandatory acceptance contracts, adversarial review, and merge gates
 - **Gets better over time** via a self-improvement loop that records lessons and promotes repeated patterns into skills/config
 - **Works anywhere** — harness-agnostic, compatible with Ultraswarm, GSD, `delegate_task`, Claude Code subagents, or manual git workflows
 
 ## Core Principle
 
-**Expensive models decide. Cheap models build. The loop learns.**
+**Frontier models design. Cheap models build and validate. The loop learns.**
+
+## Model Tiers
+
+- **Design tier (frontier):** Claude Fable, Kimi 3, Opus, frontier Codex/GPT — architecture, acceptance contracts, judgment review, escalations
+- **Execution tier (economy):** MiniMax M3, Qwen/Gwen — implementation, tests, docs, and mechanical validation (running verification commands, producing pass/fail reports)
+
+See `references/model-routing.md` for the per-phase routing table and escalation ladder.
 
 ## Two Variants
 
-- **Opus-led:** Maximum judgment for product/creative/architecture decisions. Opus directs, Codex challenges, Qwen executes.
-- **Codex-led:** Cost-efficient lead with strong gates. Codex plans and reviews, Qwen executes.
+- **Frontier-led:** Maximum judgment for product/creative/architecture decisions. Fable or Kimi 3 directs (optionally pairing the two — one designs, the other challenges), MiniMax M3/Qwen executes and validates.
+- **Codex-led:** Cost-efficient lead with strong gates. Codex plans and reviews, MiniMax M3/Qwen executes.
 
 ## Quick Start
 
 1. Read `SKILL.md` — the full framework
-2. Choose your variant (Opus-led or Codex-led)
+2. Choose your variant (frontier-led or Codex-led) and map your models to tiers (`references/model-routing.md`)
 3. Choose your harness (Ultraswarm, GSD, delegate_task, Claude Code subagents, or manual git)
-4. Follow the beastmode loop: Preflight → Acceptance Contract → Plan → Delegate → Review → Merge → Self-Improve
+4. Follow the beastmode loop: Preflight → Acceptance Contract → Design (frontier) → Delegate (economy) → Validate (economy) → Review (frontier) → Merge → Self-Improve
 
 ## Files
 
 - `SKILL.md` — The complete beastmode framework (start here)
+- `references/model-routing.md` — Tier definitions, per-phase routing table, design package template, escalation ladder, provider config sketches
 - `references/orchestration-comparison.md` — Evolution from early prototypes to v2.0
 - `references/context-rot-mitigation.md` — MemroOS-style goal-state capsules, compact/resume rules, and MofA decision memory
 - `references/public-sharing-checklist.md` — Guidelines for publishing beastmode skills publicly

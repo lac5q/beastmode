@@ -2,15 +2,16 @@
 name: beastmode
 description: >
   Multi-agent orchestration framework for high-intensity feature implementation.
-  Combines expensive high-judgment models (Opus/Codex) for planning and review
-  with cheap models (Qwen/Gwen) for routine execution in isolated worktrees,
+  Routes work across model tiers: frontier models (Claude Fable, Kimi 3, Opus/Codex)
+  own design, architecture, and review sign-off, while economy models (MiniMax M3,
+  Qwen/Gwen) handle implementation and mechanical validation in isolated worktrees,
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Ultraswarm, GSD, delegate_task, or manual orchestration.
-version: 2.0.0
+version: 2.1.0
 author: Luis Calderon
-tags: [beastmode, orchestration, multi-agent, cost-optimization, self-improving, worktrees]
+tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
 related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
-agents: [hermes, codex, openclaw, claude-code]
+agents: [hermes, codex, openclaw, claude-code, fable, kimi, minimax]
 ---
 
 # Beastmode: Multi-Agent Orchestration Framework
@@ -21,13 +22,34 @@ Beastmode is a structured approach to multi-agent software development that sepa
 
 ## Core Principle
 
-**Expensive models decide. Cheap models build. The loop learns.**
+**Frontier models design. Cheap models build and validate. The loop learns.**
 
-- **Director/Lead:** High-judgment model (Opus, Claude Code, or Codex) owns intent, architecture, creative judgment, and final sign-off.
-- **Watcher/Reviewer:** Adversarial reviewer (Codex/GSD) challenges plans, gates merges, catches scope creep.
-- **Executor:** Cheap model (Qwen 3.7 Plus / Gwen) handles routine implementation in isolated worktrees.
+- **Director/Lead (Design tier):** Frontier model (Claude Fable, Kimi 3, Opus, or Codex) owns intent, architecture, creative judgment, and final sign-off.
+- **Watcher/Reviewer:** Adversarial reviewer (frontier or mid-tier: Codex/GSD/Kimi 3) challenges plans, gates merges, catches scope creep.
+- **Executor (Execution tier):** Economy model (MiniMax M3, Qwen 3.7 Plus / Gwen) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees.
 - **Harness:** Any orchestration tool (Ultraswarm, GSD, `delegate_task`, Claude Code subagents, or manual git workflow).
 - **Memory:** Self-improvement loop records lessons and promotes repeated patterns into skills/config.
+
+## Model Tiers & Routing
+
+Beastmode routes every unit of work to a tier, not a specific model. Pick the best available model in each tier for your environment.
+
+| Tier | Example models | Owns |
+|------|---------------|------|
+| **Design (frontier)** | Claude Fable (`claude-fable-5`), Kimi 3, Claude Opus, Codex/GPT frontier | Intent interpretation, architecture, API/data-model design, tradeoff decisions, acceptance contracts, final review sign-off, escalations |
+| **Execution (economy)** | MiniMax M3, Qwen 3.7 Plus / Gwen, Haiku-class | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
+
+**Validation is split in two:**
+
+1. **Mechanical validation (cheap):** The executor tier runs verification commands, collects results, and produces a structured report (what passed, what failed, diff stats). This is deterministic work — never spend frontier tokens on it.
+2. **Judgment review (frontier):** The design tier reads the *report + diff*, not the raw logs, and makes the merge decision. One frontier pass per phase, at the gate.
+
+**Routing rules of thumb:**
+- If the output of the task is a *decision*, route to the design tier.
+- If the output is a *diff, artifact, or pass/fail report*, route to the execution tier.
+- If an execution-tier task fails the same acceptance check twice, escalate that task (not the whole phase) to the design tier.
+
+See `references/model-routing.md` for the full per-phase routing table, provider configuration examples, and the escalation ladder.
 
 ## When to Use Beastmode
 
@@ -46,27 +68,27 @@ Use beastmode for complex tasks that need:
 
 ## Two Beastmode Variants
 
-### Variant A: Opus-Led Beastmode
+### Variant A: Frontier-Led Beastmode (Fable / Kimi 3 / Opus)
 
-**Use when:** You have Claude Code / Opus available as the lead and need maximum judgment for product/creative/architecture decisions.
+**Use when:** You have a frontier model available as the lead (Claude Fable, Kimi 3, Claude Code / Opus) and need maximum judgment for product/creative/architecture decisions.
 
 **Role split:**
-- **Director (Opus/Claude Code):** Intent, architecture, creative judgment, final sign-off
-- **Watcher (Codex/GSD):** Adversarial planning, scope/cost review, merge gating
-- **Executor (Qwen/Gwen):** Implementation, tests, docs, scripts, mechanical refactors
+- **Director (Fable / Kimi 3 / Opus):** Intent, architecture, design docs, creative judgment, final sign-off
+- **Watcher (Codex/GSD or a second frontier model):** Adversarial planning, scope/cost review, merge gating — pairing two different frontier models (e.g. Fable designs, Kimi 3 challenges) catches blind spots a single model family misses
+- **Executor (MiniMax M3 / Qwen / Gwen):** Implementation, tests, docs, scripts, mechanical refactors, and mechanical validation (running verification commands, producing pass/fail reports)
 
-**Key rule:** Opus must aggressively avoid spending tokens on routine implementation. Delegate file edits, test writing, docs, refactors, and command execution to Qwen.
+**Key rule:** The frontier lead must aggressively avoid spending tokens on routine implementation *or* on watching test output scroll by. Delegate file edits, test writing, docs, refactors, command execution, and validation runs to the executor tier; the lead only reads the structured validation report and the diff.
 
 ### Variant B: Codex-Led Beastmode
 
-**Use when:** You don't have Opus, or the task doesn't require Opus-level judgment. Codex/GSD leads, with Qwen executing routine work.
+**Use when:** You don't have a frontier lead, or the task doesn't require frontier-level judgment. Codex/GSD leads, with an economy model executing routine work.
 
 **Role split:**
 - **Director/Reviewer (Codex/GSD or current session):** Planning, review, merge decisions
-- **Executor (Qwen/Gwen):** Implementation, tests, docs, scripts
-- **Escalation:** Codex handles security, auth, payments, data-loss, production incidents, or failed Qwen attempts
+- **Executor (MiniMax M3 / Qwen / Gwen):** Implementation, tests, docs, scripts, mechanical validation
+- **Escalation:** Codex or a frontier model (Fable / Kimi 3) handles security, auth, payments, data-loss, production incidents, or failed executor attempts
 
-**Key rule:** Delegate routine work to Qwen, but don't merge until the lead verifies acceptance.
+**Key rule:** Delegate routine work to the executor tier, but don't merge until the lead verifies acceptance.
 
 ## Hard Rules
 
@@ -110,7 +132,7 @@ gsd-verify-work
 gsd-ship
 ```
 
-Let GSD handle planning/phase gates, and delegate routine implementation units to Qwen via Ultraswarm or `delegate_task`.
+Let GSD handle planning/phase gates, and delegate routine implementation units to the executor tier (MiniMax M3 / Qwen) via Ultraswarm or `delegate_task`.
 
 ### Harness 3: delegate_task (Hermes/OpenClaw)
 
@@ -202,12 +224,15 @@ Escalation triggers: <auth/security/payments/data-loss/architecture-uncertainty>
 Self-improvement log path: <.learnings/BEASTMODE.md or project-local path>
 ```
 
-### Step 2: Plan (With Challenge for Opus-Led)
+### Step 2: Design (Frontier Tier — With Challenge)
 
-**For Opus-led:**
-- Opus drafts intent and constraints
-- Codex/GSD turns it into phases and tries to find gaps
-- Opus resolves tradeoffs and approves the phase map
+Design is the highest-leverage phase — this is where frontier tokens are worth spending. Do not skimp here to save cost; a bad design multiplies executor waste downstream.
+
+**For frontier-led (Fable / Kimi 3 / Opus):**
+- The lead drafts intent, constraints, architecture, and interface contracts
+- A second model (Codex/GSD, or the other frontier model) turns it into phases and tries to find gaps
+- The lead resolves tradeoffs and approves the phase map
+- The output is a **design package** the executor can implement without judgment calls: file-level plan, interfaces/signatures, acceptance contract, verification commands
 
 **For Codex-led:**
 - Lead writes the plan directly, or uses harness planning commands
@@ -227,9 +252,20 @@ Use tight task specs. One task should be reviewable in a single diff.
 - **Claude Code:** `Task("<task>")`
 - **Manual:** Executor works in branch, commits changes
 
-### Step 4: Adversarial Review
+### Step 4: Validate (Cheap), Then Review (Frontier)
 
-The lead or Codex reviews the branch diff against the contract.
+**Stage 1 — Mechanical validation (executor tier):** the economy model (MiniMax M3 / Qwen) runs the contract's verification commands and produces a structured report:
+
+```markdown
+## Validation Report <task-id>
+- Commands run: <each command + exit code>
+- Tests: <passed>/<total> (list failures with one-line reasons)
+- Lint/typecheck: pass | fail (<count> issues)
+- Diff stats: <files changed, +/- lines>; unrelated files touched: yes/no
+- Contract checklist: <each acceptance item: met / not met / can't verify>
+```
+
+**Stage 2 — Judgment review (frontier tier):** the lead or Codex reviews the *report + diff* against the contract. Frontier tokens go to reading the diff and making the call, not to re-running or watching tests.
 
 **Review commands:**
 ```bash
@@ -297,16 +333,17 @@ The self-improvement loop writes **notes only** during a beastmode run. Any last
 
 ## Cost Discipline
 
-### Opus-Led Cost Rules
+### Frontier-Led Cost Rules (Fable / Kimi 3 / Opus)
 
-**Keep Opus for:**
+**Keep the frontier tier for:**
 - Interpreting user intent
 - Product/creative judgment
-- Architecture tradeoffs
-- Final review
+- Architecture tradeoffs and design packages
+- Judgment review of validation reports + diffs
+- Final sign-off
 - Escalation decisions
 
-**Move to Qwen/Gwen:**
+**Move to MiniMax M3 / Qwen / Gwen:**
 - Code generation
 - Tests
 - Docs
@@ -315,13 +352,20 @@ The self-improvement loop writes **notes only** during a beastmode run. Any last
 - Asset assembly
 - Repetitive refactors
 - Command execution
+- **Mechanical validation** (running test suites, lint, typecheck, build; summarizing results into a validation report)
 
-**Use Codex for:**
+**Use Codex (or the second frontier model) for:**
 - GSD planning
 - Adversarial scope/cost review
 - Merge gating
 - High-risk analysis
-- Debugging failed Qwen attempts
+- Debugging failed executor attempts
+
+**Anti-patterns that burn frontier tokens:**
+- Frontier lead re-running tests the executor already ran
+- Frontier lead reading raw test/lint output instead of the validation report
+- Frontier lead writing boilerplate ("just this once") because delegation feels slow
+- Sending the executor an underspecified design so the frontier lead has to answer clarifying questions mid-implementation
 
 ### Codex-Led Cost Rules
 
@@ -330,10 +374,10 @@ The self-improvement loop writes **notes only** during a beastmode run. Any last
 - Adversarial review
 - Security/auth/payments/data-loss risk
 - Production incidents
-- Failed Qwen attempts
+- Failed executor attempts
 
-**Move to Qwen/Gwen:**
-- Everything else (implementation, tests, docs, refactors, scripts, commands)
+**Move to MiniMax M3 / Qwen / Gwen:**
+- Everything else (implementation, tests, docs, refactors, scripts, commands, mechanical validation)
 
 ## Required Final Report
 
@@ -341,26 +385,26 @@ End every beastmode run with:
 
 ```text
 ✅ Beastmode complete: <goal>
-Variant: opus-led | codex-led
+Variant: frontier-led | codex-led
 Harness: <ultraswarm/gsd/delegate_task/claude-code/manual>
 Phases completed: <n>
 Director / watcher / executor split: <summary>
-Models: Opus <x%>, Codex/GPT <y%>, Gwen/Qwen <z%>
+Models: Frontier (Fable/Kimi 3/Opus) <x%>, Codex/GPT <y%>, Executor (MiniMax M3/Qwen) <z%>
 Token/cost report: <harness report or estimate>
-Verification: <commands and results>
+Verification: <commands and results, per validation report>
 Self-improvement: <learning entry path + promoted updates, if any>
 Merge status: <merged/branch ready/blocked>
 ```
 
 ## Choosing Your Variant
 
-**Use Opus-led when:**
-- You have Claude Code / Opus available
+**Use frontier-led when:**
+- You have a frontier model available (Claude Fable, Kimi 3, Claude Code / Opus)
 - The task requires maximum product/creative/architecture judgment
-- You're willing to pay for Opus-level decisions but want to minimize Opus implementation spend
+- You're willing to pay for frontier-level design decisions but want implementation and validation on the cheap tier
 
 **Use Codex-led when:**
-- You don't have Opus, or the task doesn't require Opus-level judgment
+- You don't have a frontier lead, or the task doesn't require frontier-level judgment
 - Codex/GSD is sufficient for planning and review
 - You want the cheapest possible lead with strong gates
 
@@ -372,12 +416,14 @@ Merge status: <merged/branch ready/blocked>
 
 ## Escalation Rules
 
-Escalate from Qwen/Gwen to Codex/Opus when:
+Escalate from the executor tier (MiniMax M3 / Qwen / Gwen) to the frontier tier (Fable / Kimi 3 / Opus / Codex) when:
 - Security, auth, payments, data-loss, legal/financial data, or production incident risk appears
 - The work requires non-obvious architecture tradeoffs
-- Qwen fails the same acceptance check twice
+- The executor fails the same acceptance check twice
 - The diff is too broad to review cheaply
 - The user explicitly asks for frontier reasoning
+
+Escalate a *task*, not the whole phase — the rest of the phase keeps running on the cheap tier. See `references/model-routing.md` for the full escalation ladder.
 
 Escalation does not skip self-improvement. Record why the cheap route failed and whether the routing rule should change.
 
@@ -438,6 +484,7 @@ See `references/context-rot-mitigation.md` for full details on architectural fix
 
 ## References
 
+- **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
 - **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to the current harness-agnostic beastmode.
 - **Public sharing checklist:** See `references/public-sharing-checklist.md` for sanitization guidelines when publishing beastmode skills publicly.
