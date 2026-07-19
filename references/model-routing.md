@@ -1,6 +1,23 @@
 # Model Routing: Frontier Design, Economy Execution
 
-This reference defines how beastmode routes work across model tiers. The core idea: **the cost of a token should match the leverage of the decision it produces.** Design decisions have compounding downstream effects — pay for the best judgment available. Implementation and mechanical validation are verifiable against a contract — buy them at the lowest price that passes the gate.
+This reference defines how beastmode routes work across model tiers.
+
+## The Routing Principle: Verification Cost
+
+Don't route by task *type* — route by how cheaply the task's output can be **verified**.
+
+- **Cheap objective verifier exists** (tests pass, schema validates, lint clean, diff matches a concrete spec) → economy model. If it produces garbage, the verifier catches it for pennies; the worst case is a bounded retry, not a shipped mistake.
+- **Verification is expensive or subjective** ("is this the right architecture?", "does this match what the user actually wants?", "is this security-sensitive change sound?") → frontier model. Here a wrong output is only caught by expensive judgment, so the judgment should happen *once, up front*, in the generation itself.
+
+This reframes what the frontier model is *for*. Its primary output is not code, and not even plans — **it is verifiability**. Design, in beastmode terms, is the act of converting an unverifiable goal ("build this feature well") into verifiable tasks: concrete interfaces, an acceptance contract, executable verification commands, an out-of-scope list. Every hour of frontier design that makes one more task cheaply verifiable moves that task — and all its retries — permanently onto the cheap tier.
+
+Three consequences fall out of the principle:
+
+1. **Cheap-first cascade.** For any task with a verifier, default to the cheapest model and escalate only on verified failure (see Escalation Ladder). Never pre-route to frontier "because it's important" — importance is handled by the verifier and the gate, not by the generation model.
+2. **When no verifier exists, the first question is not "which model does the work?" but "can the frontier model create a verifier?"** Writing characterization tests, tightening the contract, or producing a review checklist is usually cheaper than having the frontier model do the task — and it pays off on every future task of the same shape.
+3. **Frontier review reads compressed evidence, not raw output.** Judgment is expensive; spend it on the decision (report + diff), never on re-deriving the evidence (logs, test runs).
+
+The per-phase table below is what this principle implies for a standard beastmode run — it's the default mapping, not the rule. When a task doesn't fit the table, apply the principle directly.
 
 ## Tier Definitions
 
@@ -59,13 +76,15 @@ Validation splits into two stages routed to different tiers:
 
 Why this split works: mechanical validation is where naive setups burn frontier tokens (long tool outputs, test logs, retries). Piping raw logs into a frontier model is the single most common beastmode cost leak. The report compresses hundreds of KB of logs into <2 KB of decision-relevant signal.
 
-## Escalation Ladder
+## Escalation Ladder (Cheap-First Cascade)
 
-Escalate one rung at a time, per *task* (the rest of the phase stays on the cheap tier):
+Every verifiable task starts at the bottom and climbs only on *verified* failure, per *task* (the rest of the phase stays on the cheap tier):
 
-1. **Retry on economy tier** with the failure appended to the task spec (one retry max).
-2. **Escalate to frontier for diagnosis only:** frontier reads the failure + diff, writes a corrected task spec, hands back to economy tier.
+1. **Retry on economy tier** with the verifier's failure output appended to the task spec (one retry max).
+2. **Escalate to frontier for diagnosis only:** frontier reads the failure + diff, writes a corrected task spec — often this means tightening the verifier or the design package, which is the real fix — then hands back to economy tier.
 3. **Escalate to frontier for execution:** frontier implements the task itself. Reserved for: second identical acceptance failure, security/auth/payments/data-loss surface, non-obvious architecture tradeoffs, or explicit user request.
+
+Rung 2 is the workhorse. Most executor failures are spec failures in disguise — the frontier model fixing the *spec* is cheaper than the frontier model doing the *work*, and it upgrades every similar future task.
 
 Automatic escalation triggers (skip the ladder, go straight to frontier):
 - Security, auth, payments, data-loss, legal/financial data, production incidents

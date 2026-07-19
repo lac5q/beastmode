@@ -21,6 +21,8 @@ Beastmode:
 
 **Frontier models design. Cheap models build and validate. The loop learns.**
 
+The routing rule underneath: a task goes to a cheap model exactly when its output can be cheaply verified (tests, schema, contract); frontier models handle work that only judgment can verify — and their real job is *creating verifiability* (contracts, interfaces, verification commands) so as much work as possible becomes cheap-routable.
+
 ## Model Tiers
 
 - **Design tier (frontier):** Claude Fable, Kimi 3, Opus, frontier Codex/GPT — architecture, acceptance contracts, judgment review, escalations

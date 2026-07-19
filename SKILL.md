@@ -39,17 +39,22 @@ Beastmode routes every unit of work to a tier, not a specific model. Pick the be
 | **Design (frontier)** | Claude Fable (`claude-fable-5`), Kimi 3, Claude Opus, Codex/GPT frontier | Intent interpretation, architecture, API/data-model design, tradeoff decisions, acceptance contracts, final review sign-off, escalations |
 | **Execution (economy)** | MiniMax M3, Qwen 3.7 Plus / Gwen, Haiku-class | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
 
+**The routing principle: verification cost, not task type.**
+
+A task is safe for a cheap model exactly when its output can be **cheaply and objectively verified** — tests pass, schema validates, the diff matches a concrete spec. A task needs a frontier model when verification is expensive or subjective — "is this the right architecture?", "does this match user intent?". Phase labels (design/implement/validate) are just the common case of this rule, not the rule itself.
+
+This reframes the frontier model's job: **its primary output is not code or even plans — it is verifiability.** The design phase converts an unverifiable goal ("build the feature well") into verifiable tasks (concrete interfaces + acceptance contract + verification commands). Once that conversion happens, the cheap tier can do everything downstream, because failures are caught by the verifier, not by expensive review.
+
+**Routing decision, per task:**
+1. Is there a cheap objective verifier for this task's output? → **Economy tier**, cheap-first cascade (retry once on failure, then escalate).
+2. No verifier exists? → Don't route it to frontier by default. First ask: **can the frontier tier create a verifier** (tests, contract, checklist) and then delegate? Only work that resists verifier-creation — genuine judgment calls — is done directly by the frontier model.
+
 **Validation is split in two:**
 
 1. **Mechanical validation (cheap):** The executor tier runs verification commands, collects results, and produces a structured report (what passed, what failed, diff stats). This is deterministic work — never spend frontier tokens on it.
 2. **Judgment review (frontier):** The design tier reads the *report + diff*, not the raw logs, and makes the merge decision. One frontier pass per phase, at the gate.
 
-**Routing rules of thumb:**
-- If the output of the task is a *decision*, route to the design tier.
-- If the output is a *diff, artifact, or pass/fail report*, route to the execution tier.
-- If an execution-tier task fails the same acceptance check twice, escalate that task (not the whole phase) to the design tier.
-
-See `references/model-routing.md` for the full per-phase routing table, provider configuration examples, and the escalation ladder.
+See `references/model-routing.md` for the verification-cost routing rule in full, the per-phase routing table it implies, provider configuration examples, and the escalation ladder.
 
 ## When to Use Beastmode
 
