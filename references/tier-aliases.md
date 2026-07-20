@@ -6,9 +6,9 @@ Resolve friendly tier names (`kimi3`, `fable`, `opus`, `minimax`, `gpt5.5`,
 
 ## Resolution order
 
-1. `<repo>/.beastmode/tier-aliases.json` if it exists
-2. `~/.beastmode/tier-aliases.json` if it exists
-3. `references/tier-aliases.json` (this directory — ship defaults)
+1. `<repo>/.beastmode/tier-aliases.json` if it exists (project override)
+2. `~/.beastmode/tier-aliases.json` if it exists (user override)
+3. `scripts/tier-aliases.json` (shipped next to `bm` — fresh installs work)
 4. Fallback: pass `--frontier <alias>` through to `pi --model` unchanged
 
 ## Defaults (verified against `pi --list-models` on oracle-1 / maeve-u1)
@@ -39,6 +39,11 @@ Resolve friendly tier names (`kimi3`, `fable`, `opus`, `minimax`, `gpt5.5`,
   "minimax": { "provider": "minimax",   "model": "MiniMax-M3",    "tier": "economy" }
 }
 ```
+
+Canonical defaults live at `scripts/tier-aliases.json` (shipped). Project
+overrides go in `<repo>/.beastmode/tier-aliases.json` — same shape, project
+wins on collision. The reference doc and the JSON are co-versioned: if you
+add a row to one, add it to the other in the same PR.
 
 ## How `bm` uses it
 
