@@ -1,0 +1,21 @@
+# Beastmode repo gitignore
+
+# Pi package install state (user-level, never committed)
+.pi/
+.pnpm-store/
+
+# Local skill discovery copy (alternative location; the canonical home is pi/)
+.agents/skills/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Node — only if a pi package build step is added later
+node_modules/
+*.log
