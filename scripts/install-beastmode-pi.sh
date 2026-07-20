@@ -6,7 +6,7 @@
 # location so pi discovers it in every repo.
 #
 # Usage (from anywhere on main-mac):
-#   curl -fsSL https://raw.githubusercontent.com/lac5q/beastmode/feature/beastmode-pi/scripts/install-beastmode-pi.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/lac5q/beastmode/main/scripts/install-beastmode-pi.sh | bash
 # or locally:
 #   bash scripts/install-beastmode-pi.sh
 #
@@ -53,9 +53,10 @@ bold "Install beastmode-pi skill"
 SKILL_DIR="${HOME}/.agents/skills/beastmode-pi"
 mkdir -p "$SKILL_DIR"
 
-# Pull from the lac5q/beastmode repo at the feature branch. Falls back to a
-# raw URL fetch if curl/wget can reach github.
-URL="https://raw.githubusercontent.com/lac5q/beastmode/feature/beastmode-pi/pi/SKILL.md"
+# Pull from the lac5q/beastmode repo on main (override with BEASTMODE_PI_REF).
+# Falls back to a raw URL fetch if curl/wget can reach github.
+REF="${BEASTMODE_PI_REF:-main}"
+URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
 if command -v curl >/dev/null 2>&1; then
   if curl -fsSL "$URL" -o "$DEST.tmp" 2>/dev/null; then
@@ -63,7 +64,7 @@ if command -v curl >/dev/null 2>&1; then
     ok "skill fetched from $URL"
   else
     warn "could not fetch skill from $URL; paste it manually into $DEST"
-    warn "  (the skill ships in lac5q/beastmode/pi/SKILL.md on the feature/beastmode-pi branch)"
+    warn "  (the skill ships in lac5q/beastmode/pi/SKILL.md on the ${REF} branch)"
   fi
 elif command -v wget >/dev/null 2>&1; then
   if wget -q "$URL" -O "$DEST.tmp" 2>/dev/null; then
