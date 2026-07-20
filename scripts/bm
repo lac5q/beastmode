@@ -27,6 +27,32 @@ AUTONOMY="medium"
 GOAL_PARTS=()
 PRINT_HELP=0
 
+# ponytail: aliases live in references/tier-aliases.json — one stdlib json
+# lookup beats a 14-line bash case statement, and the file is the source of
+# truth the docs reference. Fallback: pass the alias through unchanged so
+# `pi` reports the real error instead of us silently mapping wrong.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ALIASES="${SCRIPT_DIR}/../references/tier-aliases.json"
+
+resolve_alias() {
+  local alias="$1"
+  [ -z "$alias" ] && { echo ""; return; }
+  # Already a provider/model → pass through.
+  [[ "$alias" == *"/"* ]] && { echo "$alias"; return; }
+
+  local repo_aliases="$PWD/.beastmode/tier-aliases.json"
+  local user_aliases="$HOME/.beastmode/tier-aliases.json"
+  local candidates=("$repo_aliases" "$user_aliases" "$DEFAULT_ALIASES")
+  for f in "${candidates[@]}"; do
+    [ -f "$f" ] || continue
+    local hit
+    hit="$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); a=d.get(sys.argv[2]); print(f'{a[\"provider\"]}/{a[\"model\"]}' if a and 'provider' in a else '')" "$f" "$alias" 2>/dev/null || true)"
+    [ -n "$hit" ] && { echo "$hit"; return; }
+  done
+  # Fallback: bare alias → pi may or may not accept it.
+  echo "$alias"
+}
+
 usage() {
   sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
   exit 2
@@ -66,6 +92,10 @@ esac
 
 GOAL="${GOAL_PARTS[*]:-}"
 [ -z "$GOAL" ] && usage
+
+# Resolve aliases after parsing so the help path stays side-effect free.
+[ -n "$FRONTIER" ] && FRONTIER="$(resolve_alias "$FRONTIER")"
+[ -n "$ECONOMY" ]  && ECONOMY="$(resolve_alias "$ECONOMY")"
 
 # Resolve --on auto: prefer remote if BM_AUTO_TARGET is set, else local.
 if [ "$ON" = "auto" ]; then
