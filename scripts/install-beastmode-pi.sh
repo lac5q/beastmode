@@ -82,8 +82,12 @@ pi -p "Do you have a skill called beastmode-pi available? Reply SKILL-OK or MISS
   && ok "skill discoverable" \
   || warn "skill NOT discoverable — check $DEST"
 
-pi -p "Without calling any tools, list tool names starting with goal_ or workflow. One per line." 2>&1 | grep -cE '^(goal_|workflow)' \
-  | xargs -I{} bash -c '[ {} -ge 3 ] && echo "  ✓ registered tools: {}" || echo "  ! only {} tool(s) registered"'
+pi -p "Without calling any tools, list tool names starting with goal_ or workflow. One per line." 2>&1 | grep -cE '^(goal_|workflow)' | {
+  read -r n
+  if [ "$n" -ge 3 ]; then ok "registered tools: $n"
+  else warn "only $n tool(s) registered (expected >= 3)"
+  fi
+}
 
 bold "Done. Try:"
 echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
