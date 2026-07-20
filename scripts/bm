@@ -31,8 +31,10 @@ PRINT_HELP=0
 # lookup beats a 14-line bash case statement, and the file is the source of
 # truth the docs reference. Fallback: pass the alias through unchanged so
 # `pi` reports the real error instead of us silently mapping wrong.
+# Look in: <this-script-dir>/tier-aliases.json (shipped together), then
+# $HOME/.beastmode/tier-aliases.json, then <repo>/.beastmode/tier-aliases.json.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_ALIASES="${SCRIPT_DIR}/../references/tier-aliases.json"
+SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
 
 resolve_alias() {
   local alias="$1"
@@ -42,11 +44,14 @@ resolve_alias() {
 
   local repo_aliases="$PWD/.beastmode/tier-aliases.json"
   local user_aliases="$HOME/.beastmode/tier-aliases.json"
-  local candidates=("$repo_aliases" "$user_aliases" "$DEFAULT_ALIASES")
+  local candidates=("$repo_aliases" "$user_aliases" "$SHIP_ALIASES")
   for f in "${candidates[@]}"; do
     [ -f "$f" ] || continue
     local hit
-    hit="$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); a=d.get(sys.argv[2]); print(f'{a[\"provider\"]}/{a[\"model\"]}' if a and 'provider' in a else '')" "$f" "$alias" 2>/dev/null || true)"
+    hit="$(python3 -c "import json,sys
+d=json.load(open(sys.argv[1]))
+a=d.get(sys.argv[2])
+print(f'{a[\"provider\"]}/{a[\"model\"]}' if a and 'provider' in a else '')" "$f" "$alias" 2>/dev/null || true)"
     [ -n "$hit" ] && { echo "$hit"; return; }
   done
   # Fallback: bare alias → pi may or may not accept it.
