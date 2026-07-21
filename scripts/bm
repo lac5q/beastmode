@@ -113,8 +113,10 @@ python3 "$SCRIPT_DIR/phase-estimate" "$GOAL"
 
 # Build pi arguments once (used in local run).
 PHASE_PROMPT="At the end of every phase, report phase name/status; model(s) used; tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value."
+MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Stop and return control. Do not retry or switch models."
+[ "$AUTONOMY" = "high" ] && MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Find one safe workaround: narrow the task, retry once, or use an approved tier model. Validate it. If it fails, stop with goal_blocked evidence."
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high --append-system-prompt "$PHASE_PROMPT")
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
