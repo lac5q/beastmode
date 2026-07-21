@@ -1,7 +1,7 @@
 # Tier Aliases
 
-Resolve friendly tier names (`kimi3`, `fable`, `opus`, `minimax`, `gpt5.5`,
-`qwen`) to concrete provider/model IDs. Read by `scripts/bm` before any
+Resolve friendly tier names (`kimi3`, `fable`, `opus`, `sol`, `terra`,
+`minimax`, `gpt5.5`, `qwen`) to concrete provider/model IDs. Read by `scripts/bm` before any
 `pi` invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json`.
 
 ## Resolution order
@@ -23,6 +23,8 @@ Resolve friendly tier names (`kimi3`, `fable`, `opus`, `minimax`, `gpt5.5`,
 | `sonnet` | `anthropic` | `claude-sonnet-4-6` | frontier | Cheaper frontier option for tight budgets. |
 | `gpt5.5` | `openai-codex` | `gpt-5.5` | frontier | Default Codex-tier frontier. |
 | `gpt5.6` | `openai-codex` | `gpt-5.6-luna` | frontier | Latest Codex frontier (luna profile). |
+| `sol` | `openai-codex` | `gpt-5.6-sol` | frontier | Validator profile; use `--thinking medium`. |
+| `terra` | `openai-codex` | `gpt-5.6-terra` | frontier | Lead profile; use `--thinking high`. |
 | `minimax` | `minimax` | `MiniMax-M3` | economy | Default cheap execution tier. 1M ctx. |
 | `minimax-fast` | `minimax` | `MiniMax-M2.7-highspeed` | economy | Lower latency, smaller ctx. |
 | `qwen` | `qwen` | `qwen3.7-plus` | economy | Use when you need a second opinion from a different family. |
@@ -53,6 +55,10 @@ add a row to one, add it to the other in the same PR.
 2. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,minimax/MiniMax-M3 ...`.
 3. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
+
+Reasoning effort is independent of the model alias. For the Terra lead and
+Sol validator split, run the lead through Hermes as Terra/high, then run the
+validation goal with `bm "<validation goal>" --frontier sol --thinking medium`.
 
 ## How to verify on a new host
 

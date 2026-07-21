@@ -58,6 +58,7 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    ```bash
    bm "<goal>"                                          # prints rough phase ETA, then runs locally
    bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
+   bm "<validation goal>" --frontier sol --thinking medium # OAuth-backed Sol validator
    bm "<goal>" --on maeve-u1                            # dispatch to a fleet node
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run

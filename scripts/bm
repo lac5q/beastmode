@@ -5,7 +5,7 @@
 #   bm "<goal>"                              # default: local, medium autonomy, auto models
 #   bm "<goal>" --gsd                        # force GSD phase gating
 #   bm "<goal>" --on maeve-u1                # dispatch to remote machine
-#   bm "<goal>" --frontier kimi3 --economy minimax
+#   bm "<goal>" --frontier sol --thinking medium
 #   bm "<goal>" --autonomy low|medium|high   # default medium
 #
 # The goal can appear anywhere on the command line; flags are parsed first
@@ -24,6 +24,7 @@ ON="auto"
 FRONTIER=""
 ECONOMY=""
 AUTONOMY="medium"
+THINKING="high"
 GOAL_PARTS=()
 PRINT_HELP=0
 
@@ -79,6 +80,8 @@ while [ $# -gt 0 ]; do
     --economy=*)       ECONOMY="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
     --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
+    --thinking)        THINKING="${2:-high}"; shift 2 ;;
+    --thinking=*)      THINKING="${1#*=}"; shift ;;
     -h|--help)         PRINT_HELP=1; shift ;;
     --)                shift; while [ $# -gt 0 ]; do GOAL_PARTS+=("$1"); shift; done ;;
     -*)                echo "bm: unknown arg: $1" >&2; usage ;;
@@ -93,6 +96,11 @@ fi
 case "$AUTONOMY" in
   low|medium|high) ;;
   *) echo "bm: --autonomy must be low|medium|high (got: $AUTONOMY)" >&2; exit 2 ;;
+esac
+
+case "$THINKING" in
+  none|minimal|low|medium|high|xhigh) ;;
+  *) echo "bm: --thinking must be none|minimal|low|medium|high|xhigh (got: $THINKING)" >&2; exit 2 ;;
 esac
 
 GOAL="${GOAL_PARTS[*]:-}"
@@ -116,7 +124,7 @@ PHASE_PROMPT="At the end of every phase, report phase name/status; model(s) used
 MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Stop and return control. Do not retry or switch models."
 [ "$AUTONOMY" = "high" ] && MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Find one safe workaround: narrow the task, retry once, or use an approved tier model. Validate it. If it fails, stop with goal_blocked evidence."
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT")
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
@@ -134,6 +142,7 @@ if [ "$ON" != "local" ]; then
   [ -n "$FRONTIER" ]     && REMOTE_FLAGS="$REMOTE_FLAGS --frontier $FRONTIER"
   [ -n "$ECONOMY" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --economy $ECONOMY"
   REMOTE_FLAGS="$REMOTE_FLAGS --autonomy $AUTONOMY"
+  REMOTE_FLAGS="$REMOTE_FLAGS --thinking $THINKING"
   # shellcheck disable=SC2086
   exec ssh "$ON" "bm '$GOAL' $REMOTE_FLAGS"
 fi

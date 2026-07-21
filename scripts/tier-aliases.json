@@ -9,6 +9,8 @@
   "sonnet":       { "provider": "anthropic",   "model": "claude-sonnet-4-6",  "tier": "frontier" },
   "gpt5.5":       { "provider": "openai-codex", "model": "gpt-5.5",           "tier": "frontier" },
   "gpt5.6":       { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "frontier" },
+  "sol":          { "provider": "openai-codex", "model": "gpt-5.6-sol",       "tier": "frontier" },
+  "terra":        { "provider": "openai-codex", "model": "gpt-5.6-terra",     "tier": "frontier" },
   "minimax":      { "provider": "minimax",     "model": "MiniMax-M3",         "tier": "economy"  },
   "minimax-fast": { "provider": "minimax",     "model": "MiniMax-M2.7-highspeed", "tier": "economy" },
   "qwen":         { "provider": "qwen",        "model": "qwen3.7-plus",       "tier": "economy"  },
