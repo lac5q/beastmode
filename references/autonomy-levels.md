@@ -6,9 +6,9 @@ committing/pushing, no secrets, verifier-first, no watcher = no validated).
 
 | Level | What runs without surfacing | What always surfaces | Default? |
 |---|---|---|---|
-| **low** | Single executor turn, one read-only tool call | Every phase transition, every merge, every cross-tier escalation, every Worker → Watcher jump, any diff > 1 file | no |
-| **medium** | Whole phase: acceptance → design package → delegate → validate → review. Same-tier retries | Security/auth/payments/data-loss events, Watcher fallback landed on tier 2/3, merge gate on the front door, any goal_blocked | **yes** |
-| **high** | Multi-phase until goal_complete or 3 identical goal_blocked in a row with concrete evidence | budget_limited stop, watcher unavailable after all 3 tiers, any `"No watcher, no validated"` violation, telegram-bound secrets in prompt | no |
+| **low** | Single executor turn, one read-only tool call | Every phase transition, every merge, every cross-tier escalation, every Worker → Watcher jump, any diff > 1 file, **any model failure** | no |
+| **medium** | Whole phase: acceptance → design package → delegate → validate → review | Security/auth/payments/data-loss events, tier-2/3 Watcher fallback, front-door merge gate, any `goal_blocked`, **any model failure** | **yes** |
+| **high** | Multi-phase until goal_complete or 3 identical goal_blocked in a row with concrete evidence; one safe workaround after a model failure | budget_limited stop, watcher unavailable after all 3 tiers, any `"No watcher, no validated"` violation, telegram-bound secrets in prompt, model failure + workaround result | no |
 
 **Default: medium.** Most feature work, most reviews, no chat spam — only the
 high-risk gates escalate. Switch with `bm "<goal>" --autonomy low|high`.

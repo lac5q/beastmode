@@ -158,6 +158,24 @@ Time: <actual> / <estimated>
 Say `unavailable` for a field that the harness does not expose. Do not invent
 usage or timing values.
 
+## Model failure
+
+A model failure includes a provider error, timeout, invalid response, or an
+output that cannot continue the phase.
+
+- At `low` or `medium` autonomy, issue the failure report and stop. Do not
+  retry or switch models.
+- At `high` autonomy, issue the failure report, then try one safe workaround:
+  narrow the task, retry once, or use an approved tier model. Validate the
+  workaround. If it fails, stop with `goal_blocked` evidence.
+- Do not bypass a permission, security, data-loss, or watcher gate.
+
+Add this line to a failure report:
+
+```text
+Failure: <provider/model> — <error>; workaround: <none | action and result>
+```
+
 ## Completion contract (on `goal_complete`)
 
 Beastmode's universal artifacts, written in this order:
