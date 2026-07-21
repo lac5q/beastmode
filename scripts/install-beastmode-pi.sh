@@ -90,11 +90,11 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
   fi
 }
 
-# 5. runner CLI + tier-aliases JSON (next to bm so resolve_alias() finds it)
-bold "Install bm runner + tier aliases"
+# 5. runner CLI + its support files (next to bm so it can find both)
+bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json; do
+for f in bm tier-aliases.json phase-estimate; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   if curl -fsSL "$URL" -o "$DEST.tmp" 2>/dev/null; then
