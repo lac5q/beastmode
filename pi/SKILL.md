@@ -62,6 +62,11 @@ curl -sS https://api.minimax.io/v1/chat/completions \
 
 # Droid MiniMax lane
 ~/.local/bin/droid exec --model minimax-m3 "Reply with exactly: MINIMAX OK"
+
+# Claude Pro lane (Claude Code CLI print mode, uses claude.ai Pro/Max quota)
+claude --dangerously-skip-permissions -p --model opus "Reply with exactly: CLAUDE OK"
+# Or via the wrapper:
+~/.local/bin/claude-pro "Reply with exactly: CLAUDE OK"
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
@@ -70,6 +75,48 @@ prefer external CLI lanes for the bulk cheap-worker execution you already pay
 for. The verifier-first rule from the universal skill governs everything:
 if a cheap lane cannot produce a verifiable artifact cheaply, escalate to
 the frontier tier.
+
+## Claude routing rule (hard rule)
+
+**All Claude work in beastmode routes through the Claude Pro lane (`claude -p`,
+`~/.local/bin/claude-pro`), never through the workflow tool's `agent()` with
+an `anthropic/*` model spec.** The `anthropic` OAuth API credential in
+`~/.pi/agent/auth.json` shares a single "extra usage" pool across every
+Claude model (`claude-opus-4-8`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
+etc.) and that pool is rate-limited. Routing Claude work through
+`workflow agent({model: "anthropic/claude-opus-4-8"})` fails with HTTP 400
+*"You're out of extra usage"* and burns the whole run.
+
+The hard rule is enforced by:
+
+- `~/.pi/workflows/model-tiers.json` — every tier maps to a **non-Claude**
+  model (small/medium → MiniMax, big → `openai-codex/gpt-5.5`). Any `tier:`
+  on a beastmode worker routes away from Claude by construction.
+- A workflow author who explicitly writes
+  `agent(prompt, { model: "anthropic/claude-opus-4-8" })` is bypassing the
+  tier system. Don't do it. Use `claude -p --model opus` from the director
+  instead, exactly like the Qwen / MiniMax / droid lanes above.
+
+For Claude frontier work, the pattern is:
+
+```bash
+# Director (this pi session) calls the lane directly via bash
+claude -p --model opus --dangerously-skip-permissions "<prompt>"
+# or, equivalently:
+~/.local/bin/claude-pro "<prompt>"
+```
+
+`claude -p` is non-interactive (`--print`), reads the prompt from argv (or
+stdin via `<`), and exits with the model's reply on stdout. It draws from
+the claude.ai Pro/Max subscription quota, which is separate from and not
+rate-coupled to the API OAuth credential.
+
+If you find yourself wanting Claude inside a workflow subagent — for example
+because you want it to fan out in parallel — escalate to the universal
+beastmode framework first: the verifier-first rule plus parallel cheap
+lanes almost always covers the case without paying Claude frontier prices
+on every worker. Reserve `claude -p` for watcher-tier judgment and
+verifier-tier review, never for bulk cheap work.
 
 ## Operating loop
 
@@ -143,38 +190,6 @@ the frontier tier.
    `/workflows` opens the run navigator. If telegram was set up, proactive
    push mirrors completed checkpoints to the phone; never paste tokens,
    diffs containing secrets, or private data into telegram-bound text.
-
-## Phase report
-
-At each phase end, report this data from the workflow journal or `budget`:
-
-```text
-Phase: <name> — <pass | fail | blocked>
-Models: <provider/model, ...>
-Tokens: <used> / <phase budget> (<percent>%)
-Time: <actual> / <estimated>
-```
-
-Say `unavailable` for a field that the harness does not expose. Do not invent
-usage or timing values.
-
-## Model failure
-
-A model failure includes a provider error, timeout, invalid response, or an
-output that cannot continue the phase.
-
-- At `low` or `medium` autonomy, issue the failure report and stop. Do not
-  retry or switch models.
-- At `high` autonomy, issue the failure report, then try one safe workaround:
-  narrow the task, retry once, or use an approved tier model. Validate the
-  workaround. If it fails, stop with `goal_blocked` evidence.
-- Do not bypass a permission, security, data-loss, or watcher gate.
-
-Add this line to a failure report:
-
-```text
-Failure: <provider/model> — <error>; workaround: <none | action and result>
-```
 
 ## Completion contract (on `goal_complete`)
 
