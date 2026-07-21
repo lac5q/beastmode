@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Print a rough wall-clock estimate for the standard Beastmode phases."""
+
+import json
+import re
+import sys
+
+PHASES = (
+    ("Preflight", 2),
+    ("Acceptance contract", 5),
+    ("Design", 12),
+    ("Design challenge", 6),
+    ("Implementation", 20),
+    ("Mechanical validation", 8),
+    ("Judgment review", 5),
+    ("Merge", 2),
+    ("Self-improvement", 3),
+)
+
+COMPLEXITY_WORDS = {
+    "auth", "authentication", "authorization", "billing", "database", "migration",
+    "payment", "permissions", "production", "schema", "security",
+}
+BREADTH_WORDS = {"api", "integration", "refactor", "rewrite", "system", "workflow"}
+
+
+def estimate(goal):
+    words = set(re.findall(r"[a-z0-9]+", goal.lower()))
+    scale = 1 + min(max(len(words) - 10, 0) / 80, 0.25)
+    scale += 0.4 * bool(words & COMPLEXITY_WORDS)
+    scale += 0.2 * bool(words & BREADTH_WORDS)
+    phases = [
+        {"phase": name, "minutes": [round(minutes * scale), round(minutes * scale * 1.5)]}
+        for name, minutes in PHASES
+    ]
+    return {"scale": round(scale, 2), "phases": phases,
+            "minutes": [sum(p["minutes"][0] for p in phases), sum(p["minutes"][1] for p in phases)]}
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ["--self-test"]:
+        simple = estimate("update docs")
+        complex_goal = estimate("migrate the production database authentication API workflow")
+        assert len(simple["phases"]) == len(PHASES)
+        assert complex_goal["minutes"][0] > simple["minutes"][0]
+        print("phase-estimate: ok")
+        return
+    as_json = args[:1] == ["--json"]
+    if as_json:
+        args = args[1:]
+    if not args:
+        raise SystemExit("usage: phase-estimate [--json] <goal>")
+    result = estimate(" ".join(args))
+    if as_json:
+        print(json.dumps(result))
+        return
+    print(f"bm: rough phase estimate ({result['minutes'][0]}–{result['minutes'][1]} min)")
+    for phase in result["phases"]:
+        low, high = phase["minutes"]
+        print(f"  {phase['phase']}: {low}–{high} min")
+
+
+if __name__ == "__main__":
+    main()

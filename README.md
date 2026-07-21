@@ -56,10 +56,11 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 5. **(Optional) one-shot runner:**
 
    ```bash
-   bm "<goal>"                                          # local, medium autonomy, auto models
+   bm "<goal>"                                          # prints rough phase ETA, then runs locally
    bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
    bm "<goal>" --on maeve-u1                            # dispatch to a fleet node
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
+   scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    ```
 
    See `scripts/bm` and `references/autonomy-levels.md`.
@@ -73,7 +74,8 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 - `references/context-rot-mitigation.md` — MemroOS-style goal-state capsules, compact/resume rules, and MofA decision memory
 - `references/public-sharing-checklist.md` — Guidelines for publishing beastmode skills publicly
 - `pi/SKILL.md` — Pi harness adapter (`pi-coding-agent` ≥ 0.80.6 + 6 companion npm packages)
-- `scripts/bm` — Runner CLI for one-shot goals with tier picks + `--on` dispatch
+- `scripts/bm` — Runner CLI for one-shot goals with tier picks, phase reports, and `--on` dispatch
+- `scripts/phase-estimate` — Rough per-phase wall-clock estimate from the goal scope
 - `scripts/install-beastmode-pi.sh` — Idempotent bootstrap of `pi` + 6 companion packages
 
 ## Compatibility

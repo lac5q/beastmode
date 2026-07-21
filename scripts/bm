@@ -107,9 +107,14 @@ if [ "$ON" = "auto" ]; then
   ON="${BM_AUTO_TARGET:-local}"
 fi
 
+# ponytail: a goal is the only input before design. Print a transparent rough
+# baseline now; replace it with measured phase history when that exists.
+python3 "$SCRIPT_DIR/phase-estimate" "$GOAL"
+
 # Build pi arguments once (used in local run).
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high)
-[ "$GSD" = "1" ]       && PI_ARGS+=(--append-system-prompt "Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship")
+PHASE_PROMPT="At the end of every phase, report phase name/status; model(s) used; tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value."
+[ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high --append-system-prompt "$PHASE_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
