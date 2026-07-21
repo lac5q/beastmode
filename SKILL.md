@@ -107,6 +107,16 @@ Use beastmode for complex tasks that need:
 
 Beastmode works with any orchestration harness. Choose based on your environment:
 
+### Runner CLI (`bm`)
+
+For one-shot goals without writing a full plan: `bm "<goal>"` from any repo.
+Parses `--gsd`, `--frontier <alias>`, `--economy <alias>`, `--on local|<host>`,
+`--autonomy low|medium|high` (default `medium`). Tier aliases resolve via
+`references/tier-aliases.json` — `kimi3` → `kimi-coding/k3`, `fable` →
+`anthropic/claude-fable-5`, `minimax` → `minimax/MiniMax-M3`, etc. Override
+per-repo with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and
+`references/autonomy-levels.md`.
+
 ### Harness 1: Ultraswarm (Preferred for Git Repos)
 
 **Use when:** You have Ultraswarm installed and want worktree isolation, adaptive QA, merge gates, and cost reporting.
@@ -490,6 +500,8 @@ See `references/context-rot-mitigation.md` for full details on architectural fix
 ## References
 
 - **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
+- **Tier aliases:** See `references/tier-aliases.md` (and `tier-aliases.json`) for the friendly-name → `provider/model` map consumed by `scripts/bm`. Verified against `pi --list-models` on oracle-1 / maeve-u1.
+- **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, and how to map them to `pi --approve` / `--no-builtin-tools`.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
-- **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to the current harness-agnostic beastmode.
+- **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.0.
 - **Public sharing checklist:** See `references/public-sharing-checklist.md` for sanitization guidelines when publishing beastmode skills publicly.

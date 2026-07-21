@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# bm — beastmode runner. One CLI to start a Beastmode goal from anywhere.
+#
+# Usage:
+#   bm "<goal>"                              # default: local, medium autonomy, auto models
+#   bm "<goal>" --gsd                        # force GSD phase gating
+#   bm "<goal>" --on maeve-u1                # dispatch to remote machine
+#   bm "<goal>" --frontier kimi3 --economy minimax
+#   bm "<goal>" --autonomy low|medium|high   # default medium
+#
+# The goal can appear anywhere on the command line; flags are parsed first
+# and the remaining args are joined into the goal string.
+#
+# Model aliases resolved in references/model-routing.md (tier model).
+# Autonomy levels are defined in references/autonomy-levels.md.
+#
+# Exit code: 0 = goal_complete surfaced; 1 = goal_blocked or watch failure;
+# 2 = usage / config error.
+
+set -euo pipefail
+
+GSD=0
+ON="auto"
+FRONTIER=""
+ECONOMY=""
+AUTONOMY="medium"
+GOAL_PARTS=()
+PRINT_HELP=0
+
+# ponytail: aliases live in references/tier-aliases.json — one stdlib json
+# lookup beats a 14-line bash case statement, and the file is the source of
+# truth the docs reference. Fallback: pass the alias through unchanged so
+# `pi` reports the real error instead of us silently mapping wrong.
+# Look in: <this-script-dir>/tier-aliases.json (shipped together), then
+# $HOME/.beastmode/tier-aliases.json, then <repo>/.beastmode/tier-aliases.json.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
+
+resolve_alias() {
+  local alias="$1"
+  [ -z "$alias" ] && { echo ""; return; }
+  # Already a provider/model → pass through.
+  [[ "$alias" == *"/"* ]] && { echo "$alias"; return; }
+
+  local repo_aliases="$PWD/.beastmode/tier-aliases.json"
+  local user_aliases="$HOME/.beastmode/tier-aliases.json"
+  local candidates=("$repo_aliases" "$user_aliases" "$SHIP_ALIASES")
+  for f in "${candidates[@]}"; do
+    [ -f "$f" ] || continue
+    local hit
+    hit="$(python3 -c "import json,sys
+d=json.load(open(sys.argv[1]))
+a=d.get(sys.argv[2])
+print(f'{a[\"provider\"]}/{a[\"model\"]}' if a and 'provider' in a else '')" "$f" "$alias" 2>/dev/null || true)"
+    [ -n "$hit" ] && { echo "$hit"; return; }
+  done
+  # Fallback: bare alias → pi may or may not accept it.
+  echo "$alias"
+}
+
+usage() {
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  exit 2
+}
+
+if [ $# -eq 0 ]; then
+  usage
+fi
+
+# First pass: collect flags and non-flag args separately.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --gsd)             GSD=1; shift ;;
+    --on)              ON="${2:-auto}"; shift 2 ;;
+    --on=*)            ON="${1#*=}"; shift ;;
+    --frontier)        FRONTIER="${2:-}"; shift 2 ;;
+    --frontier=*)      FRONTIER="${1#*=}"; shift ;;
+    --economy)         ECONOMY="${2:-}"; shift 2 ;;
+    --economy=*)       ECONOMY="${1#*=}"; shift ;;
+    --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
+    --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
+    -h|--help)         PRINT_HELP=1; shift ;;
+    --)                shift; while [ $# -gt 0 ]; do GOAL_PARTS+=("$1"); shift; done ;;
+    -*)                echo "bm: unknown arg: $1" >&2; usage ;;
+    *)                 GOAL_PARTS+=("$1"); shift ;;
+  esac
+done
+
+if [ "$PRINT_HELP" = "1" ]; then
+  usage
+fi
+
+case "$AUTONOMY" in
+  low|medium|high) ;;
+  *) echo "bm: --autonomy must be low|medium|high (got: $AUTONOMY)" >&2; exit 2 ;;
+esac
+
+GOAL="${GOAL_PARTS[*]:-}"
+[ -z "$GOAL" ] && usage
+
+# Resolve aliases after parsing so the help path stays side-effect free.
+[ -n "$FRONTIER" ] && FRONTIER="$(resolve_alias "$FRONTIER")"
+[ -n "$ECONOMY" ]  && ECONOMY="$(resolve_alias "$ECONOMY")"
+
+# Resolve --on auto: prefer remote if BM_AUTO_TARGET is set, else local.
+if [ "$ON" = "auto" ]; then
+  ON="${BM_AUTO_TARGET:-local}"
+fi
+
+# ponytail: a goal is the only input before design. Print a transparent rough
+# baseline now; replace it with measured phase history when that exists.
+python3 "$SCRIPT_DIR/phase-estimate" "$GOAL"
+
+# Build pi arguments once (used in local run).
+PHASE_PROMPT="At the end of every phase, report phase name/status; model(s) used; tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value."
+[ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking high --append-system-prompt "$PHASE_PROMPT")
+[ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
+[ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
+[ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
+[ "$AUTONOMY" = "high" ] && PI_ARGS+=(--no-builtin-tools)
+
+# Remote dispatch: hand the goal to maeve-u1 over SSH and tail the goal log.
+# ponytail: foreground SSH so the user sees the live goal stream. If they want
+# fire-and-forget, run `bm --on $ON ... &` themselves or use --autonomy high.
+if [ "$ON" != "local" ]; then
+  if ! command -v ssh >/dev/null 2>&1; then
+    echo "bm: --on $ON needs ssh in PATH" >&2; exit 2
+  fi
+  REMOTE_FLAGS=""
+  [ "$GSD" = "1" ]       && REMOTE_FLAGS="$REMOTE_FLAGS --gsd"
+  [ -n "$FRONTIER" ]     && REMOTE_FLAGS="$REMOTE_FLAGS --frontier $FRONTIER"
+  [ -n "$ECONOMY" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --economy $ECONOMY"
+  REMOTE_FLAGS="$REMOTE_FLAGS --autonomy $AUTONOMY"
+  # shellcheck disable=SC2086
+  exec ssh "$ON" "bm '$GOAL' $REMOTE_FLAGS"
+fi
+
+exec pi "${PI_ARGS[@]}" "$GOAL"

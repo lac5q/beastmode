@@ -90,6 +90,23 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
   fi
 }
 
+# 5. runner CLI + tier-aliases JSON (next to bm so resolve_alias() finds it)
+bold "Install bm runner + tier aliases"
+BM_DIR="${HOME}/.local/bin"
+mkdir -p "$BM_DIR"
+for f in bm tier-aliases.json; do
+  URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
+  DEST="${BM_DIR}/${f}"
+  if curl -fsSL "$URL" -o "$DEST.tmp" 2>/dev/null; then
+    mv "$DEST.tmp" "$DEST"
+    chmod +x "$DEST" 2>/dev/null || true
+    ok "fetched $f"
+  else
+    warn "could not fetch $f from $URL; copy from scripts/ manually"
+  fi
+done
+
 bold "Done. Try:"
 echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
 echo "  # or just start pi in any repo — skill auto-discovers"
+echo "  bm '<goal>' --frontier kimi3 --economy minimax --on maeve-u1 --autonomy medium"

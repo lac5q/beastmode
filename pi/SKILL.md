@@ -144,6 +144,20 @@ the frontier tier.
    push mirrors completed checkpoints to the phone; never paste tokens,
    diffs containing secrets, or private data into telegram-bound text.
 
+## Phase report
+
+At each phase end, report this data from the workflow journal or `budget`:
+
+```text
+Phase: <name> — <pass | fail | blocked>
+Models: <provider/model, ...>
+Tokens: <used> / <phase budget> (<percent>%)
+Time: <actual> / <estimated>
+```
+
+Say `unavailable` for a field that the harness does not expose. Do not invent
+usage or timing values.
+
 ## Completion contract (on `goal_complete`)
 
 Beastmode's universal artifacts, written in this order:
