@@ -94,7 +94,7 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
 bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json phase-estimate; do
+for f in bm tier-aliases.json phase-estimate claude-pro; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   if curl -fsSL "$URL" -o "$DEST.tmp" 2>/dev/null; then
@@ -106,7 +106,24 @@ for f in bm tier-aliases.json phase-estimate; do
   fi
 done
 
+# 6. agentType marker for the Claude Pro lane (pi workflow subagent registry)
+# Workflow scripts may write `agentType: "claude-cli"` to flag a slot as
+# "Claude Pro work goes here, director invokes the lane directly." See
+# pi/agents/claude-cli.md and pi/SKILL.md "Claude routing rule (hard rule)".
+bold "Install Claude Pro lane agentType marker"
+AGENT_DIR="${HOME}/.pi/agent/agents"
+mkdir -p "$AGENT_DIR"
+AGENT_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/agents/claude-cli.md"
+AGENT_DEST="${AGENT_DIR}/claude-cli.md"
+if curl -fsSL "$AGENT_URL" -o "$AGENT_DEST.tmp" 2>/dev/null; then
+  mv "$AGENT_DEST.tmp" "$AGENT_DEST"
+  ok "fetched claude-cli.md agentType marker"
+else
+  warn "could not fetch $AGENT_URL; copy from pi/agents/claude-cli.md manually"
+fi
+
 bold "Done. Try:"
 echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
 echo "  # or just start pi in any repo — skill auto-discovers"
 echo "  bm '<goal>' --frontier kimi3 --economy minimax --on maeve-u1 --autonomy medium"
+echo "  claude-pro \"<prompt>\"   # Claude Pro lane (claude.ai subscription quota)"

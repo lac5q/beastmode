@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# claude-pro — Beastmode Claude Pro lane wrapper.
+#
+# Routes Claude work through the local Claude Code CLI in non-interactive
+# print mode. Uses the claude.ai Pro/Max subscription quota (NOT the API
+# OAuth credential in ~/.pi/agent/auth.json, which shares an "extra usage"
+# pool across every Claude model and is rate-limited).
+#
+# Usage:
+#   claude-pro "<prompt>"                 # prompt as argv
+#   claude-pro --model opus "<prompt>"     # override model (default: opus)
+#   echo "<prompt>" | claude-pro           # prompt via stdin
+#   cat prompt.txt | claude-pro           # multi-line prompt via stdin
+#
+# This is the beastmode Claude external lane. See
+# ~/.agents/skills/beastmode-pi/SKILL.md "Claude routing rule".
+
+set -euo pipefail
+
+# Sanity: refuse if the Claude Code CLI is missing.
+if ! command -v claude >/dev/null 2>&1; then
+  echo "claude-pro: 'claude' CLI not found in PATH. Install Claude Code: https://docs.claude.com/en/docs/claude-code" >&2
+  exit 127
+fi
+
+# Default model: opus. Override with --model.
+MODEL="opus"
+PROMPT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --model)
+      [[ $# -ge 2 ]] || { echo "claude-pro: --model requires an argument" >&2; exit 2; }
+      MODEL="$2"
+      shift 2
+      ;;
+    --model=*)
+      MODEL="${1#--model=}"
+      shift
+      ;;
+    -h|--help)
+      sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      # First non-flag arg is the prompt. Remaining args are appended.
+      if [[ -z "$PROMPT" ]]; then
+        PROMPT="$1"
+      else
+        PROMPT="$PROMPT $1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# If no argv prompt was given, read stdin.
+if [[ -z "$PROMPT" ]]; then
+  PROMPT="$(cat)"
+fi
+
+if [[ -z "$PROMPT" ]]; then
+  echo "claude-pro: no prompt provided (argv or stdin)" >&2
+  exit 2
+fi
+
+# --dangerously-skip-permissions keeps non-interactive runs from hanging on
+# tool-permission prompts. Remove it if you want the lane to require explicit
+# approval for tool calls (it will block indefinitely in -p mode without a
+# human at the terminal).
+exec claude --dangerously-skip-permissions -p --model "$MODEL" "$PROMPT"
