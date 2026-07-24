@@ -117,6 +117,13 @@ Parses `--gsd`, `--frontier <alias>`, `--economy <alias>`, `--on local|<host>`,
 per-repo with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and
 `references/autonomy-levels.md`.
 
+Before invoking `pi`, `bm` runs a model-availability preflight that checks
+each resolved `provider/model` against `pi --list-models` on the local host.
+If any are missing, `bm` exits with code 2 and prints the available
+alternatives, so a goal never starts against an unresolvable model. Skip
+with `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs). The check is also
+skipped when `--on` is not local (the remote host owns availability).
+
 ### Harness 1: Ultraswarm (Preferred for Git Repos)
 
 **Use when:** You have Ultraswarm installed and want worktree isolation, adaptive QA, merge gates, and cost reporting.
@@ -220,9 +227,14 @@ git status --short
 # If using Ultraswarm:
 ultraswarm doctor
 ultraswarm report || true
+# If using the bm runner:
+bm --help                  # confirm the runner is on PATH
+pi --list-models | head     # confirm your frontier/economy models are present
 ```
 
 If your harness is unavailable, fall back to a simpler harness (e.g., `delegate_task` or manual git), then record the failure in the self-improvement log.
+
+**Model availability preflight (`bm`).** Before invoking `pi`, `bm` validates every `--frontier` and `--economy` alias against `pi --list-models` on the local host. If a resolved `provider/model` is not present, `bm` exits with code 2 and prints the available alternatives, so a goal never starts against an unresolvable model. The check is skipped when `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs) or when `--on` is not local (the remote host owns availability).
 
 ### Step 1: Define Acceptance Contract
 

@@ -7,6 +7,17 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/pi" <<'EOF'
 #!/usr/bin/env bash
+# Mock pi: capture args, and report a minimal --list-models output that
+# satisfies the model-availability preflight in bm.
+if [ "$1" = "--list-models" ]; then
+  cat <<TABLE
+provider      model                                      context  max-out  thinking  images
+openai-codex  gpt-5.6-sol                                200K     64K      yes       no
+openai-codex  gpt-5.6-terra                              200K     64K      yes       no
+minimax       MiniMax-M3                                 1M       64K      yes       no
+TABLE
+  exit 0
+fi
 printf '%s\n' "$@" > "$BM_TEST_ARGS"
 EOF
 chmod +x "$TMP/bin/pi"

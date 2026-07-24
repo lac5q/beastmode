@@ -52,8 +52,14 @@ add a row to one, add it to the other in the same PR.
 `bm "<goal>" --frontier kimi3 --economy minimax`:
 
 1. Looks up `kimi3` → `kimi-coding/k3` (frontier), `minimax` → `minimax/MiniMax-M3` (economy).
-2. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,minimax/MiniMax-M3 ...`.
-3. Unresolved alias → passes through unchanged so the user sees the real
+2. **Preflight check**: validates each resolved `provider/model` exists in
+   `pi --list-models` on the local host. If any are missing, `bm` exits with
+   code 2 and lists the available frontier/economy alternatives the user can
+   pick from — instead of letting `pi` fail mid-goal. Skipped when
+   `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs) or when `--on` is not local
+   (the remote host owns availability).
+3. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,minimax/MiniMax-M3 ...`.
+4. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
 
 Reasoning effort is independent of the model alias. For the Terra lead and

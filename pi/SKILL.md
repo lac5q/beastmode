@@ -38,7 +38,15 @@ pi install npm:@narumitw/pi-goal \
   npm:@quintinshaw/pi-dynamic-workflows \
   npm:pi-loop-police npm:@gotgenes/pi-permission-system \
   npm:@juicesharp/rpiv-todo npm:@llblab/pi-telegram
+pi --list-models | head         # confirm frontier + economy models exist on this host
 ```
+
+**Model availability.** `bm "<goal>" --frontier kimi3 --economy minimax` will
+exit with code 2 before any `pi` invocation if either resolved
+`provider/model` is missing from `pi --list-models`. The error lists the
+available alternatives so you can pick a working alias without losing the
+goal to a mid-run crash. Skip with `BM_SKIP_MODEL_CHECK=1` (CI / scripted
+runs where `pi` may not be installed).
 
 Telegram supervision is optional. `/telegram-setup` is interactive and needs a
 bot token from `@BotFather`; if it was never completed, skip telegram silently
