@@ -174,6 +174,13 @@ delegate_task(
 
 **Note:** `delegate_task` doesn't provide worktree isolation. Use for small parallel tasks or when worktrees aren't needed.
 
+**Cache note:** `delegate_task` gives each subagent a fresh context, so the shared
+prefix (repo path, acceptance contract, verification commands) is re-sent every call.
+Keep that `context=` block byte-identical across delegations and fire them
+consecutively — the first pays a 1.25x write, the rest read at 0.10x while warm.
+Re-wording the context per task, or interleaving delegations with other model calls,
+forfeits that.
+
 ### Harness 4: Claude Code Subagents
 
 **Use when:** You're in Claude Code and want to spawn subagents for routine work.
@@ -275,6 +282,19 @@ Design is the highest-leverage phase — this is where frontier tokens are worth
 ### Step 3: Delegate Routine Work
 
 Use tight task specs. One task should be reviewable in a single diff.
+
+**Batch delegations to the same lane consecutively.** Every worker starts with a cold
+prefix and pays a cache write (1.25x); subsequent workers on the same lane, model, and
+system prompt read that prefix at 0.10x while it is warm (5-minute TTL, refreshed on
+each hit). Ten workers fired back-to-back on one lane pay roughly one write; the same
+ten interleaved across three lanes pay a write each time you switch back. Group by
+lane, don't round-robin.
+
+**Keep the worker contract byte-identical across workers.** The universal worker
+contract (allowed files, forbidden commands, required output) is the shared prefix.
+Inject the per-task objective *after* it, never inside it — a task ID or timestamp
+spliced into the contract header gives every worker a unique prefix and forfeits the
+discount entirely.
 
 **Delegation by harness:**
 - **Ultraswarm:** `ultraswarm run "<task>" --repo . --provider auto --mode auto`
@@ -396,6 +416,16 @@ The self-improvement loop writes **notes only** during a beastmode run. Any last
 - Frontier lead reading raw test/lint output instead of the validation report
 - Frontier lead writing boilerplate ("just this once") because delegation feels slow
 - Sending the executor an underspecified design so the frontier lead has to answer clarifying questions mid-implementation
+- **Restarting the director session between phases** — the frontier prefix is the most
+  expensive thing in the run and the most valuable to keep cached; a restart re-pays it
+  in full at 1.25x
+- **Varying the frontier system prompt per phase** — a phase label injected into the
+  system prompt makes every phase a cache miss on the entire prefix
+
+**Tier routing and prompt caching are independent levers — apply both.** Routing moves
+work to a 10–50x cheaper model; caching takes up to 90% off the repeated prefix on
+*whatever* tier you land on. Caching matters most exactly where routing helps least:
+the frontier director, whose long stable prefix is re-sent on every turn.
 
 ### Codex-Led Cost Rules
 
@@ -493,7 +523,7 @@ Beastmode runs accumulate context fast — subagent outputs, tool results, file 
 **Hard rules:**
 
 1. **Compact every 5-10 minutes** — don't wait for context to break. Run `/compact` after each major phase (planning, execution, QA, merge).
-2. **Limit sessions to 30 minutes** — save state (commit work, write learnings), start fresh, resume from saved state.
+2. **Limit sessions to 30 minutes** — save state (commit work, write learnings), start fresh, resume from saved state. Note the tension: a restart also discards a warm prompt cache, so restart on *context pressure*, not on the clock. If context is still healthy at 30 minutes, keep going.
 3. **Subagent output summarization** — instruct subagents to return only final results (files changed, tests passed/failed, issues), not intermediate tool outputs. One subagent task should add <10KB to context, not 100KB.
 4. **Break large tasks into small units** — one subagent = one small, bounded task. "Implement auth system" = 200KB output. "Create User model" + "Implement /login" + "Add password hashing" = 3x 20KB outputs.
 5. **Never compress prompts at the API layer** — prompt caching is prefix-keyed and bills cache reads at **0.10x**. Any middlebox that rewrites the payload (LLMLingua/headroom-style) turns a 0.10x read into a 1.00x uncached read. At a measured 5% compression rate, break-even is only a **5.6%** cache hit rate — agent workloads run far above that, so compression is a net loss.

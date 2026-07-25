@@ -158,6 +158,10 @@ verifier-tier review, never for bulk cheap work.
    repeated_turns})`. Budget exhaustion (`budget_limited`) is a normal stop
    state: report spent vs remaining and propose a resume slice.
 
+   Prefer one long goal run over several short ones. The director's prefix
+   (contract + accumulated history) stays cached across auto-continued turns;
+   stopping and re-invoking `/goal` restarts cold and re-pays the write.
+
 5. **Fan out with pi-dynamic-workflows** for any phase where the work is
    wider than a single agent (multi-file audits, >3 independent slices,
    parallel reviews, codebase-wide research). Write a deterministic JS
@@ -166,6 +170,15 @@ verifier-tier review, never for bulk cheap work.
 
    - Route workers to `tier: "small"`/`"medium"` or an exact
      `model: "provider/modelId"` for a proven external lane
+   - **Group agents by lane, not round-robin.** Each distinct model/lane keeps
+     its own prompt cache. Consecutive `agent()` calls sharing a lane and a
+     byte-identical prefix read at 0.10x; alternating lanes forces a fresh
+     1.25x write on every switch. In `parallel()`, order the array so same-lane
+     workers are adjacent.
+   - **Put the shared contract first, the per-task objective last.** The worker
+     contract is the cacheable prefix — keep it identical across every worker
+     and append only the task-specific slice after it. Never splice a task ID,
+     timestamp, or worker index into the contract header.
    - Set `isolation: "worktree"` whenever workers edit, so parallel edits do
      not collide
    - Cross-check with `verify()` or `judgePanel()` as the watcher; or use
@@ -251,6 +264,8 @@ fine.
   encoding the worker contract
 - `references/context-rot-mitigation.md` (in the universal skill) — keep
   orchestrator context small; route bulk work into pi-dynamic-workflows so
-  the director context only carries summaries
+  the director context only carries summaries. Also covers prompt-cache
+  preservation (never compress prompts at the API layer) and the break-even
+  math; `scripts/cache-hitrate` verifies caching survives your proxy chain.
 - `references/model-routing.md` (in the universal skill) — the
   verification-cost routing rule that governs tier choice

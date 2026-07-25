@@ -75,7 +75,12 @@ Don't wait for context to break. Run `/compact` early and often:
 
 #### 3. Limit Beastmode Session Duration
 
-Hard stop beastmode runs at **20-30 minutes**, then:
+Restart on **context pressure**, not on a timer. A restart discards a warm prompt
+cache (see fix #1), so it has a real cost — the 20-30 minute figure below is a
+heuristic for when context *typically* becomes the binding constraint, not a rule to
+follow while context is still healthy.
+
+When context does become the constraint:
 - Save state (commit work, write learnings)
 - Start a fresh session
 - Resume from the saved state
