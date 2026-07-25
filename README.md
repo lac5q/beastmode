@@ -37,7 +37,7 @@ See `references/model-routing.md` for the per-phase routing table and escalation
 
 ## Autonomy Levels
 
-Beastmode runs with one of three autonomy levels — how much the orchestrator decides on its own before surfacing to a human. **Default: medium.**
+Beastmode runs with one of three autonomy levels — how much the orchestrator decides on its own before surfacing to a human. **Default: medium.** Below `high`, surfaced gates are **blocking** — the run posts its per-phase usage report (requested vs actual models, tokens vs budget, time vs estimate) and stops for approval; only `high` rolls through gates on its own. **Model drift** (a task served by a model other than the one requested) surfaces at every level.
 
 | Level | Surfaces to you | Best for |
 |---|---|---|

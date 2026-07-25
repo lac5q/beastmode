@@ -102,6 +102,9 @@ Use beastmode for complex tasks that need:
 3. **Every phase has an acceptance contract.** Define goal, non-goals, verification commands, and escalation triggers before delegation.
 4. **Every phase improves the loop.** Record learnings, errors, routing mistakes, and token/cost surprises. Promote repeated lessons into skills/config.
 5. **Escalation doesn't skip self-improvement.** Record why the cheap route failed and whether routing rules should change.
+6. **Usage is reported per phase, not just at the end.** Every phase closes with a usage report: requested vs actual model per task, tokens used vs phase budget, actual vs estimated time (see `references/autonomy-levels.md` for the format). If the harness doesn't expose a value, say "unavailable" — never omit the report.
+7. **Model drift always surfaces.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier.
+8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
 
 ## Choosing Your Harness
 
@@ -513,7 +516,7 @@ See `references/context-rot-mitigation.md` for full details on architectural fix
 
 - **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
 - **Tier aliases:** See `references/tier-aliases.md` (and `tier-aliases.json`) for the friendly-name → `provider/model` map consumed by `scripts/bm`. Verified against `pi --list-models` on oracle-1 / maeve-u1.
-- **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, and how to map them to `pi --approve` / `--no-builtin-tools`.
+- **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and how to map levels to `pi --approve` / `--no-builtin-tools`.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
 - **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.0.
 - **Public sharing checklist:** See `references/public-sharing-checklist.md` for sanitization guidelines when publishing beastmode skills publicly.
