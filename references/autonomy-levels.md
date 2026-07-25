@@ -13,6 +13,43 @@ committing/pushing, no secrets, verifier-first, no watcher = no validated).
 **Default: medium.** Most feature work, most reviews, no chat spam — only the
 high-risk gates escalate. Switch with `bm "<goal>" --autonomy low|high`.
 
+## Surfacing is blocking below high
+
+At **low** and **medium**, "surfaces" means **stops**: the run emits its phase
+report, then halts and waits for human approval before the next phase or any
+merge. It never continues past a surfaced gate on its own. Only **high**
+proceeds through gates automatically (and even then it halts on its
+always-surface events above). If a run at low/medium keeps going after a gate,
+that is a harness bug — treat it as a `goal_blocked` and stop it.
+
+## Per-phase usage reports (all levels)
+
+Every phase ends with a usage report, at every autonomy level — this is how
+you see cost as it accrues instead of at the end:
+
+```
+Phase <n> <name>: <status>
+Models: requested <tier: provider/model> → actual <provider/model per task>
+Tokens: <used> / <phase budget> (<percent>)  Time: <actual> vs <estimate>
+Drift: none | MODEL DRIFT: <requested> → <actual> on <task(s)>
+```
+
+At low/medium the report is the gate — approval resumes the run. At high the
+reports accumulate into the final output in order.
+
+## Model drift always surfaces
+
+**MODEL DRIFT** = a task was served by a model other than the requested
+`provider/model` — router fallback, harness default, or silent substitution.
+Detect it by comparing the worker `meta.json` `model` field (or harness
+journal) against the resolved tier alias. Drift surfaces at **every** level,
+including high, because it breaks two guarantees at once: cost (a frontier
+substitute burns budget) and trust (an economy substitute on design-tier work
+skips the judgment the gate assumed). Drifted work is not `validated` until
+re-validated under the correct tier. Record every drift in the learning entry
+— repeated drift on the same alias means the tier alias or provider config is
+wrong.
+
 ## Mapping to pi flags
 
 | Level | pi flag | What you give up |

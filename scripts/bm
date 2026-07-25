@@ -158,11 +158,14 @@ if [ "$ON" = "local" ] && [ "${BM_SKIP_MODEL_CHECK:-0}" != "1" ]; then
 fi
 
 # Build pi arguments once (used in local run).
-PHASE_PROMPT="At the end of every phase, report phase name/status; model(s) used; tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value."
-MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Stop and return control. Do not retry or switch models."
-[ "$AUTONOMY" = "high" ] && MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Find one safe workaround: narrow the task, retry once, or use an approved tier model. Validate it. If it fails, stop with goal_blocked evidence."
+PHASE_PROMPT="At the end of every phase, report phase name/status; requested model versus the model that actually served each task (from worker meta.json or the harness journal); tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value. If any task was served by a model other than the requested provider/model (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately with requested and actual IDs — never fold drift into a footnote."
+MODEL_FAILURE_PROMPT="On a model failure or MODEL DRIFT, report phase, provider/model (requested and actual), error, tokens, and attempted work. Stop and return control. Do not retry or switch models."
+[ "$AUTONOMY" = "high" ] && MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Find one safe workaround: narrow the task, retry once, or use an approved tier model. Validate it. If it fails, stop with goal_blocked evidence. MODEL DRIFT always surfaces in the phase report even at high autonomy; drifted work must be re-validated before merge."
+# Below high autonomy, phase gates are blocking: report, then stop and wait.
+GATE_PROMPT="After each phase report, STOP and return control for approval before starting the next phase or merging. Do not continue past a gate on your own."
+[ "$AUTONOMY" = "high" ] && GATE_PROMPT="Proceed through phase gates without stopping, but include every phase report in the final output in order."
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT")
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
