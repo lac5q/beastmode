@@ -23,28 +23,45 @@ This is **not** a beastmode skill length issue (the skill is 416 lines, within t
 
 ### Immediate Fixes
 
-#### 1. Enable Headroom Fail-Open Mode
+#### 1. Preserve the Prompt Cache (Do Not Compress Prompts)
 
-When headroom compression fails, make it pass through uncompressed instead of returning 413 errors.
+Prompt caching is the single largest token lever available, and it is destroyed by
+prompt-rewriting proxies. Anthropic caches on an **exact byte prefix**: cache reads
+bill at **0.10x** and cache writes at **1.25x**. A stable prefix therefore approaches
+a 90% discount on everything before the new turn.
 
-**Fix:** Add to headroom launchd plist (`~/Library/LaunchAgents/com.headroom.proxy.plist`):
+Any middlebox that rewrites message payloads (LLMLingua-style compression, injected
+timestamps, reordered tool schemas) changes those prefix bytes and converts a 0.10x
+read into a 1.00x uncached read.
 
-```xml
-<key>EnvironmentVariables</key>
-<dict>
-  <key>HEADROOM_WS_FAIL_OPEN_ON_COMPRESSION_FAILURE</key>
-  <string>1</string>
-</dict>
+**The break-even math** — for compression saving `s` fraction of input tokens:
+
+```
+cost_uncompressed(C) = C*0.10 + (1-C)*1.00     # C = cacheable prefix fraction
+cost_compressed      = (1-s)*1.00              # prefix mutated => no cache hits
+
+break-even C = s / 0.90
 ```
 
-Then restart:
-```bash
-launchctl unload ~/Library/LaunchAgents/com.headroom.proxy.plist
-sleep 2
-launchctl load ~/Library/LaunchAgents/com.headroom.proxy.plist
-```
+At a measured `s = 5%`, break-even is **C = 5.6%**. If more than 5.6% of your prefix
+would have been a cache hit, compression is a net loss. Agent workloads — stable
+system prompts, repeated tool schemas, growing history — sit far above that.
 
-**Tradeoff:** You lose compression on failed payloads, but gain reliability. Better to send uncompressed than to error out.
+| cache hit fraction | uncompressed | compressed (5%) | winner |
+|---|---|---|---|
+| 0% | 1.000 | 0.950 | compress |
+| 25% | 0.775 | 0.950 | **direct** |
+| 50% | 0.550 | 0.950 | **direct** |
+| 90% | 0.190 | 0.950 | **direct** |
+
+**Rule:** route agent traffic through a pass-through proxy. Do not enable prompt
+compression at the API layer.
+
+> Historical note: this project previously recommended a local LLMLingua proxy
+> (`headroom`) with a fail-open flag. Measured over 24,508 requests / 1.82B input
+> tokens it delivered **5.18%** input-token reduction — real, but an order of
+> magnitude smaller than prompt caching, and in direct tension with it. It also
+> compressed at least one 19,176-token tool output to **zero**. Removed 2026-07-25.
 
 #### 2. Compact More Aggressively
 
@@ -125,15 +142,18 @@ delegate_task(goal="Add password hashing utility")
 
 ### Compression Strategy
 
-#### 7. Layered Compression
+#### 7. Compress Tool Output, Never the Prompt
 
-Use multiple compression layers for maximum savings:
+There are two distinct layers, and they have opposite verdicts:
 
-| Layer | Tool | Savings | What It Compresses |
-|-------|------|---------|-------------------|
-| CLI output | squeez | 60-95% | Terminal commands, git output, test results |
-| API layer | headroom | 60-95% | File contents, logs, conversation history |
-| Combined | Both | 70-80% | Everything |
+| Layer | Tool | Verdict | Why |
+|-------|------|---------|-----|
+| CLI / tool output | squeez | **Use** | Shrinks text *before* it enters context; prefix stays byte-stable, cache intact |
+| API layer (prompt rewriting) | headroom / LLMLingua | **Do not use** | Mutates the cached prefix; trades a 90% discount for ~5% savings |
+
+Compressing a tool result before it is appended is strictly good: fewer tokens enter
+the conversation, and every byte already in the prefix is untouched. Compressing the
+assembled prompt in flight is strictly bad: it rewrites the prefix other turns depend on.
 
 **Setup:**
 ```bash
@@ -151,6 +171,12 @@ cargo install squeez
 
 **Warning:** Watch for "compression tax" — if compression is too aggressive, the agent compensates by asking follow-up questions or re-running commands, emitting MORE tokens than saved. Squeez has adaptive intensity to detect this; RTK does not.
 
+**Corollary — compact less often than instinct suggests.** `/compact` rewrites
+conversation history, which resets the cached prefix and forces a full re-write at
+1.25x. Compaction is still correct when context genuinely threatens the window, but
+every compaction has a real cost. Prefer bounded subagents (fix #4/#5) that keep the
+orchestrator prefix small, so compaction is needed rarely.
+
 #### 8. Avoid Compressing Critical Context
 
 Some outputs should NOT be compressed:
@@ -165,15 +191,15 @@ Some outputs should NOT be compressed:
 
 ### Phase 1: Immediate Relief (Today)
 
-1. **Enable headroom fail-open mode** — eliminates 413 errors
-2. **Add "compact every 5-10 minutes" rule** to beastmode skill
+1. **Verify no prompt-rewriting proxy is in the chain** — `echo $ANTHROPIC_BASE_URL` should point at a pass-through endpoint
+2. **Keep the prefix stable** — no timestamps or rotating text in system prompts
 3. **Limit beastmode sessions to 30 minutes** — start fresh after
 
 ### Phase 2: Architectural Improvements (This Week)
 
 4. **Update ultraswarm to summarize subagent outputs** — only return final results, not intermediate steps
 5. **Add explicit compact checkpoints** to beastmode loop (after each phase)
-6. **Install squeez** for CLI output compression (layered with headroom)
+6. **Install squeez** for CLI output compression (tool-output layer only)
 
 ### Phase 3: Long-Term Optimization (Next Week)
 
@@ -194,8 +220,8 @@ Beastmode runs accumulate context fast. Follow these rules to avoid context rot:
 2. **Limit sessions to 30 minutes** — save state, start fresh, resume
 3. **Subagent output summarization** — instruct subagents to return only final results, not intermediate steps
 4. **Compact after each phase** — planning, execution, QA, merge, self-improvement
-5. **Enable headroom fail-open mode** — `HEADROOM_WS_FAIL_OPEN_ON_COMPRESSION_FAILURE=1`
-6. **Use layered compression** — squeez (CLI) + headroom (API) = 70-80% savings
+5. **Never run prompt compression at the API layer** — it destroys prompt-cache hits (0.10x reads become 1.00x)
+6. **Compress tool output, not prompts** — squeez on tool results is safe; LLMLingua-style prompt rewriting is not
 7. **Break large tasks into small units** — one subagent = one small, bounded task
 
 **Rule of thumb:** If you've delegated 3+ subagent tasks, compact before continuing.
@@ -205,20 +231,26 @@ Beastmode runs accumulate context fast. Follow these rules to avoid context rot:
 
 | Solution | Benefit | Cost |
 |----------|---------|------|
-| Fail-open mode | Eliminates 413 errors | Lose compression on failed payloads |
-| Aggressive compacting | Keeps context small | Lose some context (may need to re-read files) |
-| Session limits | Prevents context bloat | Need to save/resume state |
+| Prompt-cache preservation | Up to 90% off repeated prefix | Requires byte-stable prompts; no in-flight rewriting |
+| Aggressive compacting | Keeps context small | Resets cached prefix (full re-write at 1.25x) |
+| Session limits | Prevents context bloat | Cold cache on restart; need to save/resume state |
 | Subagent summarization | Reduces context accumulation | May lose debugging details |
-| Layered compression | 70-80% savings | Setup overhead, potential compression tax |
-| Smaller subagent tasks | Less context per task | More subagent calls |
+| Tool-output compression (squeez) | Fewer tokens enter context, cache-safe | Setup overhead, potential compression tax |
+| Smaller subagent tasks | Less context per task | More subagent calls, each with a cold prefix |
 
 ## Monitoring
 
 Track these metrics to detect context rot:
 
-- **Context size:** `curl http://127.0.0.1:8787/stats` — watch for growing payload sizes
-- **Compression failures:** Check headroom logs for timeouts/413s
-- **Compact frequency:** How often are you running `/compact`?
+- **Cache hit rate:** the primary metric. From any API response, compute
+  `cache_read_input_tokens / (input_tokens + cache_read_input_tokens + cache_creation_input_tokens)`.
+  Sustained <30% on a long session means the prefix is being invalidated somewhere.
+  Run `scripts/cache-hitrate` to verify caching survives your proxy chain.
+- **Upstream fan-out:** if a proxy round-robins across multiple upstream accounts or
+  endpoints, each maintains **separate cache state**, so an identical prompt can
+  alternate between hit rates. Caching still works, but a single request's hit rate
+  is not the whole picture — average across several calls before concluding anything.
+- **Compact frequency:** How often are you running `/compact`? Each one resets the cache.
 - **Session duration:** Are beastmode runs exceeding 30 minutes?
 - **Subagent output size:** Are subagents returning large outputs?
 

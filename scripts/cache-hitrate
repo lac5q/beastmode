@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Measure prompt-cache hit rate through the configured proxy.
+
+Prompt caching is the largest token lever in beastmode (cache reads bill at 0.10x).
+This probe verifies the cache fields survive your proxy chain and reports the hit
+rate on a repeated stable prefix.
+
+Usage:
+  scripts/cache-hitrate                      # uses $ANTHROPIC_BASE_URL
+  scripts/cache-hitrate --base-url URL --model claude-sonnet-4-6
+"""
+import argparse
+import json
+import sys
+import urllib.error
+import urllib.request
+
+p = argparse.ArgumentParser()
+p.add_argument("--base-url", default=None, help="default: $ANTHROPIC_BASE_URL")
+p.add_argument("--model", default="claude-sonnet-4-6")
+p.add_argument("--calls", type=int, default=3)
+args = p.parse_args()
+
+import os
+
+base = (args.base_url or os.environ.get("ANTHROPIC_BASE_URL", "")).rstrip("/")
+if not base:
+    sys.exit("no --base-url and $ANTHROPIC_BASE_URL is unset")
+
+# Large enough to exceed the ~1024-token minimum cacheable prefix.
+system = "You are a cache probe. " + ("filler context. " * 400)
+body = {
+    "model": args.model,
+    "max_tokens": 16,
+    "system": [
+        {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
+    ],
+    "messages": [{"role": "user", "content": "say ok"}],
+}
+
+print(f"endpoint: {base}\nmodel:    {args.model}\n")
+
+saw_fields = False
+for i in range(1, args.calls + 1):
+    req = urllib.request.Request(
+        base + "/v1/messages",
+        data=json.dumps(body).encode(),
+        headers={
+            "content-type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": os.environ.get("ANTHROPIC_AUTH_TOKEN", "placeholder"),
+        },
+    )
+    try:
+        r = json.load(urllib.request.urlopen(req, timeout=120))
+    except urllib.error.HTTPError as e:
+        sys.exit(f"call {i}: HTTP {e.code} {e.read()[:200]!r}")
+    except Exception as e:
+        sys.exit(f"call {i}: {type(e).__name__}: {e}")
+
+    u = r.get("usage", {})
+    fresh = u.get("input_tokens", 0)
+    read = u.get("cache_read_input_tokens", 0)
+    write = u.get("cache_creation_input_tokens", 0)
+    if read or write:
+        saw_fields = True
+    total = fresh + read + write
+    rate = (100.0 * read / total) if total else 0.0
+    print(
+        f"call {i}: fresh={fresh:<6} cache_write={write:<6} "
+        f"cache_read={read:<6} hit={rate:5.1f}%"
+    )
+
+print()
+if not saw_fields:
+    print("WARNING: no cache_* fields in any response.")
+    print("Either the model/endpoint does not support prompt caching, or a")
+    print("middlebox is stripping or rewriting the payload. A prompt-rewriting")
+    print("proxy will also destroy the prefix and suppress cache hits entirely.")
+    sys.exit(1)
+
+print("Cache fields present \u2014 caching survives this proxy chain.")
+print("Expect call 1 to be a write (1.25x) and later calls to read (0.10x).")

@@ -496,13 +496,19 @@ Beastmode runs accumulate context fast — subagent outputs, tool results, file 
 2. **Limit sessions to 30 minutes** — save state (commit work, write learnings), start fresh, resume from saved state.
 3. **Subagent output summarization** — instruct subagents to return only final results (files changed, tests passed/failed, issues), not intermediate tool outputs. One subagent task should add <10KB to context, not 100KB.
 4. **Break large tasks into small units** — one subagent = one small, bounded task. "Implement auth system" = 200KB output. "Create User model" + "Implement /login" + "Add password hashing" = 3x 20KB outputs.
-5. **Enable headroom fail-open mode** — set `HEADROOM_WS_FAIL_OPEN_ON_COMPRESSION_FAILURE=1` in headroom launchd plist. Makes headroom pass through uncompressed instead of returning 413 errors.
-6. **Use layered compression** — squeez (CLI output, 60-95%) + headroom (API layer, 60-95%) = 70-80% total savings. Watch for compression tax (agent asking more follow-ups = compression too aggressive).
-7. **Compact after 3+ subagent delegations** — rule of thumb. If you've delegated 3 tasks, compact before continuing.
+5. **Never compress prompts at the API layer** — prompt caching is prefix-keyed and bills cache reads at **0.10x**. Any middlebox that rewrites the payload (LLMLingua/headroom-style) turns a 0.10x read into a 1.00x uncached read. At a measured 5% compression rate, break-even is only a **5.6%** cache hit rate — agent workloads run far above that, so compression is a net loss.
+6. **Compress tool output, not prompts** — squeez on CLI/tool results shrinks text *before* it enters context and leaves the prefix byte-stable. That is cache-safe and worth doing.
+7. **Compact after 3+ subagent delegations** — rule of thumb, but note each `/compact` rewrites history and resets the cached prefix. Prefer bounded subagents that keep the orchestrator prefix small over frequent compaction.
+
+**Keep the prefix byte-identical.** Cache is keyed on an exact byte prefix, so one changed byte early invalidates everything after it:
+- Order context **stable → volatile**: system prompt, tool definitions, reference docs, conversation, new turn last.
+- No timestamps, session IDs, or rotating text in the system prompt.
+- Don't edit or re-order earlier messages mid-conversation.
+- Cache TTL is 5 minutes, refreshed on each hit — one continuous session stays warm; ten scattered one-shots pay the write cost ten times.
 
 **Alert thresholds:**
 - Context size > 200KB → compact now
-- Compression failures > 3/hour → enable fail-open or increase timeout
+- Cache hit rate < 30% on a long session → something is invalidating the prefix
 - Session duration > 30 minutes → save state and restart
 
 **What NOT to compress:**
@@ -510,7 +516,9 @@ Beastmode runs accumulate context fast — subagent outputs, tool results, file 
 - Small files (< 100 lines) — compression overhead > savings
 - Structured data the agent needs to parse exactly (JSON APIs, CSV)
 
-See `references/context-rot-mitigation.md` for full details on architectural fixes and monitoring.
+Verify caching survives your proxy chain with `scripts/cache-hitrate`. See
+`references/context-rot-mitigation.md` for the break-even math, architectural fixes,
+and monitoring.
 
 ## References
 
