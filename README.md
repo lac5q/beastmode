@@ -66,6 +66,7 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
+   scripts/enforce-models --check-meta <run-dir>        # postflight gate: drift + unprovable provenance
    scripts/acn-report <dir-of-meta.json>                # phase usage report + MODEL DRIFT check
    ```
 
@@ -74,6 +75,8 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 ## One Vocabulary (v2.2)
 
 Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
+
+The provenance gate is fail-closed in both directions: a child whose model **differs** from the pinned one is `drift`, and a child whose model **cannot be established** — missing meta, unreadable meta, or a single merged `model` field instead of `requested_model` + `actual_model` — is `unverifiable`. Both block `validated`. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`, and it reads the required field list out of `schema/acn-contract.json` rather than hard-coding it.
 
 ## Files
 
@@ -93,9 +96,25 @@ Families, tiers, seats, autonomy levels, and the ACN fan-out contract are define
 - `scripts/bm` — Runner CLI for one-shot goals with harness/tier picks, phase reports, and `--on` dispatch
 - `scripts/enforce-models` — Model preflight/postflight (drift fail-closed) shared by all harnesses
 - `scripts/acn-report` — Normalize ACN child metas into the phase usage report
+- `scripts/lib/acn_meta.py` — The model-provenance gate itself (`ok` / `drift` / `unverifiable`), read by both of the above so they cannot disagree
 - `scripts/lib/prompts.sh` — Shared phase/gate/model-failure prompt builders used by `bm` and adapters
 - `scripts/phase-estimate` — Rough per-phase wall-clock estimate from the goal scope
 - `scripts/install-beastmode-pi.sh` — Idempotent bootstrap of `pi` + 6 companion packages
+- `tests/run-all.sh` — Every gate in one command (syntax, schema validity, ACN parity, `bm` preflight); what CI runs
+
+## Testing
+
+```bash
+./tests/run-all.sh      # syntax + JSON validity + ACN parity + bm preflight
+```
+
+Runs on every push via `.github/workflows/tests.yml`, which additionally
+asserts the suite leaves the working tree unmodified. The ACN parity test
+covers the invariants prose alone can't hold: the drift gate fails closed on
+unprovable provenance, `enforce-models` and `acn-report` return the same
+verdict for the same directory, `references/acn-contract.md` lists exactly the
+meta fields `schema/acn-contract.json` declares, and each adapter's canonical
+version cross-reference matches `SKILL.md`.
 
 ## Compatibility
 

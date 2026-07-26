@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "concurrency_default": 3,
   "isolation": "worktree preferred when workers edit",
   "background": "director does not block the chat path when the harness supports background fan-out; orchestrator children may wait to synthesize",
@@ -28,10 +28,14 @@
     "verify"
   ],
   "drift_policy": "actual_model != requested_model is MODEL DRIFT: always surfaces, work is not validated until re-validated under the correct tier",
+  "unverifiable_policy": "a child whose meta is missing, unreadable, or lacks either requested_model or actual_model is unverifiable: the gate fails it exactly as it fails drift, because provenance that cannot be established is not provenance. A run directory containing no child metas is unverifiable unless --allow-empty is asserted",
+  "gate_verdicts": ["ok", "drift", "unverifiable"],
+  "gate_implementation": "scripts/lib/acn_meta.py, shared by scripts/enforce-models --check-meta and scripts/acn-report",
   "hard_rules": [
     "workers never commit/push",
     "workers never access secrets",
     "no watcher, no validated",
-    "gates are blocking below high"
+    "gates are blocking below high",
+    "unprovable provenance fails closed"
   ]
 }

@@ -1,0 +1,35 @@
+name: tests
+
+# Beastmode's whole premise is that nothing is validated until a gate says so.
+# Running that gate on every push is the least the repo can do for itself.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run the beastmode gate
+        run: ./tests/run-all.sh
+
+      - name: Working tree must be unchanged by the tests
+        run: |
+          # A test run that edits the repo hides regressions in its own
+          # fixtures. tests/test-acn-parity.sh used to rewrite them on
+          # every run; this check keeps that from coming back.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "tests modified the working tree:"
+            git status --porcelain
+            git diff
+            exit 1
+          fi

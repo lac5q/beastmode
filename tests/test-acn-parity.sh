@@ -112,15 +112,12 @@ else
 fi
 
 # ---- (e) enforce-models --check-meta fixture sanity ----
+# Fixtures are committed under tests/fixtures/acn-meta and read, not
+# regenerated. The old version rewrote them into the repo tree on every run,
+# which made the committed copies decorative and let them drift from the
+# schema they are supposed to exemplify.
 echo "check (e): enforce-models --check-meta"
 FIX="$ROOT/tests/fixtures/acn-meta"
-mkdir -p "$FIX/match" "$FIX/drift"
-cat > "$FIX/match/a.json" <<'JSON'
-{"id": "a", "requested_model": "anthropic/claude-opus-4-7", "actual_model": "anthropic/claude-opus-4-7", "usage": {"input_tokens": 10, "output_tokens": 20}}
-JSON
-cat > "$FIX/drift/b.json" <<'JSON'
-{"id": "b", "requested_model": "anthropic/claude-opus-4-7", "actual_model": "kimi-coding/k2", "usage": {"input_tokens": 1, "output_tokens": 2}}
-JSON
 
 set +e
 out_match="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" 2>&1)"
@@ -138,6 +135,107 @@ if [ "$rc_drift" = "1" ] && echo "$out_drift" | grep -q "MODEL DRIFT"; then
   pass "enforce-models --check-meta drifting exits 1 with MODEL DRIFT"
 else
   fail "enforce-models --check-meta drift dir: expected exit 1 with 'MODEL DRIFT', got rc=$rc_drift out=$out_drift"
+fi
+
+# ---- (e2) the gate fails closed on unprovable provenance ----
+# Regression for the v2.2 fail-open pair: a legacy {"id","model",...} meta was
+# skipped as "not a meta file we recognise", and an empty run dir returned 0.
+# Both reported a clean batch while proving nothing about which model ran.
+echo "check (e2): provenance gate fails closed"
+run_gate() { set +e; GATE_OUT="$("$@" 2>&1)"; GATE_RC=$?; set -e; }
+
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/legacy"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "UNVERIFIABLE"; then
+  pass "legacy model-only meta is UNVERIFIABLE, exit 1"
+else
+  fail "legacy meta: expected exit 1 with UNVERIFIABLE, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/empty"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "UNVERIFIABLE"; then
+  pass "empty run dir is UNVERIFIABLE, exit 1"
+else
+  fail "empty dir: expected exit 1 with UNVERIFIABLE, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/empty" --allow-empty
+if [ "$GATE_RC" = "0" ]; then
+  pass "empty run dir with --allow-empty exits 0"
+else
+  fail "empty dir --allow-empty: expected exit 0, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+printf '%s' '{"id": "half", "requested_model": "anthropic/claude-opus-4-7"' > "$TMP/meta.json"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$TMP"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "UNVERIFIABLE"; then
+  pass "truncated meta is UNVERIFIABLE, exit 1"
+else
+  fail "truncated meta: expected exit 1 with UNVERIFIABLE, got rc=$GATE_RC out=$GATE_OUT"
+fi
+rm -f "$TMP/meta.json"
+
+# ---- (e3) enforce-models and acn-report agree on every fixture ----
+# They used to be two implementations of one contract with different file
+# discovery, so a child could pass one tool and fail the other.
+echo "check (e3): enforce-models and acn-report agree"
+AGREE=1
+for case_dir in match drift legacy empty; do
+  set +e
+  "$ROOT/scripts/enforce-models" --check-meta "$FIX/$case_dir" >/dev/null 2>&1
+  rc_enforce=$?
+  "$ROOT/scripts/acn-report" "$FIX/$case_dir" >/dev/null 2>&1
+  rc_report=$?
+  set -e
+  if [ "$rc_enforce" != "$rc_report" ]; then
+    fail "$case_dir: enforce-models exit $rc_enforce but acn-report exit $rc_report"
+    AGREE=0
+  fi
+done
+[ "$AGREE" = "1" ] && pass "enforce-models and acn-report agree on all fixtures"
+
+# ---- (e4) prose meta.json fields match the schema ----
+# references/acn-contract.md documents the meta shape in prose; the schema
+# declares it in JSON. Neither is allowed to drift from the other.
+echo "check (e4): acn-contract.md meta fields match schema"
+python3 - "$ROOT" <<'PY' && pass "acn-contract.md meta fields match schema" || fail "acn-contract.md meta fields drifted from schema/acn-contract.json"
+import json, re, sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+schema = json.loads((root / "schema" / "acn-contract.json").read_text())
+declared = set(schema["meta_json_required_fields"])
+
+doc = (root / "references" / "acn-contract.md").read_text()
+block = re.search(r"## Per-child meta\.json.*?```\n(.*?)```", doc, re.S)
+if not block:
+    print("could not find the meta.json block in references/acn-contract.md", file=sys.stderr)
+    sys.exit(1)
+documented = {
+    line.split()[0]
+    for line in block.group(1).splitlines()
+    if line.strip() and not line.startswith(" ")
+}
+
+if documented != declared:
+    print(f"only in schema: {sorted(declared - documented)}", file=sys.stderr)
+    print(f"only in doc:    {sorted(documented - declared)}", file=sys.stderr)
+    sys.exit(1)
+PY
+
+# ---- (e5) no spec still prescribes the pre-v2.3 merged-model meta shape ----
+# Scoped to the surfaces that *specify* the contract. .learnings/ and
+# .planning/ are records of what happened, and a record of this defect has to
+# be able to quote the broken shape verbatim to be worth reading.
+echo "check (e5): no legacy meta shape in specs"
+LEGACY_SHAPE='"id", *"model"'
+legacy_hits="$(grep -rn "$LEGACY_SHAPE" --include='*.md' \
+  "$ROOT/SKILL.md" "$ROOT/README.md" "$ROOT/references" "$ROOT/adapters" "$ROOT/pi" \
+  2>/dev/null || true)"
+if [ -n "$legacy_hits" ]; then
+  echo "$legacy_hits" >&2
+  fail "a spec still prescribes the merged-model meta shape (gate cannot compare it)"
+else
+  pass "no spec prescribes the merged-model meta shape"
 fi
 
 # ---- (f) adapter SKILL.md vocabulary ----
@@ -175,6 +273,33 @@ else
     fail "scripts/bm --harness bogus expected exit 2, got $rc; output: $out"
   fi
 fi
+
+# ---- (h) adapter version cross-refs track SKILL.md ----
+# Each adapter names the canonical skill version it implements. Nothing kept
+# those in sync with SKILL.md's frontmatter, so a bump silently left three
+# adapters claiming an older contract.
+echo "check (h): adapter version cross-refs match SKILL.md"
+python3 - "$ROOT" <<'PY' && pass "adapter version cross-refs match SKILL.md" || fail "adapter version cross-refs drifted from SKILL.md frontmatter"
+import re, sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+skill = (root / "SKILL.md").read_text()
+match = re.search(r"^version:\s*(\S+)\s*$", skill, re.M)
+if not match:
+    print("no version in SKILL.md frontmatter", file=sys.stderr)
+    sys.exit(1)
+canonical = match.group(1)
+
+bad = []
+for adapter in sorted((root / "adapters").glob("*/SKILL.md")):
+    for ref in re.findall(r"`beastmode`[^\n]*?\(v(\d+\.\d+\.\d+)\)", adapter.read_text()):
+        if ref != canonical:
+            bad.append(f"{adapter.relative_to(root)} claims v{ref}, SKILL.md is v{canonical}")
+for line in bad:
+    print(line, file=sys.stderr)
+sys.exit(1 if bad else 0)
+PY
 
 # ---- summary ----
 echo

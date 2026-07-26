@@ -5,21 +5,27 @@
 #   enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
 #
 # Postflight (scans a directory of meta.json files):
-#   enforce-models --check-meta <dir>
+#   enforce-models --check-meta <dir> [--allow-empty] [--strict]
 #
 # Exit codes:
-#   0  all requested models available OR no drift detected
-#   1  drift detected (postflight)
+#   0  all requested models available OR every child's model is proven correct
+#   1  postflight gate failure: MODEL DRIFT, or a child whose model cannot be
+#      proven at all (ACN shared rule 2 — unprovable is never `validated`)
 #   2  usage / preflight failure (missing model)
+#
+# --allow-empty  a batch with zero children is a pass, not a gate failure
+# --strict       also fail on metas missing schema-required fields
 #
 # Bypass: BM_SKIP_MODEL_CHECK=1 makes preflight a no-op pass-through.
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
 usage() {
   cat >&2 <<'USAGE'
 usage: enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
-       enforce-models --check-meta <dir>
+       enforce-models --check-meta <dir> [--allow-empty] [--strict]
 USAGE
   exit 2
 }
@@ -27,10 +33,10 @@ USAGE
 [ $# -ge 1 ] || usage
 
 # ---- arg parse ----
-MODE=""        # preflight | postflight
 HARNESS=""
 MODELS=()
 META_DIR=""
+META_FLAGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --harness)    HARNESS="${2:-}"; shift 2 ;;
@@ -38,56 +44,27 @@ while [ $# -gt 0 ]; do
     --model)      MODELS+=("${2:-}"); shift 2 ;;
     --model=*)    MODELS+=("${1#*=}"); shift ;;
     --check-meta) META_DIR="${2:-}"; shift 2 ;;
+    --allow-empty) META_FLAGS+=(--allow-empty); shift ;;
+    --strict)     META_FLAGS+=(--strict); shift ;;
     -h|--help)    usage ;;
     *)            echo "enforce-models: unknown arg: $1" >&2; usage ;;
   esac
 done
 
 # ---- postflight ----
+# ponytail: the provenance gate itself lives in scripts/lib/acn_meta.py, which
+# scripts/acn-report imports too. Two readings of one contract is how a child
+# ends up passing in one tool and failing in the other, so this branch is a
+# thin shell over the shared checker rather than a second implementation.
 if [ -n "$META_DIR" ]; then
   if [ ! -d "$META_DIR" ]; then
     echo "enforce-models: --check-meta dir not found: $META_DIR" >&2
     exit 2
   fi
-  # ponytail: one python pass, json + simple comparison — no jq, no extra deps.
-  # Tolerates missing meta fields so a half-written ACN run still gets reported.
-  # Wrap in `set +e` so a non-zero python exit (drift detected) doesn't trip
-  # `set -euo pipefail` before we get a chance to print the report.
   set +e
-  drift_out="$(META_DIR="$META_DIR" python3 - <<'PY'
-import json, os, sys, glob
-mydir = os.environ["META_DIR"]
-# Match any *.json anywhere in the tree (top level + nested child dirs).
-# ACN runs nest meta.json per child id; we want them all.
-candidates = sorted(set(glob.glob(os.path.join(mydir, "**", "*.json"), recursive=True)))
-if not candidates:
-    sys.stderr.write("no meta files found\n")
-    sys.exit(0)
-drift = 0
-for path in candidates:
-    try:
-        with open(path) as f:
-            d = json.load(f)
-    except Exception as e:
-        print(f"enforce-models: bad JSON in {path}: {e}", file=sys.stderr)
-        drift = 1
-        continue
-    req = d.get("requested_model")
-    act = d.get("actual_model")
-    if req is None and act is None:
-        # not a meta file we recognise, skip
-        continue
-    if req != act:
-        print(f"MODEL DRIFT: {req} -> {act} ({path})")
-        drift = 1
-sys.exit(drift)
-PY
-  )"
+  python3 "$SCRIPT_DIR/lib/acn_meta.py" --check "$META_DIR" "${META_FLAGS[@]+"${META_FLAGS[@]}"}"
   rc=$?
   set -e
-  if [ -n "$drift_out" ]; then
-    echo "$drift_out"
-  fi
   exit $rc
 fi
 
@@ -181,22 +158,21 @@ case "$HARNESS" in
       echo "enforce-models: claude not in PATH; install claude or set BM_SKIP_MODEL_CHECK=1" >&2
       exit 2
     fi
-    # ponytail: claude pins its own model namespace; if you want a non-claude
-    # model through this harness, you're using the wrong harness. Warn, not
-    # fail — the runner will error out if it truly cannot dispatch.
-    missing=()
-    for model in "${MODELS[@]}"; do
-      [[ "$model" == claude-* ]] || {
-        echo "enforce-models: warning: harness=claude but model does not start with claude- ($model)" >&2
-      }
-      if ! claude --version >/dev/null 2>&1; then
-        missing+=("$model")
-      fi
-    done
-    if [ "${#missing[@]}" -gt 0 ]; then
+    if ! claude --version >/dev/null 2>&1; then
       echo "enforce-models: claude harness unavailable on this host" >&2
       exit 2
     fi
+    # ponytail: claude pins its own model namespace; if you want a non-claude
+    # model through this harness, you're using the wrong harness. Warn, not
+    # fail — the runner will error out if it truly cannot dispatch. Compare
+    # the model half only: aliases resolve to provider/model, and bm strips
+    # the provider before handing it to the CLI, so `anthropic/claude-opus-4-7`
+    # is a correct request and used to warn on every single invocation.
+    for model in "${MODELS[@]}"; do
+      [[ "${model#*/}" == claude-* ]] || {
+        echo "enforce-models: warning: harness=claude but model does not start with claude- ($model)" >&2
+      }
+    done
     ;;
 
   codex)
