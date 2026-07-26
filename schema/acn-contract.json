@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "concurrency_default": 3,
+  "isolation": "worktree preferred when workers edit",
+  "background": "director does not block the chat path when the harness supports background fan-out; orchestrator children may wait to synthesize",
+  "batch_required_fields": [
+    "autonomy",
+    "director_model",
+    "executor_model",
+    "watcher_model",
+    "tasks",
+    "concurrency"
+  ],
+  "task_required_fields": [
+    "id",
+    "goal",
+    "allowed_paths",
+    "verify_cmds"
+  ],
+  "meta_json_required_fields": [
+    "id",
+    "requested_model",
+    "actual_model",
+    "stop_reason",
+    "usage",
+    "files_changed",
+    "commands_run",
+    "verify"
+  ],
+  "drift_policy": "actual_model != requested_model is MODEL DRIFT: always surfaces, work is not validated until re-validated under the correct tier",
+  "hard_rules": [
+    "workers never commit/push",
+    "workers never access secrets",
+    "no watcher, no validated",
+    "gates are blocking below high"
+  ]
+}

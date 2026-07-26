@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# enforce-models — preflight + postflight model check for beastmode.
+#
+# Preflight (one --harness per invocation):
+#   enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
+#
+# Postflight (scans a directory of meta.json files):
+#   enforce-models --check-meta <dir>
+#
+# Exit codes:
+#   0  all requested models available OR no drift detected
+#   1  drift detected (postflight)
+#   2  usage / preflight failure (missing model)
+#
+# Bypass: BM_SKIP_MODEL_CHECK=1 makes preflight a no-op pass-through.
+
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
+       enforce-models --check-meta <dir>
+USAGE
+  exit 2
+}
+
+[ $# -ge 1 ] || usage
+
+# ---- arg parse ----
+MODE=""        # preflight | postflight
+HARNESS=""
+MODELS=()
+META_DIR=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --harness)    HARNESS="${2:-}"; shift 2 ;;
+    --harness=*)  HARNESS="${1#*=}"; shift ;;
+    --model)      MODELS+=("${2:-}"); shift 2 ;;
+    --model=*)    MODELS+=("${1#*=}"); shift ;;
+    --check-meta) META_DIR="${2:-}"; shift 2 ;;
+    -h|--help)    usage ;;
+    *)            echo "enforce-models: unknown arg: $1" >&2; usage ;;
+  esac
+done
+
+# ---- postflight ----
+if [ -n "$META_DIR" ]; then
+  if [ ! -d "$META_DIR" ]; then
+    echo "enforce-models: --check-meta dir not found: $META_DIR" >&2
+    exit 2
+  fi
+  # ponytail: one python pass, json + simple comparison — no jq, no extra deps.
+  # Tolerates missing meta fields so a half-written ACN run still gets reported.
+  # Wrap in `set +e` so a non-zero python exit (drift detected) doesn't trip
+  # `set -euo pipefail` before we get a chance to print the report.
+  set +e
+  drift_out="$(META_DIR="$META_DIR" python3 - <<'PY'
+import json, os, sys, glob
+mydir = os.environ["META_DIR"]
+# Match any *.json anywhere in the tree (top level + nested child dirs).
+# ACN runs nest meta.json per child id; we want them all.
+candidates = sorted(set(glob.glob(os.path.join(mydir, "**", "*.json"), recursive=True)))
+if not candidates:
+    sys.stderr.write("no meta files found\n")
+    sys.exit(0)
+drift = 0
+for path in candidates:
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except Exception as e:
+        print(f"enforce-models: bad JSON in {path}: {e}", file=sys.stderr)
+        drift = 1
+        continue
+    req = d.get("requested_model")
+    act = d.get("actual_model")
+    if req is None and act is None:
+        # not a meta file we recognise, skip
+        continue
+    if req != act:
+        print(f"MODEL DRIFT: {req} -> {act} ({path})")
+        drift = 1
+sys.exit(drift)
+PY
+  )"
+  rc=$?
+  set -e
+  if [ -n "$drift_out" ]; then
+    echo "$drift_out"
+  fi
+  exit $rc
+fi
+
+# ---- preflight ----
+[ -n "$HARNESS" ] || usage
+[ "${#MODELS[@]}" -gt 0 ] || usage
+
+if [ "${BM_SKIP_MODEL_CHECK:-0}" = "1" ]; then
+  exit 0
+fi
+
+case "$HARNESS" in
+  pi)
+    if ! command -v pi >/dev/null 2>&1; then
+      echo "enforce-models: pi not in PATH; install pi or set BM_SKIP_MODEL_CHECK=1" >&2
+      exit 2
+    fi
+    missing=()
+    for model in "${MODELS[@]}"; do
+      [[ "$model" == *"/"* ]] || { missing+=("$model"); continue; }
+      provider="${model%%/*}"
+      model_id="${model#*/}"
+      if ! pi --list-models 2>/dev/null \
+           | awk -v p="$provider" -v m="$model_id" \
+                 'NR>1 && $1==p && $2==m {found=1} END{exit !found}'; then
+        missing+=("$model")
+      fi
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+      echo "enforce-models: requested model(s) not available for harness=$HARNESS:" >&2
+      for m in "${missing[@]}"; do
+        echo "  - $m" >&2
+      done
+      echo >&2
+      echo "enforce-models: available models (run 'pi --list-models' for full list):" >&2
+      pi --list-models 2>/dev/null | awk 'NR>1 {printf "  %s/%s\n", $1, $2}' >&2
+      echo >&2
+      echo "enforce-models: pick a different --frontier/--economy/--watcher, override the alias in" >&2
+      echo "    \$HOME/.beastmode/tier-aliases.json or \$PWD/.beastmode/tier-aliases.json," >&2
+      echo "    or set BM_SKIP_MODEL_CHECK=1 to bypass this check." >&2
+      exit 2
+    fi
+    ;;
+
+  hermes)
+    # ponytail: presence check on the configured provider name — never read
+    # the contents of auth.json or config.yaml. Both files exist on a
+    # configured host; we just need *some* signal that the provider is wired.
+    cfg="$HOME/.hermes/config.yaml"
+    auth="$HOME/.hermes/auth.json"
+    [ -f "$cfg" ] || [ -f "$auth" ] || {
+      echo "enforce-models: hermes config not found at $cfg or $auth; skipping presence check" >&2
+      # No config on this host — treat as pass-through so the ACN run can
+      # still proceed; the runner will surface the real error.
+      exit 0
+    }
+    missing=()
+    for model in "${MODELS[@]}"; do
+      [[ "$model" == *"/"* ]] || { missing+=("$model"); continue; }
+      provider="${model%%/*}"
+      found=0
+      if [ -f "$cfg" ]; then
+        # grep only the key (provider name); we don't decode the file contents.
+        if awk -v p="$provider" '
+            /^[[:space:]]*[A-Za-z0-9._-]+:[[:space:]]*$/ {gsub(/[[:space:]]/,"",$0); sub(/:$/,"",$0); if($0==p){print "HIT"; exit}}
+            END{exit !0}' "$cfg" >/dev/null 2>&1; then
+          found=1
+        fi
+      fi
+      if [ "$found" -eq 0 ] && [ -f "$auth" ]; then
+        # grep the provider key in JSON; never print the file.
+        if grep -q "\"$provider\"[[:space:]]*:" "$auth" 2>/dev/null; then
+          found=1
+        fi
+      fi
+      [ "$found" -eq 1 ] || missing+=("$model")
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+      echo "enforce-models: requested model(s) not available for harness=$HARNESS:" >&2
+      for m in "${missing[@]}"; do
+        echo "  - $m" >&2
+      done
+      echo >&2
+      echo "enforce-models: set BM_SKIP_MODEL_CHECK=1 to bypass this check." >&2
+      exit 2
+    fi
+    ;;
+
+  claude)
+    if ! command -v claude >/dev/null 2>&1; then
+      echo "enforce-models: claude not in PATH; install claude or set BM_SKIP_MODEL_CHECK=1" >&2
+      exit 2
+    fi
+    # ponytail: claude pins its own model namespace; if you want a non-claude
+    # model through this harness, you're using the wrong harness. Warn, not
+    # fail — the runner will error out if it truly cannot dispatch.
+    missing=()
+    for model in "${MODELS[@]}"; do
+      [[ "$model" == claude-* ]] || {
+        echo "enforce-models: warning: harness=claude but model does not start with claude- ($model)" >&2
+      }
+      if ! claude --version >/dev/null 2>&1; then
+        missing+=("$model")
+      fi
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+      echo "enforce-models: claude harness unavailable on this host" >&2
+      exit 2
+    fi
+    ;;
+
+  codex)
+    if ! command -v codex >/dev/null 2>&1; then
+      echo "enforce-models: codex not in PATH; install codex or set BM_SKIP_MODEL_CHECK=1" >&2
+      exit 2
+    fi
+    if ! codex --version >/dev/null 2>&1; then
+      echo "enforce-models: codex harness unavailable on this host" >&2
+      exit 2
+    fi
+    # codex accepts arbitrary provider/model — pass-through.
+    ;;
+
+  *)
+    echo "enforce-models: unknown --harness: $HARNESS (expected pi|hermes|claude|codex)" >&2
+    exit 2
+    ;;
+esac
+
+exit 0

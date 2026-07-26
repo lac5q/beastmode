@@ -4,6 +4,9 @@ How much the orchestrator decides on its own before surfacing to a human.
 All three levels share the universal Beastmode hard rules (no workers
 committing/pushing, no secrets, verifier-first, no watcher = no validated).
 
+> Machine source of truth: `schema/autonomy-levels.json`. This file is the
+> human view; if the two disagree, the schema wins.
+
 | Level | What runs without surfacing | What always surfaces | Default? |
 |---|---|---|---|
 | **low** | Single executor turn, one read-only tool call | Every phase transition, every merge, every cross-tier escalation, every Worker → Watcher jump, any diff > 1 file, **any model failure** | no |
@@ -50,13 +53,15 @@ re-validated under the correct tier. Record every drift in the learning entry
 — repeated drift on the same alias means the tier alias or provider config is
 wrong.
 
-## Mapping to pi flags
+## Mapping to harness flags
 
-| Level | pi flag | What you give up |
-|---|---|---|
-| low    | `--approve` | All asks prompt you. Slowest, safest. |
-| medium | (default)   | Phase transitions and tier-2/3 fallback surface. Routine work is silent. |
-| high   | `--no-builtin-tools` (plus pi-permission-system config with `ask`→`deny` on publishing) | Workers can't even `git commit` without deny → evidence-only close-out. |
+The autonomy scale is one vocabulary; each harness enforces it with its own knobs. Adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`) implement the same gate/drift semantics on top of these mappings.
+
+| Level | pi flag | Hermes ACN | Claude Code | Codex | What you give up |
+|---|---|---|---|---|---|
+| low    | `--approve` | approval before each delegate_task batch; every child result surfaces; merges wait | plan/ask permission mode before each batch; no Task storm | approval prompts on; no `--yolo`; no background free-run | All asks prompt you. Slowest, safest. |
+| medium | (default)   | batches run silently; surface security/auth/payments, model failure, MODEL DRIFT, goal_blocked, merge gate | default mode; batches silent; same always-surface list | default sandbox; batches silent; same always-surface list | Phase transitions and tier-2/3 fallback surface. Routine work is silent. |
+| high   | `--no-builtin-tools` (plus pi-permission-system config with `ask`→`deny` on publishing) | multi-batch until goal_complete / repeated goal_blocked; still halts on budget, no-watcher, secrets, unrevalidated drift | `--dangerously-skip-permissions` only inside the worker contract; same halt events | `--yolo` / `--full-auto` only inside the worker contract; same halt events | Workers can't even `git commit` without deny → evidence-only close-out. |
 
 `--autonomy high` is only meaningful with a project-level permission config
 (`<repo>/.pi/extensions/pi-permission-system/config.json`) that turns every
