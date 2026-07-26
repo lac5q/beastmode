@@ -1,0 +1,21 @@
+{
+  "seats": {
+    "director": {
+      "tier": "frontier",
+      "role": "intent, architecture, final sign-off"
+    },
+    "watcher": {
+      "tier": "frontier",
+      "prefer_cross_family": true,
+      "role": "adversarial review, merge gating"
+    },
+    "executor": {
+      "tier": "economy",
+      "role": "implementation + mechanical validation"
+    },
+    "validator": {
+      "tier": "frontier",
+      "role": "merge/standing validation; may be sol/terra/opus/glm/grok"
+    }
+  }
+}

@@ -2,17 +2,22 @@
 # bm — beastmode runner. One CLI to start a Beastmode goal from anywhere.
 #
 # Usage:
-#   bm "<goal>"                              # default: local, medium autonomy, auto models
+#   bm "<goal>"                              # default: local, pi harness, medium autonomy, auto models
+#   bm "<goal>" --harness hermes             # Hermes ACN (async parallel sub-agents)
+#   bm "<goal>" --harness claude|codex       # Claude Code / Codex adapters
 #   bm "<goal>" --gsd                        # force GSD phase gating
 #   bm "<goal>" --on maeve-u1                # dispatch to remote machine
 #   bm "<goal>" --frontier sol --thinking medium
+#   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
 #
 # The goal can appear anywhere on the command line; flags are parsed first
 # and the remaining args are joined into the goal string.
 #
-# Model aliases resolved in references/model-routing.md (tier model).
+# Model aliases resolved in references/tier-aliases.md (tier model).
 # Autonomy levels are defined in references/autonomy-levels.md.
+# Shared prompt strings live in scripts/lib/prompts.sh; model
+# preflight/postflight in scripts/enforce-models.
 #
 # Exit code: 0 = goal_complete surfaced; 1 = goal_blocked or watch failure;
 # 2 = usage / config error.
@@ -21,8 +26,10 @@ set -euo pipefail
 
 GSD=0
 ON="auto"
+HARNESS="pi"
 FRONTIER=""
 ECONOMY=""
+WATCHER=""
 AUTONOMY="medium"
 THINKING="high"
 GOAL_PARTS=()
@@ -72,12 +79,16 @@ fi
 while [ $# -gt 0 ]; do
   case "$1" in
     --gsd)             GSD=1; shift ;;
+    --harness)         HARNESS="${2:-pi}"; shift 2 ;;
+    --harness=*)       HARNESS="${1#*=}"; shift ;;
     --on)              ON="${2:-auto}"; shift 2 ;;
     --on=*)            ON="${1#*=}"; shift ;;
     --frontier)        FRONTIER="${2:-}"; shift 2 ;;
     --frontier=*)      FRONTIER="${1#*=}"; shift ;;
     --economy)         ECONOMY="${2:-}"; shift 2 ;;
     --economy=*)       ECONOMY="${1#*=}"; shift ;;
+    --watcher)         WATCHER="${2:-}"; shift 2 ;;
+    --watcher=*)       WATCHER="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
     --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
     --thinking)        THINKING="${2:-high}"; shift 2 ;;
@@ -98,6 +109,11 @@ case "$AUTONOMY" in
   *) echo "bm: --autonomy must be low|medium|high (got: $AUTONOMY)" >&2; exit 2 ;;
 esac
 
+case "$HARNESS" in
+  pi|hermes|claude|codex) ;;
+  *) echo "bm: --harness must be pi|hermes|claude|codex (got: $HARNESS)" >&2; exit 2 ;;
+esac
+
 case "$THINKING" in
   none|minimal|low|medium|high|xhigh) ;;
   *) echo "bm: --thinking must be none|minimal|low|medium|high|xhigh (got: $THINKING)" >&2; exit 2 ;;
@@ -109,6 +125,7 @@ GOAL="${GOAL_PARTS[*]:-}"
 # Resolve aliases after parsing so the help path stays side-effect free.
 [ -n "$FRONTIER" ] && FRONTIER="$(resolve_alias "$FRONTIER")"
 [ -n "$ECONOMY" ]  && ECONOMY="$(resolve_alias "$ECONOMY")"
+[ -n "$WATCHER" ]  && WATCHER="$(resolve_alias "$WATCHER")"
 
 # Resolve --on auto: prefer remote if BM_AUTO_TARGET is set, else local.
 if [ "$ON" = "auto" ]; then
@@ -119,53 +136,34 @@ fi
 # baseline now; replace it with measured phase history when that exists.
 python3 "$SCRIPT_DIR/phase-estimate" "$GOAL"
 
-# ponytail: validate resolved aliases against pi --list-models BEFORE spawning
-# the agent. Cheap preflight — exit with a clear message and available
-# alternatives instead of letting pi crash mid-goal. Skip the check when
-# BM_SKIP_MODEL_CHECK=1 (CI / scripted runs where pi is unavailable). Skip
-# for remote dispatch (the remote host owns availability).
+# Shared prompt library (extracted from this script in v2.2). Source, not exec.
+# shellcheck source=lib/prompts.sh
+. "$SCRIPT_DIR/lib/prompts.sh"
+
+# ponytail: validate resolved aliases BEFORE spawning the agent, per harness.
+# enforce-models checks pi against `pi --list-models`, hermes against the
+# configured providers, claude/codex against CLI presence. Exit 2 with
+# alternatives instead of letting the harness crash mid-goal. Skip with
+# BM_SKIP_MODEL_CHECK=1 (CI / scripted runs) or for remote dispatch.
 if [ "$ON" = "local" ] && [ "${BM_SKIP_MODEL_CHECK:-0}" != "1" ]; then
-  if ! command -v pi >/dev/null 2>&1; then
-    echo "bm: pi not in PATH; install pi or set BM_SKIP_MODEL_CHECK=1 to bypass" >&2
-    exit 2
-  fi
-  missing=()
-  for model in "$FRONTIER" "$ECONOMY"; do
+  ENF_ARGS=(--harness "$HARNESS")
+  for model in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
     [ -z "$model" ] && continue
     [[ "$model" != *"/"* ]] && continue  # bare alias w/ no resolution
-    provider="${model%%/*}"
-    model_id="${model#*/}"
-    if ! pi --list-models 2>/dev/null \
-         | awk -v p="$provider" -v m="$model_id" \
-               'NR>1 && $1==p && $2==m {found=1} END{exit !found}'; then
-      missing+=("$model")
-    fi
+    ENF_ARGS+=(--model "$model")
   done
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "bm: requested model(s) not available on this host:" >&2
-    for m in "${missing[@]}"; do
-      echo "  - $m" >&2
-    done
-    echo >&2
-    echo "bm: available models on this host (run 'pi --list-models' for full list):" >&2
-    pi --list-models 2>/dev/null | awk 'NR>1 {printf "  %s/%s\n", $1, $2}' >&2
-    echo >&2
-    echo "bm: pick a different --frontier/--economy, override the alias in" >&2
-    echo "    $HOME/.beastmode/tier-aliases.json or \$PWD/.beastmode/tier-aliases.json," >&2
-    echo "    or set BM_SKIP_MODEL_CHECK=1 to bypass this check." >&2
-    exit 2
+  if [ "${#ENF_ARGS[@]}" -gt 2 ]; then
+    "$SCRIPT_DIR/enforce-models" "${ENF_ARGS[@]}"
   fi
 fi
 
-# Build pi arguments once (used in local run).
-PHASE_PROMPT="At the end of every phase, report phase name/status; requested model versus the model that actually served each task (from worker meta.json or the harness journal); tokens used / phase budget and percent; actual versus estimated time. Use the workflow journal or budget output. Say unavailable when a harness does not expose a value. If any task was served by a model other than the requested provider/model (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately with requested and actual IDs — never fold drift into a footnote."
-MODEL_FAILURE_PROMPT="On a model failure or MODEL DRIFT, report phase, provider/model (requested and actual), error, tokens, and attempted work. Stop and return control. Do not retry or switch models."
-[ "$AUTONOMY" = "high" ] && MODEL_FAILURE_PROMPT="On a model failure, report phase, provider/model, error, tokens, and attempted work. Find one safe workaround: narrow the task, retry once, or use an approved tier model. Validate it. If it fails, stop with goal_blocked evidence. MODEL DRIFT always surfaces in the phase report even at high autonomy; drifted work must be re-validated before merge."
-# Below high autonomy, phase gates are blocking: report, then stop and wait.
-GATE_PROMPT="After each phase report, STOP and return control for approval before starting the next phase or merging. Do not continue past a gate on your own."
-[ "$AUTONOMY" = "high" ] && GATE_PROMPT="Proceed through phase gates without stopping, but include every phase report in the final output in order."
+# Build harness arguments once (used in local run).
+PHASE_PROMPT="$(bm_phase_prompt)"
+MODEL_FAILURE_PROMPT="$(bm_model_failure_prompt "$AUTONOMY")"
+GATE_PROMPT="$(bm_gate_prompt "$AUTONOMY")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT")
+SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $SEAT_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
@@ -180,12 +178,57 @@ if [ "$ON" != "local" ]; then
   fi
   REMOTE_FLAGS=""
   [ "$GSD" = "1" ]       && REMOTE_FLAGS="$REMOTE_FLAGS --gsd"
+  REMOTE_FLAGS="$REMOTE_FLAGS --harness $HARNESS"
   [ -n "$FRONTIER" ]     && REMOTE_FLAGS="$REMOTE_FLAGS --frontier $FRONTIER"
   [ -n "$ECONOMY" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --economy $ECONOMY"
+  [ -n "$WATCHER" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --watcher $WATCHER"
   REMOTE_FLAGS="$REMOTE_FLAGS --autonomy $AUTONOMY"
   REMOTE_FLAGS="$REMOTE_FLAGS --thinking $THINKING"
   # shellcheck disable=SC2086
   exec ssh "$ON" "bm '$GOAL' $REMOTE_FLAGS"
 fi
 
-exec pi "${PI_ARGS[@]}" "$GOAL"
+# Harness dispatch. Every harness gets the SAME phase/gate/model-failure
+# prompt strings (from scripts/lib/prompts.sh) — autonomy semantics and
+# model-drift surfacing are identical across harnesses by construction.
+FULL_PROMPT="$PHASE_PROMPT
+
+$MODEL_FAILURE_PROMPT
+
+$GATE_PROMPT
+
+$SEAT_PROMPT
+
+GOAL: $GOAL"
+
+case "$HARNESS" in
+  pi)
+    exec pi "${PI_ARGS[@]}" "$GOAL"
+    ;;
+  hermes)
+    # Hermes ACN: one-shot Hermes agent preloaded with the beastmode skill.
+    # The agent fans out via delegate_task (background/batch) per
+    # adapters/hermes/SKILL.md. Director model = --model; provider is the
+    # alias provider half.
+    H_PROVIDER=""
+    [ -n "$FRONTIER" ] && H_PROVIDER="${FRONTIER%%/*}"
+    H_ARGS=(-z "$FULL_PROMPT" -s beastmode)
+    [ -n "$FRONTIER" ]   && H_ARGS+=(--model "${FRONTIER#*/}")
+    [ -n "$H_PROVIDER" ] && H_ARGS+=(--provider "$H_PROVIDER")
+    [ "$AUTONOMY" = "high" ] && H_ARGS+=(--yolo)
+    exec hermes "${H_ARGS[@]}"
+    ;;
+  claude)
+    # Claude Code: print-mode one-shot. Adapter: adapters/claude-code/SKILL.md.
+    C_ARGS=(-p "$FULL_PROMPT")
+    [ -n "$FRONTIER" ] && C_ARGS+=(--model "$FRONTIER")
+    [ "$AUTONOMY" = "high" ] && C_ARGS+=(--dangerously-skip-permissions)
+    exec claude "${C_ARGS[@]}"
+    ;;
+  codex)
+    # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.
+    X_ARGS=(exec "$FULL_PROMPT")
+    [ "$AUTONOMY" = "high" ] && X_ARGS=(--yolo "${X_ARGS[@]}")
+    exec codex "${X_ARGS[@]}"
+    ;;
+esac

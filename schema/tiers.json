@@ -1,0 +1,13 @@
+{
+  "tiers": {
+    "frontier": {
+      "owns": ["design", "judgment review", "escalations", "acceptance contracts"],
+      "cost_profile": "expensive, short bursts"
+    },
+    "economy": {
+      "owns": ["implementation", "tests", "docs", "mechanical validation"],
+      "cost_profile": "10-50x cheaper, bulk tokens"
+    }
+  },
+  "routing_rule": "verification cost, not task type"
+}

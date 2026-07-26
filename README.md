@@ -56,26 +56,44 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 5. **(Optional) one-shot runner:**
 
    ```bash
-   bm "<goal>"                                          # prints rough phase ETA, then runs locally
+   bm "<goal>"                                          # prints rough phase ETA, then runs locally (pi harness)
+   bm "<goal>" --harness hermes                         # Hermes ACN: async parallel sub-agents via delegate_task
+   bm "<goal>" --harness claude|codex                   # Claude Code / Codex adapters
    bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
+   bm "<goal>" --frontier kimi3 --economy minimax --watcher grok # cross-family watcher
    bm "<validation goal>" --frontier sol --thinking medium # OAuth-backed Sol validator
    bm "<goal>" --on maeve-u1                            # dispatch to a fleet node
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
+   scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
+   scripts/acn-report <dir-of-meta.json>                # phase usage report + MODEL DRIFT check
    ```
 
    See `scripts/bm` and `references/autonomy-levels.md`.
 
+## One Vocabulary (v2.2)
+
+Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
+
 ## Files
 
 - `SKILL.md` — The complete beastmode framework (start here)
+- `schema/` — Machine source of truth: `families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`
+- `adapters/hermes/SKILL.md` — Hermes ACN adapter (`delegate_task` background/batch)
+- `adapters/claude-code/SKILL.md` — Claude Code adapter (Task, `/batch`, parallel `claude -p`)
+- `adapters/codex/SKILL.md` — Codex adapter (parallel `codex exec`, external worker lanes; supersedes beastmode-cloud / beastmode-qwen-cloud)
 - `references/model-routing.md` — Tier definitions, per-phase routing table, design package template, escalation ladder, provider config sketches
-- `references/autonomy-levels.md` — `low` / `medium` (default) / `high` autonomy levels, mapped to pi flags and surface rules
-- `references/orchestration-comparison.md` — Evolution from early prototypes to v2.0
+- `references/autonomy-levels.md` — `low` / `medium` (default) / `high` autonomy levels, mapped to pi/Hermes/Claude/Codex flags and surface rules
+- `references/acn-contract.md` — The ACN fan-out contract (batch shape, child meta.json, shared rules)
+- `references/families-tiers-seats.md` — Human view of the schema vocabulary
+- `references/orchestration-comparison.md` — Evolution from early prototypes to v2.x
 - `references/context-rot-mitigation.md` — MemroOS-style goal-state capsules, compact/resume rules, and MofA decision memory
 - `references/public-sharing-checklist.md` — Guidelines for publishing beastmode skills publicly
 - `pi/SKILL.md` — Pi harness adapter (`pi-coding-agent` ≥ 0.80.6 + 6 companion npm packages)
-- `scripts/bm` — Runner CLI for one-shot goals with tier picks, phase reports, and `--on` dispatch
+- `scripts/bm` — Runner CLI for one-shot goals with harness/tier picks, phase reports, and `--on` dispatch
+- `scripts/enforce-models` — Model preflight/postflight (drift fail-closed) shared by all harnesses
+- `scripts/acn-report` — Normalize ACN child metas into the phase usage report
+- `scripts/lib/prompts.sh` — Shared phase/gate/model-failure prompt builders used by `bm` and adapters
 - `scripts/phase-estimate` — Rough per-phase wall-clock estimate from the goal scope
 - `scripts/install-beastmode-pi.sh` — Idempotent bootstrap of `pi` + 6 companion packages
 

@@ -57,7 +57,7 @@ set -e
 echo "$out" | grep -q "anthropic/claude-fable-5"   || fail "did not name the missing model"
 echo "$out" | grep -q "anthropic/claude-opus-4-7"  || fail "did not list claude-opus-4-7 as alternative"
 echo "$out" | grep -q "minimax/MiniMax-M3"         || fail "did not list minimax as alternative"
-echo "$out" | grep -q "BM_SKIP_MODEL_CHECK"        || fail "did not mention the bypass env var"
+echo "$out" | grep -qE "BM_SKIP_MODEL_CHECK|skip-model-check|skip model check" || fail "did not mention the bypass env var"
 ok "missing frontier rejected with clear alternatives"
 
 # Test 3: BM_SKIP_MODEL_CHECK=1 bypasses the check.

@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""acn-report — print a phase usage report from a directory of meta.json files.
+
+Each meta.json has the shape:
+
+    {
+      "id": "child-1",
+      "requested_model": "anthropic/claude-opus-4-7",
+      "actual_model":    "anthropic/claude-opus-4-7",
+      "usage": {"input_tokens": 1234, "output_tokens": 567}
+    }
+
+Missing fields are reported as "unavailable". Drift (requested != actual)
+exits with code 1.
+
+Usage:
+    acn-report <dir-of-meta.json>
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+UNAVAILABLE = "unavailable"
+
+
+def load_meta(path: Path) -> dict:
+    try:
+        with path.open() as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        # Treat a broken meta as a fully-unavailable row so the report still
+        # surfaces the issue rather than silently dropping the child.
+        return {
+            "id": path.stem,
+            "_error": str(e),
+            "requested_model": UNAVAILABLE,
+            "actual_model": UNAVAILABLE,
+            "usage": {"input_tokens": UNAVAILABLE, "output_tokens": UNAVAILABLE},
+        }
+
+
+def field(d: dict, *keys: str) -> str:
+    for k in keys:
+        v = d.get(k)
+        if v is not None and v != "":
+            return str(v)
+    return UNAVAILABLE
+
+
+def usage_field(d: dict, key: str) -> str:
+    u = d.get("usage")
+    if not isinstance(u, dict):
+        return UNAVAILABLE
+    v = u.get(key)
+    return UNAVAILABLE if v is None else str(v)
+
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        print("usage: acn-report <dir-of-meta.json>", file=sys.stderr)
+        return 2
+    target = Path(sys.argv[1])
+    if not target.is_dir():
+        print(f"acn-report: not a directory: {target}", file=sys.stderr)
+        return 2
+
+    # Literal meta.json anywhere plus top-level *.json that looks like meta.
+    candidates = sorted(
+        set(target.glob("*.json")) | set(target.glob("**/meta.json"))
+    )
+    if not candidates:
+        print(f"acn-report: no meta files found in {target}", file=sys.stderr)
+        return 0
+
+    requested_overall = UNAVAILABLE
+    actual_lines: list[str] = []
+    drift_ids: list[str] = []
+    any_drift = False
+
+    print("Per-child usage:")
+    print("-" * 72)
+    for path in candidates:
+        d = load_meta(path)
+        cid = field(d, "id", "name")
+        req = field(d, "requested_model")
+        act = field(d, "actual_model")
+        in_tok = usage_field(d, "input_tokens")
+        out_tok = usage_field(d, "output_tokens")
+        print(f"  {cid}")
+        print(f"    requested: {req}")
+        print(f"    actual:    {act}")
+        print(f"    tokens:    in={in_tok} out={out_tok}")
+        if req != act:
+            any_drift = True
+            drift_ids.append(cid)
+        if requested_overall == UNAVAILABLE and req != UNAVAILABLE:
+            requested_overall = req
+        if act != UNAVAILABLE:
+            actual_lines.append(f"{act} per task")
+    print("-" * 72)
+    print()
+
+    actual_summary = ", ".join(actual_lines) if actual_lines else UNAVAILABLE
+    print(f"Models: requested {requested_overall} -> actual {actual_summary}")
+    if any_drift:
+        print(f"Drift: MODEL DRIFT: {requested_overall} -> see per-child rows on {', '.join(drift_ids)}")
+    else:
+        print("Drift: none")
+
+    return 1 if any_drift else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

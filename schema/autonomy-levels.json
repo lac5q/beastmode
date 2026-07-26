@@ -1,0 +1,45 @@
+{
+  "default": "medium",
+  "gates_blocking_below_high": true,
+  "model_drift_always_surfaces": true,
+  "levels": {
+    "low": {
+      "runs_without_surfacing": [
+        "Single executor turn, one read-only tool call"
+      ],
+      "always_surfaces": [
+        "Every phase transition",
+        "Every merge",
+        "Every cross-tier escalation",
+        "Every Worker → Watcher jump",
+        "Any diff > 1 file",
+        "Any model failure"
+      ]
+    },
+    "medium": {
+      "runs_without_surfacing": [
+        "Whole phase: acceptance → design package → delegate → validate → review"
+      ],
+      "always_surfaces": [
+        "Security/auth/payments/data-loss events",
+        "Tier-2/3 Watcher fallback",
+        "Front-door merge gate",
+        "Any goal_blocked",
+        "Any model failure"
+      ]
+    },
+    "high": {
+      "runs_without_surfacing": [
+        "Multi-phase until goal_complete or 3 identical goal_blocked in a row with concrete evidence",
+        "One safe workaround after a model failure"
+      ],
+      "always_surfaces": [
+        "budget_limited stop",
+        "Watcher unavailable after all 3 tiers",
+        "No watcher, no validated violation",
+        "telegram-bound secrets in prompt",
+        "Model failure + workaround result"
+      ]
+    }
+  }
+}

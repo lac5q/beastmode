@@ -1,0 +1,32 @@
+{
+  "families": {
+    "anthropic": {
+      "providers": ["anthropic", "claude-pro-lane"],
+      "notes": "Claude models; Pro lane routes via claude -p"
+    },
+    "openai-codex": {
+      "providers": ["openai-codex"],
+      "notes": "GPT/Codex frontier incl. terra/sol profiles"
+    },
+    "kimi": {
+      "providers": ["kimi-coding"],
+      "notes": "k3 flagship, k2p7 fallback"
+    },
+    "minimax": {
+      "providers": ["minimax"],
+      "notes": "default economy"
+    },
+    "qwen": {
+      "providers": ["qwen"],
+      "notes": "cross-family second opinion"
+    },
+    "xai": {
+      "providers": ["xai", "xai-oauth"],
+      "notes": "grok"
+    },
+    "zai": {
+      "providers": ["zai"],
+      "notes": "glm validators"
+    }
+  }
+}

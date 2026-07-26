@@ -6,8 +6,9 @@ description: >
   own design, architecture, and review sign-off, while economy models (MiniMax M3,
   Qwen/Gwen) handle implementation and mechanical validation in isolated worktrees,
   with a self-improving learning loop that promotes lessons back into skills.
-  Harness-agnostic: works with Ultraswarm, GSD, delegate_task, or manual orchestration.
-version: 2.1.0
+  Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
+  Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
+version: 2.2.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
 related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
@@ -33,6 +34,8 @@ Beastmode is a structured approach to multi-agent software development that sepa
 ## Model Tiers & Routing
 
 Beastmode routes every unit of work to a tier, not a specific model. Pick the best available model in each tier for your environment.
+
+**One vocabulary (v2.2):** model **families**, **tiers**, **seats**, **autonomy levels**, and the **ACN fan-out contract** are defined once, machine-readably, in `schema/` (`families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`). Every harness adapter and every doc references that schema — if prose and schema disagree, schema wins. Human-readable views: `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, `references/tier-aliases.md`.
 
 | Tier | Example models | Owns |
 |------|---------------|------|
@@ -106,6 +109,26 @@ Use beastmode for complex tasks that need:
 7. **Model drift always surfaces.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier.
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
 
+## The ACN Layer (Async Parallel Sub-agents)
+
+Beastmode's execution fan-out is **ACN**: async parallel sub-agents. Every supported harness has a native primitive for it, and v2.2 makes them obey **one contract** (`schema/acn-contract.json`, human view `references/acn-contract.md`):
+
+| Harness | ACN primitive | Adapter |
+|---|---|---|
+| **Hermes** | `delegate_task` background + batch (default 3 concurrent, live transcripts, `/agents` overlay, orchestrator children) | `adapters/hermes/SKILL.md` |
+| **Pi** | `pi-dynamic-workflows` `agent()` / `parallel()` / worktrees | `pi/SKILL.md` |
+| **Claude Code** | Task subagents, `/batch` worktrees, parallel `claude -p` | `adapters/claude-code/SKILL.md` |
+| **Codex** | parallel `codex exec` + worktrees, external cheap lanes | `adapters/codex/SKILL.md` |
+
+The shared rules (all harnesses):
+
+1. **Preflight every seat's model** before fan-out (`scripts/enforce-models`); missing → exit 2 with alternatives.
+2. **Pin the executor model on children.** Never let economy work silently inherit a parent/session default. If the runtime cannot prove the child's model, the child is an unverified draft lane — never `validated`.
+3. **Parallel by default** for independent executor slices; group same-lane workers (prompt-cache warmth); default concurrency 3 unless the harness is explicitly configured higher.
+4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches, Codex background exec, Claude parallel sessions). Orchestrator children may wait to synthesize.
+5. **Consolidate → mechanical validation (economy) → watcher judgment (frontier) → gate by autonomy.**
+6. **MODEL DRIFT always surfaces** (requested vs actual per child, `meta.json` shape in `schema/acn-contract.json`) and blocks `validated` at every autonomy level. `scripts/acn-report` normalizes child metas into the phase report.
+
 ## Choosing Your Harness
 
 Beastmode works with any orchestration harness. Choose based on your environment:
@@ -113,19 +136,24 @@ Beastmode works with any orchestration harness. Choose based on your environment
 ### Runner CLI (`bm`)
 
 For one-shot goals without writing a full plan: `bm "<goal>"` from any repo.
-Parses `--gsd`, `--frontier <alias>`, `--economy <alias>`, `--on local|<host>`,
-`--autonomy low|medium|high` (default `medium`). Tier aliases resolve via
-`references/tier-aliases.json` — `kimi3` → `kimi-coding/k3`, `fable` →
-`anthropic/claude-fable-5`, `minimax` → `minimax/MiniMax-M3`, etc. Override
-per-repo with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and
+Parses `--harness hermes|pi|claude|codex` (default `pi`), `--gsd`,
+`--frontier <alias>`, `--economy <alias>`, `--watcher <alias>`,
+`--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
+aliases resolve via `references/tier-aliases.json` — `kimi3` →
+`kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `minimax` →
+`minimax/MiniMax-M3`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
+with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and
 `references/autonomy-levels.md`.
 
-Before invoking `pi`, `bm` runs a model-availability preflight that checks
-each resolved `provider/model` against `pi --list-models` on the local host.
+Before spawning, `bm` runs `scripts/enforce-models` to preflight each
+resolved `provider/model` for the selected harness (pi: `pi --list-models`;
+hermes: provider presence in Hermes config/auth; claude/codex: CLI presence).
 If any are missing, `bm` exits with code 2 and prints the available
 alternatives, so a goal never starts against an unresolvable model. Skip
 with `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs). The check is also
 skipped when `--on` is not local (the remote host owns availability).
+Postflight, `enforce-models --check-meta <dir>` and `scripts/acn-report`
+detect MODEL DRIFT from child metas and emit the phase usage report.
 
 ### Harness 1: Ultraswarm (Preferred for Git Repos)
 
@@ -163,6 +191,8 @@ Let GSD handle planning/phase gates, and delegate routine implementation units t
 
 **Use when:** You're in Hermes or OpenClaw and need subagent orchestration without worktrees.
 
+> **v2.2:** For full beastmode runs on Hermes, use the ACN adapter at `adapters/hermes/SKILL.md` (background batches, model pinning, meta.json, drift fail-closed) via `bm "<goal>" --harness hermes`. Raw `delegate_task` remains the fallback for small parallel tasks.
+
 **Example:**
 ```python
 delegate_task(
@@ -184,6 +214,8 @@ forfeits that.
 ### Harness 4: Claude Code Subagents
 
 **Use when:** You're in Claude Code and want to spawn subagents for routine work.
+
+> **v2.2:** Use the adapter at `adapters/claude-code/SKILL.md` (Task, `/batch` worktrees, parallel `claude -p`, permission-mode autonomy mapping) via `bm "<goal>" --harness claude`.
 
 **Example:**
 ```bash
@@ -219,13 +251,16 @@ git merge beastmode/<task-id>
 
 | Harness | Worktree Isolation | QA Gates | Cost Reporting | Best For |
 |---------|-------------------|----------|----------------|----------|
+| Hermes ACN (`adapters/hermes`) | ❌ No (use branches) | ✅ Phase gates + drift fail-closed | ✅ Per-child meta + acn-report | Async parallel sub-agents, default on this fleet |
+| Pi (`pi/`) | ✅ Yes (workflows) | ✅ Adaptive | ✅ Yes | Local pi hosts, goal loops |
+| Claude Code (`adapters/claude-code`) | ✅ Yes (`/batch`) | ✅ Phase gates | ❌ No | Claude-led runs, Pro-lane watcher |
+| Codex (`adapters/codex`) | ✅ Yes (worktrees) | ✅ Phase gates | ❌ No | Codex-led runs, external cheap lanes |
 | Ultraswarm | ✅ Yes | ✅ Adaptive | ✅ Yes | Git repos, multi-phase work |
 | GSD | ❌ No (uses branches) | ✅ Phase gates | ❌ No | Repos already using GSD |
-| delegate_task | ❌ No | ❌ No | ❌ No | Small parallel tasks, no repo |
-| Claude Code subagents | ❌ No | ❌ No | ❌ No | Claude Code environments |
+| delegate_task (raw) | ❌ No | ❌ No | ❌ No | Small parallel tasks, no repo |
 | Manual git | ✅ Yes (branches) | ❌ Manual | ❌ No | No orchestration tool available |
 
-**Default recommendation:** Use Ultraswarm if available. Fall back to GSD if the repo uses it. Use `delegate_task` or Claude Code subagents for small tasks. Use manual git workflow as last resort.
+**Default recommendation:** Use Hermes ACN on Hermes boxes (`bm --harness hermes`), Pi where the pi packages are installed (`--harness pi`, the `bm` default), Claude Code or Codex adapters in those CLIs. Fall back to GSD if the repo uses it, `delegate_task` raw for small tasks, manual git as last resort.
 
 ## The Beastmode Loop
 
@@ -552,9 +587,12 @@ and monitoring.
 
 ## References
 
+- **Schema (source of truth):** `schema/families.json`, `schema/tiers.json`, `schema/seats.json`, `schema/autonomy-levels.json`, `schema/acn-contract.json` — one machine-readable vocabulary for families, tiers, seats, autonomy, and the ACN contract.
+- **Families / tiers / seats:** See `references/families-tiers-seats.md` for the human view of the schema and how to add a family or alias.
+- **ACN contract:** See `references/acn-contract.md` for async parallel sub-agent fan-out — batch shape, per-child meta.json, the six shared rules, and the harness primitive map. Adapters: `adapters/hermes/`, `adapters/claude-code/`, `adapters/codex/`, plus the Pi adapter in `pi/`.
 - **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
-- **Tier aliases:** See `references/tier-aliases.md` (and `tier-aliases.json`) for the friendly-name → `provider/model` map consumed by `scripts/bm`. Verified against `pi --list-models` on oracle-1 / maeve-u1.
-- **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and how to map levels to `pi --approve` / `--no-builtin-tools`.
+- **Tier aliases:** See `references/tier-aliases.md` (and `scripts/tier-aliases.json`) for the friendly-name → `provider/model` (+ family, tier) map consumed by `scripts/bm`. Verified against `pi --list-models` on oracle-1 / maeve-u1.
+- **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and the per-harness enforcement map.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
-- **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.0.
+- **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.x.
 - **Public sharing checklist:** See `references/public-sharing-checklist.md` for sanitization guidelines when publishing beastmode skills publicly.
