@@ -70,6 +70,14 @@ DEFAULT_META_FIELDS = (
 # meta would carry. Run dirs legitimately contain other JSON (harness config,
 # task manifests); classifying those as unverifiable children would turn the
 # fail-closed gate into a false-positive machine.
+#
+# Marker choice is load-bearing in BOTH directions, and the first cut of this
+# got it wrong: requiring a provenance field to recognise a child meant a child
+# that died before writing one was not a child, so it vanished from the report
+# and a sibling's clean row carried the batch to exit 0. That is the same
+# fail-open this module exists to close, just one level up. Recognition must
+# therefore key on "this is a child record", never on "this child proved
+# something" — deciding whether it proved anything is `classify`'s job.
 META_MARKERS = (
     "requested_model",
     "actual_model",
@@ -77,11 +85,15 @@ META_MARKERS = (
     "files_changed",
     "commands_run",
     "verify",
+    # A token-usage block is the one field no harness config carries, so it
+    # identifies a half-written child that has nothing else left to match on.
+    "usage",
 )
-# Pre-v2.3 shape: no requested/actual pair, just the model that ran. Matched
-# so the gate can name it and tell the caller how to migrate, instead of
-# skipping it silently.
-LEGACY_MARKERS = ("model", "usage")
+# Pre-v2.3 shape: no requested/actual pair, just the model that ran. `model`
+# needs a companion field — a bare {"model": ...} is as likely to be provider
+# config as a child record, and false-failing a config file would train people
+# to pass --allow-empty everywhere.
+LEGACY_PAIRS = (("model", "id"), ("model", "usage"), ("model", "stop_reason"))
 
 
 def contract_path(start: Path | None = None) -> Path | None:
@@ -111,6 +123,18 @@ def required_meta_fields() -> tuple[str, ...]:
     return DEFAULT_META_FIELDS
 
 
+def is_child_record(body: dict) -> bool:
+    """Does this JSON body look like an ACN child record at all?
+
+    Deliberately not "does it prove its model" — see the note on META_MARKERS.
+    """
+    if not isinstance(body, dict):
+        return False
+    if any(k in body for k in META_MARKERS):
+        return True
+    return any(all(k in body for k in pair) for pair in LEGACY_PAIRS)
+
+
 def find_meta_files(target: Path) -> list[Path]:
     """Every candidate child meta under `target`, recursively, sorted."""
     found = []
@@ -130,11 +154,7 @@ def find_meta_files(target: Path) -> list[Path]:
             continue
         except OSError:
             continue
-        if not isinstance(body, dict):
-            continue
-        if any(k in body for k in META_MARKERS):
-            found.append(path)
-        elif all(k in body for k in LEGACY_MARKERS):
+        if is_child_record(body):
             found.append(path)
     return found
 
@@ -213,13 +233,32 @@ class GateResult:
         self.exit_code = exit_code
 
 
-def check(target: Path, allow_empty: bool = False, strict: bool = False) -> GateResult:
+def expected_ids(source: str) -> list[str]:
+    """Expected child ids, from a batch JSON path or a comma-separated list.
+
+    The batch already declares its children — `tasks[].id` is required by
+    `schema/acn-contract.json` — so the manifest the gate needs to notice an
+    absent child is a file the contract guarantees exists.
+    """
+    path = Path(source)
+    if path.is_file():
+        with path.open() as f:
+            batch = json.load(f)
+        tasks = batch.get("tasks") if isinstance(batch, dict) else None
+        if not isinstance(tasks, list):
+            raise ValueError(f"{source} has no 'tasks' list to read child ids from")
+        return [str(t.get("id")) for t in tasks if isinstance(t, dict) and t.get("id")]
+    return [part.strip() for part in source.split(",") if part.strip()]
+
+
+def check(target: Path, allow_empty: bool = False, strict: bool = False,
+          expect: list[str] | None = None) -> GateResult:
     """Run the provenance gate over a directory of child metas."""
     if not target.is_dir():
         return GateResult([], [f"not a directory: {target}"], 2)
 
     rows = load_rows(target)
-    if not rows:
+    if not rows and not expect:
         if allow_empty:
             return GateResult([], [f"no child metas found in {target} (--allow-empty)"], 0)
         # Fail closed: a batch that produced no provable child did not
@@ -235,13 +274,26 @@ def check(target: Path, allow_empty: bool = False, strict: bool = False) -> Gate
         )
 
     messages = [row.line() for row in rows if row.failed]
+
+    # A child that died before writing anything leaves no file, so scanning
+    # what is present can never notice it — one surviving sibling would carry
+    # the batch to exit 0. Only the batch's own list of ids can catch that.
+    missing_children = []
+    if expect:
+        seen = {row.id for row in rows}
+        missing_children = [cid for cid in expect if cid not in seen]
+        for cid in missing_children:
+            messages.append(
+                f"UNVERIFIABLE: expected child {cid!r} wrote no meta in {target}; "
+                "it cannot be shown to have run under the pinned model"
+            )
     incomplete = [row for row in rows if row.missing_fields and not row.failed]
     for row in incomplete:
         messages.append(
             f"INCOMPLETE: {row.id} missing {', '.join(row.missing_fields)} ({row.path})"
         )
 
-    failed = any(row.failed for row in rows)
+    failed = any(row.failed for row in rows) or bool(missing_children)
     if failed or (strict and incomplete):
         return GateResult(rows, messages, 1)
     return GateResult(rows, messages, 0)
@@ -251,6 +303,7 @@ def main(argv: list[str]) -> int:
     target = None
     allow_empty = False
     strict = False
+    expect: list[str] | None = None
     args = list(argv)
     while args:
         arg = args.pop(0)
@@ -259,6 +312,15 @@ def main(argv: list[str]) -> int:
                 print("acn_meta: --check needs a directory", file=sys.stderr)
                 return 2
             target = Path(args.pop(0))
+        elif arg == "--expect":
+            if not args:
+                print("acn_meta: --expect needs a batch file or id list", file=sys.stderr)
+                return 2
+            try:
+                expect = expected_ids(args.pop(0))
+            except (OSError, ValueError, json.JSONDecodeError) as e:
+                print(f"acn_meta: --expect: {e}", file=sys.stderr)
+                return 2
         elif arg == "--allow-empty":
             allow_empty = True
         elif arg == "--strict":
@@ -271,10 +333,11 @@ def main(argv: list[str]) -> int:
             return 2
 
     if target is None:
-        print("usage: acn_meta.py --check <dir> [--allow-empty] [--strict]", file=sys.stderr)
+        print("usage: acn_meta.py --check <dir> [--expect <batch.json|id,...>] "
+              "[--allow-empty] [--strict]", file=sys.stderr)
         return 2
 
-    result = check(target, allow_empty=allow_empty, strict=strict)
+    result = check(target, allow_empty=allow_empty, strict=strict, expect=expect)
     stream = sys.stderr if result.exit_code == 2 else sys.stdout
     for message in result.messages:
         print(message, file=stream)

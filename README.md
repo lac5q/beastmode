@@ -67,6 +67,7 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
    scripts/enforce-models --check-meta <run-dir>        # postflight gate: drift + unprovable provenance
+   scripts/enforce-models --check-meta <run-dir> --expect <batch.json>  # also catch a child that wrote nothing
    scripts/acn-report <dir-of-meta.json>                # phase usage report + MODEL DRIFT check
    ```
 

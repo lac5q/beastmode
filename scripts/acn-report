@@ -36,20 +36,32 @@ UNAVAILABLE = acn_meta.UNAVAILABLE
 
 
 def usage() -> int:
-    print("usage: acn-report <dir-of-meta.json> [--allow-empty] [--strict]",
-          file=sys.stderr)
+    print("usage: acn-report <dir-of-meta.json> [--expect <batch.json|id,...>] "
+          "[--allow-empty] [--strict]", file=sys.stderr)
     return 2
 
 
 def main() -> int:
     allow_empty = False
     strict = False
+    expect = None
     positional: list[str] = []
-    for arg in sys.argv[1:]:
+    args = sys.argv[1:]
+    while args:
+        arg = args.pop(0)
         if arg == "--allow-empty":
             allow_empty = True
         elif arg == "--strict":
             strict = True
+        elif arg == "--expect":
+            if not args:
+                print("acn-report: --expect needs a batch file or id list", file=sys.stderr)
+                return usage()
+            try:
+                expect = acn_meta.expected_ids(args.pop(0))
+            except Exception as e:
+                print(f"acn-report: --expect: {e}", file=sys.stderr)
+                return 2
         elif arg.startswith("-"):
             print(f"acn-report: unknown arg: {arg}", file=sys.stderr)
             return usage()
@@ -59,7 +71,7 @@ def main() -> int:
         return usage()
 
     target = Path(positional[0])
-    result = acn_meta.check(target, allow_empty=allow_empty, strict=strict)
+    result = acn_meta.check(target, allow_empty=allow_empty, strict=strict, expect=expect)
     if result.exit_code == 2:
         for message in result.messages:
             print(f"acn-report: {message}", file=sys.stderr)

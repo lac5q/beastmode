@@ -5,7 +5,8 @@
 #   enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
 #
 # Postflight (scans a directory of meta.json files):
-#   enforce-models --check-meta <dir> [--allow-empty] [--strict]
+#   enforce-models --check-meta <dir> [--expect <batch.json|id,...>]
+#                                     [--allow-empty] [--strict]
 #
 # Exit codes:
 #   0  all requested models available OR every child's model is proven correct
@@ -13,6 +14,9 @@
 #      proven at all (ACN shared rule 2 — unprovable is never `validated`)
 #   2  usage / preflight failure (missing model)
 #
+# --expect       the batch's expected child ids, so a child that died before
+#                writing any meta is caught. Scanning what is present can
+#                never notice a file that was never created.
 # --allow-empty  a batch with zero children is a pass, not a gate failure
 # --strict       also fail on metas missing schema-required fields
 #
@@ -25,7 +29,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 usage() {
   cat >&2 <<'USAGE'
 usage: enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
-       enforce-models --check-meta <dir> [--allow-empty] [--strict]
+       enforce-models --check-meta <dir> [--expect <batch.json|id,...>]
+                                         [--allow-empty] [--strict]
 USAGE
   exit 2
 }
@@ -44,6 +49,8 @@ while [ $# -gt 0 ]; do
     --model)      MODELS+=("${2:-}"); shift 2 ;;
     --model=*)    MODELS+=("${1#*=}"); shift ;;
     --check-meta) META_DIR="${2:-}"; shift 2 ;;
+    --expect)     META_FLAGS+=(--expect "${2:-}"); shift 2 ;;
+    --expect=*)   META_FLAGS+=(--expect "${1#*=}"); shift ;;
     --allow-empty) META_FLAGS+=(--allow-empty); shift ;;
     --strict)     META_FLAGS+=(--strict); shift ;;
     -h|--help)    usage ;;

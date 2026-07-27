@@ -85,7 +85,11 @@ nothing to compare, and a comparison that cannot be made is not a pass.
 |---|---|---|
 | `ok` | `requested_model == actual_model` | pass |
 | `drift` | `requested_model != actual_model` | **fail** - re-run under the pinned model |
-| `unverifiable` | meta missing, unreadable, or missing either model field | **fail** - provenance cannot be established |
+| `unverifiable` | meta missing, unreadable, missing either model field, or an expected child that wrote no meta at all | **fail** - provenance cannot be established |
+
+One valid sibling does not carry a batch. Each child is judged on its own
+record, so a run where nine children proved their model and one did not is a
+failed gate, not a 90% pass.
 
 `unverifiable` is a gate failure because shared rule 2 already says so: a
 child whose model the runtime cannot prove is an unverified draft lane. A
@@ -95,6 +99,21 @@ and a run directory with no metas at all reported clean.
 
 A batch that legitimately produced no children is asserted, not assumed:
 pass `--allow-empty` to `enforce-models --check-meta` / `acn-report`.
+
+### Catching a child that never wrote anything
+
+Scanning a run directory can only judge records that exist. A worker killed
+before it wrote any meta leaves no file, so a surviving sibling would carry
+the batch to a clean exit. Pass the batch's expected child ids to close that:
+
+```bash
+enforce-models --check-meta <run-dir> --expect <batch.json>   # reads tasks[].id
+enforce-models --check-meta <run-dir> --expect child-1,child-2
+```
+
+The manifest is not a new artifact - `tasks[].id` is already required by
+`schema/acn-contract.json`, so the batch the director already wrote *is* the
+list of children the gate should expect to hear from.
 
 Both tools call one checker, `scripts/lib/acn_meta.py`, which reads
 `meta_json_required_fields` out of `schema/acn-contract.json`. The schema is

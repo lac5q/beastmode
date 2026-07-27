@@ -28,7 +28,7 @@
     "verify"
   ],
   "drift_policy": "actual_model != requested_model is MODEL DRIFT: always surfaces, work is not validated until re-validated under the correct tier",
-  "unverifiable_policy": "a child whose meta is missing, unreadable, or lacks either requested_model or actual_model is unverifiable: the gate fails it exactly as it fails drift, because provenance that cannot be established is not provenance. A run directory containing no child metas is unverifiable unless --allow-empty is asserted",
+  "unverifiable_policy": "a child whose meta is missing, unreadable, or lacks either requested_model or actual_model is unverifiable: the gate fails it exactly as it fails drift, because provenance that cannot be established is not provenance. Each child is judged on its own record — a valid sibling never carries an unprovable one. A run directory containing no child metas is unverifiable unless --allow-empty is asserted, and a child listed in tasks[].id that wrote no meta at all is unverifiable when the batch ids are supplied via --expect",
   "gate_verdicts": ["ok", "drift", "unverifiable"],
   "gate_implementation": "scripts/lib/acn_meta.py, shared by scripts/enforce-models --check-meta and scripts/acn-report",
   "hard_rules": [

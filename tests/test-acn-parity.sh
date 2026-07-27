@@ -174,6 +174,70 @@ else
 fi
 rm -f "$TMP/meta.json"
 
+# A half-written child alongside a good one. The first cut of the gate keyed
+# candidate detection on provenance fields, so a child that died before
+# writing them was not recognised as a child at all — it vanished from the
+# report and the good sibling carried the batch to exit 0.
+SIB="$TMP/siblings"; mkdir -p "$SIB"
+cp "$FIX/match/a.json" "$SIB/a.json"
+printf '%s\n' '{"id": "lost", "usage": {"input_tokens": 900, "output_tokens": 40}}' > "$SIB/lost.json"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$SIB"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "lost"; then
+  pass "half-written sibling is UNVERIFIABLE despite a valid sibling"
+else
+  fail "half-written sibling: expected exit 1 naming 'lost', got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+# ...and it must still appear as a row in the report, not just in the verdict.
+run_gate "$ROOT/scripts/acn-report" "$SIB"
+if echo "$GATE_OUT" | grep -q "lost"; then
+  pass "acn-report lists the half-written child as a row"
+else
+  fail "acn-report omitted the half-written child: $GATE_OUT"
+fi
+
+# Provider config that merely mentions a model must NOT be read as a child —
+# false-failing it would train people to pass --allow-empty everywhere.
+CFG="$TMP/withcfg"; mkdir -p "$CFG"
+cp "$FIX/match/a.json" "$CFG/a.json"
+printf '%s\n' '{"model": "minimax/MiniMax-M3", "provider": "minimax"}' > "$CFG/config.json"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$CFG"
+if [ "$GATE_RC" = "0" ]; then
+  pass "provider config is not mistaken for a child record"
+else
+  fail "provider config false-failed the gate: rc=$GATE_RC out=$GATE_OUT"
+fi
+
+# A child that wrote nothing at all leaves no file to scan, so only the
+# batch's own id list can catch it.
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect a,ghost
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
+  pass "--expect catches a child that wrote no meta"
+else
+  fail "--expect: expected exit 1 naming 'ghost', got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect a
+if [ "$GATE_RC" = "0" ]; then
+  pass "--expect passes when every expected child reported"
+else
+  fail "--expect all-present: expected exit 0, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+# --expect also reads the batch file directly, since schema/acn-contract.json
+# already requires tasks[].id — the manifest is a file the contract guarantees.
+cat > "$TMP/batch.json" <<'JSON'
+{"autonomy": "medium", "concurrency": 3,
+ "tasks": [{"id": "a", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]},
+           {"id": "ghost", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]}]}
+JSON
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect "$TMP/batch.json"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
+  pass "--expect reads child ids from a batch file"
+else
+  fail "--expect batch file: expected exit 1 naming 'ghost', got rc=$GATE_RC out=$GATE_OUT"
+fi
+
 # ---- (e3) enforce-models and acn-report agree on every fixture ----
 # They used to be two implementations of one contract with different file
 # discovery, so a child could pass one tool and fail the other.
