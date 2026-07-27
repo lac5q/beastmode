@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/codex/SKILL.m
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in
-the canonical `beastmode` skill (v2.2.0) — load it first and follow it.
+the canonical `beastmode` skill (v2.3.0) — load it first and follow it.
 This adapter tells you which Codex primitives implement which seat and
 which external lanes the bounded workers can call.
 
@@ -116,6 +116,10 @@ under the pinned model.
 
 Unverifiable child model = **UNVERIFIED DRAFT** lane. Output may be used
 as input but is never `validated` until re-checked under a pinned model.
+A meta carrying a single merged `model` instead of both `requested_model`
+and `actual_model` is unverifiable — there is nothing to compare.
+`scripts/enforce-models --check-meta <run-dir>` is the gate; exit 1 means
+drift or unverifiable.
 
 ## Autonomy mapping
 
@@ -216,7 +220,7 @@ still referencing `beastmode-qwen-cloud` should migrate to this adapter.
 
 ## See also
 
-- `beastmode` (v2.2.0) — the canonical framework this adapter implements
+- `beastmode` (v2.3.0) — the canonical framework this adapter implements
 - `schema/acn-contract.json` — machine source of truth for batch / task
   / meta.json shapes
 - `references/autonomy-levels.md` and `references/orchestration-comparison.md`

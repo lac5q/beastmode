@@ -44,8 +44,12 @@ reports accumulate into the final output in order.
 
 **MODEL DRIFT** = a task was served by a model other than the requested
 `provider/model` — router fallback, harness default, or silent substitution.
-Detect it by comparing the worker `meta.json` `model` field (or harness
-journal) against the resolved tier alias. Drift surfaces at **every** level,
+Detect it by comparing the worker `meta.json` `actual_model` against its
+`requested_model` (shape: `schema/acn-contract.json`; tooling:
+`scripts/enforce-models --check-meta` and `scripts/acn-report`, both of which
+run the same checker in `scripts/lib/acn_meta.py`). A meta that carries only a
+single `model` field cannot prove drift either way — it is **unverifiable**,
+which fails the gate exactly like drift does. Drift surfaces at **every** level,
 including high, because it breaks two guarantees at once: cost (a frontier
 substitute burns budget) and trust (an economy substitute on design-tier work
 skips the judgment the gate assumed). Drifted work is not `validated` until
@@ -89,5 +93,10 @@ bm "ship the new ingest endpoint behind a feature flag" \
 ```
 
 Worker prompt contract (universal — see `pi/SKILL.md`):
-workers never commit/push, never reach secrets, never publish, return a
-meta.json shape `{"id","model","stop_reason","usage":{...}}`.
+workers never commit/push, never reach secrets, never publish, and return the
+meta.json shape declared in `schema/acn-contract.json`:
+`{"id","requested_model","actual_model","stop_reason","usage":{...},"files_changed","commands_run","verify"}`.
+
+`requested_model` and `actual_model` are both required and must be separate
+fields. A worker that reports one merged `model` gives the gate nothing to
+compare, and an unprovable child is never `validated`.

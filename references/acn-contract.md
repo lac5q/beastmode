@@ -75,7 +75,51 @@ autonomy level, blocks `validated` until the same task is re-run under the
 pinned model. Drift is fail-closed: a drifted child is treated as
 unverified draft, even if the output looks plausible.
 
-## The six shared rules
+`requested_model` and `actual_model` are separate fields on purpose. A child
+that reports a single merged `model` - the pre-v2.3 shape - gives the gate
+nothing to compare, and a comparison that cannot be made is not a pass.
+
+### Three verdicts, two of them failures
+
+| Verdict | Condition | Gate |
+|---|---|---|
+| `ok` | `requested_model == actual_model` | pass |
+| `drift` | `requested_model != actual_model` | **fail** - re-run under the pinned model |
+| `unverifiable` | meta missing, unreadable, missing either model field, or an expected child that wrote no meta at all | **fail** - provenance cannot be established |
+
+One valid sibling does not carry a batch. Each child is judged on its own
+record, so a run where nine children proved their model and one did not is a
+failed gate, not a 90% pass.
+
+`unverifiable` is a gate failure because shared rule 2 already says so: a
+child whose model the runtime cannot prove is an unverified draft lane. A
+gate that exits 0 on "I don't know" inverts that rule, which is exactly what
+the pre-v2.3 tooling did - legacy-shape metas were skipped as unrecognised,
+and a run directory with no metas at all reported clean.
+
+A batch that legitimately produced no children is asserted, not assumed:
+pass `--allow-empty` to `enforce-models --check-meta` / `acn-report`.
+
+### Catching a child that never wrote anything
+
+Scanning a run directory can only judge records that exist. A worker killed
+before it wrote any meta leaves no file, so a surviving sibling would carry
+the batch to a clean exit. Pass the batch's expected child ids to close that:
+
+```bash
+enforce-models --check-meta <run-dir> --expect <batch.json>   # reads tasks[].id
+enforce-models --check-meta <run-dir> --expect child-1,child-2
+```
+
+The manifest is not a new artifact - `tasks[].id` is already required by
+`schema/acn-contract.json`, so the batch the director already wrote *is* the
+list of children the gate should expect to hear from.
+
+Both tools call one checker, `scripts/lib/acn_meta.py`, which reads
+`meta_json_required_fields` out of `schema/acn-contract.json`. The schema is
+load-bearing: change the field list there and the gate follows.
+
+## The seven shared rules
 
 1. **Preflight seats** before any batch - director / watcher / executor
  models resolve against the harness's known-model list. Missing model
@@ -94,6 +138,10 @@ unverified draft, even if the output looks plausible.
  to the watcher for adversarial review.
 6. **MODEL DRIFT always surfaces.** At every autonomy level. Blocks
  `validated`. Recorded in the self-improvement entry.
+7. **Unprovable provenance fails closed.** A child that is `unverifiable`
+ fails the gate exactly like a drifted one. Silence is not consent: an
+ empty run directory, an unreadable meta, or a meta without both model
+ fields all block `validated`.
 
 ## Harness primitive map
 
@@ -115,3 +163,7 @@ thing that changes.
 batch fields, task fields, meta.json fields, drift policy, hard rules.
 This doc is the human reading of it. When the schema changes, update
 this doc in the same PR; do not let the prose drift from the JSON.
+
+`tests/test-acn-parity.sh` enforces that: it asserts every field name in the
+meta.json block above appears in the schema's `meta_json_required_fields` and
+vice versa, so prose and JSON cannot silently diverge again.

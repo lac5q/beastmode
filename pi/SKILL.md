@@ -219,10 +219,20 @@ Beastmode's universal artifacts, written in this order:
 1. **Worker run record** — harness-specific. With pi-dynamic-workflows, this
    is the workflow run journal (id, phases, agent transcripts, token / cost
    per agent, real `usage` blocks) — export or reference it; the universal
-   shape is `{"id", "model", "stop_reason", "usage": {"input_tokens",
-   "output_tokens"}}`. For runs that used external CLI lanes (qwen-agent,
-   droid exec, MiniMax curl), persist a `meta.json` next to the run record
-   with the same shape, populated from the lane's reported usage.
+   shape is the one in `schema/acn-contract.json`: `{"id",
+   "requested_model", "actual_model", "stop_reason", "usage":
+   {"input_tokens", "output_tokens"}, "files_changed", "commands_run",
+   "verify"}`. For runs that used external CLI lanes (qwen-agent, droid
+   exec, MiniMax curl), persist a `meta.json` next to the run record with
+   the same shape, populated from the lane's reported usage.
+
+   `requested_model` is what the batch pinned; `actual_model` is what the
+   lane reports it actually ran. Both are required — a record with one
+   merged `model` field cannot prove drift in either direction, and
+   `scripts/enforce-models --check-meta` fails it as **unverifiable**
+   rather than passing it. Verify a run's records with
+   `scripts/enforce-models --check-meta <run-dir>` before claiming
+   `validated`.
 2. **Acceptance contract delta** — update the contract file (the one from
    Step 3) with actual vs planned for each acceptance bullet, and the
    verification commands that passed.

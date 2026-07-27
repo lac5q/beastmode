@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/claude-code/S
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in
-the canonical `beastmode` skill (v2.2.0) — load it first and follow it.
+the canonical `beastmode` skill (v2.3.0) — load it first and follow it.
 
 ## Only the harness mechanics
 
@@ -109,6 +109,13 @@ router fallback, harness default, or silent substitution. Drift surfaces
 at every autonomy level (including high) and blocks `validated` until
 the task is re-run under the pinned model.
 
+Unverifiable child model = **UNVERIFIED DRAFT** lane. A child whose meta is
+missing, unreadable, or carries a single merged `model` instead of both
+model fields cannot be compared, and an impossible comparison is not a
+pass. Output may be used as input but is never `validated` until re-checked
+under a pinned model. `scripts/enforce-models --check-meta <run-dir>` is the
+gate; exit 1 means drift or unverifiable.
+
 ## Operating loop
 
 1. Load the universal `beastmode` skill first. Read the acceptance
@@ -158,6 +165,6 @@ Universal Beastmode artifacts, written in this order:
 
 ## See also
 
-- `beastmode` (v2.2.0) — the canonical framework this adapter implements
+- `beastmode` (v2.3.0) — the canonical framework this adapter implements
 - `schema/acn-contract.json` — batch / task / meta.json shapes
 - `references/autonomy-levels.md` and `references/orchestration-comparison.md`

@@ -1,1 +1,1 @@
-{"id": "a", "requested_model": "anthropic/claude-opus-4-7", "actual_model": "anthropic/claude-opus-4-7", "usage": {"input_tokens": 10, "output_tokens": 20}}
+{"id": "a", "requested_model": "anthropic/claude-opus-4-7", "actual_model": "anthropic/claude-opus-4-7", "stop_reason": "end_turn", "usage": {"input_tokens": 10, "output_tokens": 20}, "files_changed": ["src/a.ts"], "commands_run": ["npm test"], "verify": {"commands": ["npm test"], "passed": true, "notes": ""}}

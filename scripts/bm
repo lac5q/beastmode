@@ -165,7 +165,15 @@ GATE_PROMPT="$(bm_gate_prompt "$AUTONOMY")"
 SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
 PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $SEAT_PROMPT")
 [ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
-[ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
+# ponytail: build the --models list from the seats that were actually set.
+# `--models "$FRONTIER,$ECONOMY"` handed pi a leading comma whenever --economy
+# was given without --frontier, which is a legal invocation.
+MODELS_CSV=""
+for seat_model in "$FRONTIER" "$ECONOMY"; do
+  [ -z "$seat_model" ] && continue
+  MODELS_CSV="${MODELS_CSV:+$MODELS_CSV,}$seat_model"
+done
+[ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$MODELS_CSV")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
 [ "$AUTONOMY" = "high" ] && PI_ARGS+=(--no-builtin-tools)
 
@@ -176,16 +184,22 @@ if [ "$ON" != "local" ]; then
   if ! command -v ssh >/dev/null 2>&1; then
     echo "bm: --on $ON needs ssh in PATH" >&2; exit 2
   fi
-  REMOTE_FLAGS=""
-  [ "$GSD" = "1" ]       && REMOTE_FLAGS="$REMOTE_FLAGS --gsd"
-  REMOTE_FLAGS="$REMOTE_FLAGS --harness $HARNESS"
-  [ -n "$FRONTIER" ]     && REMOTE_FLAGS="$REMOTE_FLAGS --frontier $FRONTIER"
-  [ -n "$ECONOMY" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --economy $ECONOMY"
-  [ -n "$WATCHER" ]      && REMOTE_FLAGS="$REMOTE_FLAGS --watcher $WATCHER"
-  REMOTE_FLAGS="$REMOTE_FLAGS --autonomy $AUTONOMY"
-  REMOTE_FLAGS="$REMOTE_FLAGS --thinking $THINKING"
-  # shellcheck disable=SC2086
-  exec ssh "$ON" "bm '$GOAL' $REMOTE_FLAGS"
+  # ponytail: everything crossing the ssh boundary gets single-quoted with
+  # embedded quotes escaped. The old form spliced the raw goal into
+  # `bm '$GOAL' ...`, so any apostrophe ("don't drop the index") ended the
+  # quote and the rest of the goal was executed as remote shell words.
+  # POSIX single-quoting rather than printf %q — %q can emit bash-only
+  # $'...' forms and the remote login shell is not guaranteed to be bash.
+  shquote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+  REMOTE_CMD="bm $(shquote "$GOAL")"
+  [ "$GSD" = "1" ]   && REMOTE_CMD="$REMOTE_CMD --gsd"
+  REMOTE_CMD="$REMOTE_CMD --harness $(shquote "$HARNESS")"
+  [ -n "$FRONTIER" ] && REMOTE_CMD="$REMOTE_CMD --frontier $(shquote "$FRONTIER")"
+  [ -n "$ECONOMY" ]  && REMOTE_CMD="$REMOTE_CMD --economy $(shquote "$ECONOMY")"
+  [ -n "$WATCHER" ]  && REMOTE_CMD="$REMOTE_CMD --watcher $(shquote "$WATCHER")"
+  REMOTE_CMD="$REMOTE_CMD --autonomy $(shquote "$AUTONOMY")"
+  REMOTE_CMD="$REMOTE_CMD --thinking $(shquote "$THINKING")"
+  exec ssh "$ON" "$REMOTE_CMD"
 fi
 
 # Harness dispatch. Every harness gets the SAME phase/gate/model-failure
@@ -220,8 +234,13 @@ case "$HARNESS" in
     ;;
   claude)
     # Claude Code: print-mode one-shot. Adapter: adapters/claude-code/SKILL.md.
+    # ponytail: the claude CLI takes a bare model id, not provider/model —
+    # `--frontier opus` resolves to anthropic/claude-opus-4-7 and the CLI
+    # rejects the provider half. Strip it here, the way the hermes branch
+    # already splits provider from model, instead of asking the caller to
+    # remember which harness wants which form.
     C_ARGS=(-p "$FULL_PROMPT")
-    [ -n "$FRONTIER" ] && C_ARGS+=(--model "$FRONTIER")
+    [ -n "$FRONTIER" ] && C_ARGS+=(--model "${FRONTIER#*/}")
     [ "$AUTONOMY" = "high" ] && C_ARGS+=(--dangerously-skip-permissions)
     exec claude "${C_ARGS[@]}"
     ;;

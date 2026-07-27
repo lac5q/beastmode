@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/hermes/SKILL.
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in the
-canonical `beastmode` skill (v2.2.0) - load it first and follow it. This
+canonical `beastmode` skill (v2.3.0) - load it first and follow it. This
 adapter tells you which Hermes primitives implement which seat and how to
 wire them together.
 
@@ -119,6 +119,19 @@ same task is re-run under the pinned model. Record every drift in the
 self-improvement entry; repeated drift on the same alias means the tier
 alias or provider config is wrong.
 
+Unverifiable child model = **UNVERIFIED DRAFT** lane. A child whose meta is
+missing, unreadable, or carries a single merged `model` instead of both
+model fields cannot be compared, and an impossible comparison is not a pass.
+Its output may be used as input but is never `validated` until re-checked
+under a pinned model. Run the gate over the batch directory before you
+report `validated`:
+
+```bash
+scripts/enforce-models --check-meta ~/.hermes/cache/delegation/live/<batch-id>
+```
+
+Exit 1 means drift or unverifiable; either way the batch is not validated.
+
 ## Operating loop
 
 1. Load the universal `beastmode` skill first. Read the acceptance contract
@@ -179,7 +192,7 @@ Universal Beastmode artifacts, written in this order:
 
 ## See also
 
-- `beastmode` (v2.2.0) - the canonical framework this adapter implements
+- `beastmode` (v2.3.0) - the canonical framework this adapter implements
 - `schema/acn-contract.json` - machine source of truth for the batch / task
  / meta.json shapes
 - `references/autonomy-levels.md` - the three-level scale and surfacing rules
