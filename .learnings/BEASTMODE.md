@@ -1,3 +1,51 @@
+# Beastmode learnings
+
+## BM-20260726-2300 architecture review (v2.3.0)
+
+- Reviewer: claude-opus-5, single session, no fan-out (review scope, not an ACN run).
+- Harness: claude-code, direct.
+- Acceptance checks: `./tests/run-all.sh` — 6/6 steps green, ACN parity 19 PASS / 0 FAIL / 1 SKIP (pi not on host). Every new check negative-tested by deliberately breaking the invariant and confirming a FAIL.
+- Result: PASS.
+
+## What failed / drifted
+
+- **The drift gate failed open in two ways, and both were reachable from the repo's own docs.** `enforce-models --check-meta` skipped any meta lacking `requested_model`/`actual_model` as "not a meta file we recognise", and `acn-report` rendered the same meta as `requested: unavailable → actual: unavailable`, i.e. equal, i.e. `Drift: none`. Meanwhile `references/autonomy-levels.md` and `pi/SKILL.md` both instructed workers to emit `{"id","model","stop_reason","usage"}` — the one shape neither tool could evaluate. A pi worker following the documented contract passed the gate while proving nothing. An empty run directory also exited 0.
+  *Routing rule to change?* No. The rule ("no watcher, no validated"; "if the runtime cannot prove the child's model, the child is an unverified draft lane") was already correct and already written down — in `adapters/codex/SKILL.md`, which was the only surface that named the unverifiable case. The tooling just never implemented it. **The lesson is about where rules live:** a hard rule stated in prose in one adapter is not enforced anywhere. It has to be a verdict the gate can return.
+
+- **One contract, two implementations.** `enforce-models --check-meta` and `acn-report` each walked the meta directory with different glob rules (`**/*.json` vs `*.json` + `**/meta.json`) and compared fields differently. Nothing asserted they agreed, so a child could pass one tool and fail the other. Collapsed onto `scripts/lib/acn_meta.py`; parity check (e3) now asserts identical exit codes across every fixture.
+
+- **`schema/` was decorative.** Called "the machine source of truth" in four documents, but no code read it — `meta_json_required_fields`, `batch_required_fields`, and `task_required_fields` were declared and then ignored, while the tools hard-coded their own field expectations. The gate now reads the schema; check (e4) asserts the prose block in `references/acn-contract.md` and the schema list are the same set.
+
+- **Tests rewrote their own fixtures.** `test-acn-parity.sh` regenerated `tests/fixtures/acn-meta/*` on every run, so the committed copies were decorative too and had already drifted from the schema (missing `stop_reason`, `files_changed`, `commands_run`, `verify`). Fixtures are now read, not written; CI asserts the suite leaves the tree clean.
+
+- **No entrypoint, no CI.** Three test scripts, no way to run them together, nothing running them automatically. A repo whose thesis is "nothing is validated until a gate says so" had no gate on itself. Added `tests/run-all.sh` + `.github/workflows/tests.yml`.
+
+- **`bm` defects found while tracing seat resolution:** `--models "$FRONTIER,$ECONOMY"` emitted a leading comma when `--economy` was passed without `--frontier`; the `--on` remote dispatch spliced the raw goal into `bm '$GOAL' ...`, so a goal containing an apostrophe ended the quote and the remainder ran as remote shell words; and `--harness claude` handed the resolved `provider/model` to `claude --model`, which wants a bare model id (`enforce-models` even warned about it on every correct invocation).
+
+- **The first fix reintroduced the same bug one level up — caught by the repo's automated reviewer, not by me.** Candidate detection keyed on provenance fields (`requested_model`, `actual_model`, `stop_reason`, …), so a child that died *before* writing any of them was not recognised as a child at all: it vanished from the report entirely and a valid sibling carried the batch to exit 0. Reproduced — a directory holding one good meta plus `{"id":"lost","usage":{...}}` printed `Drift: none`, exit 0, with `lost` appearing nowhere. *The lesson:* recognition must key on "is this a child record" and never on "did this child prove something". The moment those two questions share a predicate, failing to prove something makes you invisible rather than failing. Detection and judgment have to be separate functions — they now are (`is_child_record` vs `Row._classify`).
+- **Scanning can only judge what exists.** Even with detection fixed, a worker killed before writing any file leaves nothing to find, and one surviving sibling still passed the batch. Closed with `--expect`, which reads the batch's `tasks[].id` — a manifest `schema/acn-contract.json` already required, so nothing new had to be invented to make absence detectable.
+
+## Routing rule to change
+
+- **None.** Verification-cost routing held up.
+- **Add, as a contract rule rather than a routing rule:** *a gate must have a verdict for "cannot determine", and that verdict must fail.* Every fail-open here was a two-valued gate (drift / no-drift) meeting a three-valued reality (drift / no-drift / unprovable), and "unprovable" fell into the pass bucket by default. Now `ok` / `drift` / `unverifiable`, with `--allow-empty` as the explicit assertion when a batch legitimately had no children.
+- **Add:** *a gate over a set fails if any member fails; no member's pass may substitute for another's.* Both rounds of this bug had that shape — an unprovable child disappearing into a batch a valid sibling then carried. Aggregate verdicts hide precisely the members that failed hardest.
+- **Add, on review routing:** the adversarial reviewer earned its seat here. A cross-family automated review caught a fail-open in the very change that existed to remove fail-opens, on a diff that had 19 passing checks and green CI. "Tests green" is not "reviewed", and self-review by the author of the fix is the weakest link in the chain.
+
+## Skill/config updates needed
+
+- The `opus5` alias in `scripts/tier-aliases.json` resolves to `claude-opus-4-8` and `sonnet` to `claude-sonnet-4-6`. Left alone — the file states it was verified against `pi --list-models` on oracle-1 / maeve-u1, so those may be what those hosts actually serve. Worth re-checking: if newer Opus/Sonnet are available, the alias names are misleading as written.
+- `bm`'s documented exit-code contract ("0 = goal_complete, 1 = goal_blocked") is not implemented — `bm` `exec`s the harness, so callers get the harness's exit code with no mapping. Either implement the mapping or drop the claim from the header.
+- Autonomy → harness flag mapping is only symmetric at `high`. `low` maps to `--approve` on pi and to nothing on hermes/claude/codex, so "autonomy semantics are identical across harnesses by construction" currently holds for the prompt strings only, not the enforcement flags.
+- `bm --watcher <alias>` resolves and preflights the watcher seat but never passes it to any harness — it reaches the run as prompt text only.
+
+## Promoted to
+
+- `schema/acn-contract.json` (v1.1): `unverifiable_policy`, `gate_verdicts`, `gate_implementation`, and a fifth hard rule.
+- `scripts/lib/acn_meta.py`: the rule as executable code rather than prose.
+
+---
+
 # Beastmode learnings — feat/acn-unification (v2.2.0 consolidation)
 
 ## BM-20260726-1200 feat/acn-unification consolidation

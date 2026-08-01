@@ -8,7 +8,7 @@ description: >
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
   Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
-version: 2.2.0
+version: 2.3.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
 related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
@@ -106,7 +106,7 @@ Use beastmode for complex tasks that need:
 4. **Every phase improves the loop.** Record learnings, errors, routing mistakes, and token/cost surprises. Promote repeated lessons into skills/config.
 5. **Escalation doesn't skip self-improvement.** Record why the cheap route failed and whether routing rules should change.
 6. **Usage is reported per phase, not just at the end.** Every phase closes with a usage report: requested vs actual model per task, tokens used vs phase budget, actual vs estimated time (see `references/autonomy-levels.md` for the format). If the harness doesn't expose a value, say "unavailable" — never omit the report.
-7. **Model drift always surfaces.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier.
+7. **Model drift always surfaces, and so does not knowing.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier. A task whose serving model cannot be established at all is **unverifiable** and is treated the same way — never let a silent "unavailable" read as a pass.
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
 
 ## The ACN Layer (Async Parallel Sub-agents)
@@ -127,7 +127,8 @@ The shared rules (all harnesses):
 3. **Parallel by default** for independent executor slices; group same-lane workers (prompt-cache warmth); default concurrency 3 unless the harness is explicitly configured higher.
 4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches, Codex background exec, Claude parallel sessions). Orchestrator children may wait to synthesize.
 5. **Consolidate → mechanical validation (economy) → watcher judgment (frontier) → gate by autonomy.**
-6. **MODEL DRIFT always surfaces** (requested vs actual per child, `meta.json` shape in `schema/acn-contract.json`) and blocks `validated` at every autonomy level. `scripts/acn-report` normalizes child metas into the phase report.
+6. **MODEL DRIFT always surfaces** (requested vs actual per child, `meta.json` shape in `schema/acn-contract.json`) and blocks `validated` at every autonomy level. `scripts/acn-report` normalizes child metas into the phase report; `scripts/enforce-models --check-meta <dir>` is the gate. Both run the same checker (`scripts/lib/acn_meta.py`), so they cannot disagree about whether a batch is validated.
+7. **Unprovable provenance fails closed.** A child whose `meta.json` is missing, unreadable, or reports a single merged `model` instead of `requested_model` + `actual_model` is **unverifiable** — the gate exits non-zero on it exactly as it does on drift. "We could not tell which model ran this" is not a pass. An ACN run that produced no child metas at all is likewise a failure unless you assert `--allow-empty`.
 
 ## Choosing Your Harness
 
@@ -139,7 +140,7 @@ For one-shot goals without writing a full plan: `bm "<goal>"` from any repo.
 Parses `--harness hermes|pi|claude|codex` (default `pi`), `--gsd`,
 `--frontier <alias>`, `--economy <alias>`, `--watcher <alias>`,
 `--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
-aliases resolve via `references/tier-aliases.json` — `kimi3` →
+aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
 `kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `minimax` →
 `minimax/MiniMax-M3`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
 with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and

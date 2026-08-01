@@ -19,3 +19,7 @@ Thumbs.db
 # Node — only if a pi package build step is added later
 node_modules/
 *.log
+
+# Python bytecode from the stdlib helpers in scripts/
+__pycache__/
+*.pyc
