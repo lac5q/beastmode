@@ -164,8 +164,15 @@ GATE_PROMPT="$(bm_gate_prompt "$AUTONOMY")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
 SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
 PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $SEAT_PROMPT")
-[ -n "$FRONTIER" ]     && PI_ARGS+=(--model "$FRONTIER")
-[ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
+if [ -n "$FRONTIER" ]; then
+  PI_ARGS+=(--model "$FRONTIER")
+  [ -n "$ECONOMY" ] && PI_ARGS+=(--models "$FRONTIER,$ECONOMY")
+elif [ -n "$ECONOMY" ]; then
+  PI_ARGS+=(--model "$ECONOMY")
+else
+  # Pin the unqualified Beastmode path to the approved cheap worker.
+  PI_ARGS+=(--model "minimax/MiniMax-M3")
+fi
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
 [ "$AUTONOMY" = "high" ] && PI_ARGS+=(--no-builtin-tools)
 
