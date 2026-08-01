@@ -2,8 +2,9 @@
 name: beastmode
 description: >
   Multi-agent orchestration framework for high-intensity feature implementation.
-  Routes work across model tiers: frontier models (Claude Fable, Kimi 3, Opus/Codex)
-  own design, architecture, and review sign-off, while economy models (MiniMax M3,
+  Routes work across model tiers: frontier models (Claude Fable, Kimi 3, Opus;
+  Codex only when explicitly selected) own design, architecture, and review sign-off,
+  while economy models (MiniMax M3,
   Qwen/Gwen) handle implementation and mechanical validation in isolated worktrees,
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
@@ -25,8 +26,8 @@ Beastmode is a structured approach to multi-agent software development that sepa
 
 **Frontier models design. Cheap models build and validate. The loop learns.**
 
-- **Director/Lead (Design tier):** Frontier model (Claude Fable, Kimi 3, Opus, or Codex) owns intent, architecture, creative judgment, and final sign-off.
-- **Watcher/Reviewer:** Adversarial reviewer (frontier or mid-tier: Codex/GSD/Kimi 3) challenges plans, gates merges, catches scope creep.
+- **Director/Lead (Design tier):** Frontier model (Claude Fable, Kimi 3, or Opus) owns intent, architecture, creative judgment, and final sign-off. Codex is an explicit opt-in lane only.
+- **Watcher/Reviewer:** Adversarial reviewer (frontier or mid-tier: Fable/Kimi 3/Opus) challenges plans, gates merges, and catches scope creep. Codex is used here only when explicitly named.
 - **Executor (Execution tier):** Economy model (MiniMax M3, Qwen 3.7 Plus / Gwen) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees.
 - **Harness:** Any orchestration tool (Ultraswarm, GSD, `delegate_task`, Claude Code subagents, or manual git workflow).
 - **Memory:** Self-improvement loop records lessons and promotes repeated patterns into skills/config.
@@ -50,7 +51,7 @@ This reframes the frontier model's job: **its primary output is not code or even
 
 **Routing decision, per task:**
 1. Is there a cheap objective verifier for this task's output? → **Economy tier**, cheap-first cascade (retry once on failure, then escalate).
-2. No verifier exists? → Don't route it to frontier by default. First ask: **can the frontier tier create a verifier** (tests, contract, checklist) and then delegate? Only work that resists verifier-creation — genuine judgment calls — is done directly by the frontier model.
+2. No verifier exists? → Don't route it to frontier by default. First ask: **can the current lane create a verifier** (tests, contract, checklist)? If a frontier judgment is genuinely required, stop and ask the user to name the model; never silently escalate.
 
 **Validation is split in two:**
 
@@ -87,14 +88,14 @@ Use beastmode for complex tasks that need:
 
 **Key rule:** The frontier lead must aggressively avoid spending tokens on routine implementation *or* on watching test output scroll by. Delegate file edits, test writing, docs, refactors, command execution, and validation runs to the executor tier; the lead only reads the structured validation report and the diff.
 
-### Variant B: Codex-Led Beastmode
+### Variant B: Explicit Codex-Led Beastmode
 
-**Use when:** You don't have a frontier lead, or the task doesn't require frontier-level judgment. Codex/GSD leads, with an economy model executing routine work.
+**Use when:** The user explicitly names Codex for this bounded task. Codex/GSD leads, with MiniMax-M3 executing routine work.
 
 **Role split:**
 - **Director/Reviewer (Codex/GSD or current session):** Planning, review, merge decisions
 - **Executor (MiniMax M3 / Qwen / Gwen):** Implementation, tests, docs, scripts, mechanical validation
-- **Escalation:** Codex or a frontier model (Fable / Kimi 3) handles security, auth, payments, data-loss, production incidents, or failed executor attempts
+- **Escalation:** On security, auth, payments, data-loss, production incidents, or failed executor attempts, stop and ask the user to name the frontier lane. Codex or another frontier model runs only after explicit selection.
 
 **Key rule:** Delegate routine work to the executor tier, but don't merge until the lead verifies acceptance.
 
@@ -108,6 +109,7 @@ Use beastmode for complex tasks that need:
 6. **Usage is reported per phase, not just at the end.** Every phase closes with a usage report: requested vs actual model per task, tokens used vs phase budget, actual vs estimated time (see `references/autonomy-levels.md` for the format). If the harness doesn't expose a value, say "unavailable" — never omit the report.
 7. **Model drift always surfaces, and so does not knowing.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier. A task whose serving model cannot be established at all is **unverifiable** and is treated the same way — never let a silent "unavailable" read as a pass.
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
+9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses MiniMax-M3. Codex, GPT, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
 
 ## The ACN Layer (Async Parallel Sub-agents)
 
@@ -125,7 +127,7 @@ The shared rules (all harnesses):
 1. **Preflight every seat's model** before fan-out (`scripts/enforce-models`); missing → exit 2 with alternatives.
 2. **Pin the executor model on children.** Never let economy work silently inherit a parent/session default. If the runtime cannot prove the child's model, the child is an unverified draft lane — never `validated`.
 3. **Parallel by default** for independent executor slices; group same-lane workers (prompt-cache warmth); default concurrency 3 unless the harness is explicitly configured higher.
-4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches, Codex background exec, Claude parallel sessions). Orchestrator children may wait to synthesize.
+4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches or explicitly requested Codex/Claude parallel sessions). Orchestrator children may wait to synthesize. Automatic background workers are MiniMax-M3 only.
 5. **Consolidate → mechanical validation (economy) → watcher judgment (frontier) → gate by autonomy.**
 6. **MODEL DRIFT always surfaces** (requested vs actual per child, `meta.json` shape in `schema/acn-contract.json`) and blocks `validated` at every autonomy level. `scripts/acn-report` normalizes child metas into the phase report; `scripts/enforce-models --check-meta <dir>` is the gate. Both run the same checker (`scripts/lib/acn_meta.py`), so they cannot disagree about whether a batch is validated.
 7. **Unprovable provenance fails closed.** A child whose `meta.json` is missing, unreadable, or reports a single merged `model` instead of `requested_model` + `actual_model` is **unverifiable** — the gate exits non-zero on it exactly as it does on drift. "We could not tell which model ran this" is not a pass. An ACN run that produced no child metas at all is likewise a failure unless you assert `--allow-empty`.
@@ -261,7 +263,7 @@ git merge beastmode/<task-id>
 | delegate_task (raw) | ❌ No | ❌ No | ❌ No | Small parallel tasks, no repo |
 | Manual git | ✅ Yes (branches) | ❌ Manual | ❌ No | No orchestration tool available |
 
-**Default recommendation:** Use Hermes ACN on Hermes boxes (`bm --harness hermes`), Pi where the pi packages are installed (`--harness pi`, the `bm` default), Claude Code or Codex adapters in those CLIs. Fall back to GSD if the repo uses it, `delegate_task` raw for small tasks, manual git as last resort.
+**Default recommendation:** Use Hermes ACN on Hermes boxes (`bm --harness hermes`) and Pi where the pi packages are installed (`--harness pi`, the `bm` default), with MiniMax-M3 pinned for automatic workers. Use Claude Code or Codex adapters only when the user explicitly names them. Fall back to GSD if the repo uses it, `delegate_task` raw for small tasks, manual git as last resort.
 
 ## The Beastmode Loop
 
@@ -512,14 +514,16 @@ Merge status: <merged/branch ready/blocked>
 
 ## Escalation Rules
 
-Escalate from the executor tier (MiniMax M3 / Qwen / Gwen) to the frontier tier (Fable / Kimi 3 / Opus / Codex) when:
+When an executor issue reaches a frontier trigger, stop and ask the user to name the frontier lane. Do not auto-escalate from the executor tier (MiniMax M3) to Fable, Kimi 3, Opus, or Codex.
+
+Frontier triggers include:
 - Security, auth, payments, data-loss, legal/financial data, or production incident risk appears
 - The work requires non-obvious architecture tradeoffs
 - The executor fails the same acceptance check twice
 - The diff is too broad to review cheaply
 - The user explicitly asks for frontier reasoning
 
-Escalate a *task*, not the whole phase — the rest of the phase keeps running on the cheap tier. See `references/model-routing.md` for the full escalation ladder.
+Escalate a *task*, not the whole phase, only after the user explicitly names the lane. The rest of the phase stays on the cheap tier. See `references/model-routing.md` for the escalation ladder.
 
 Escalation does not skip self-improvement. Record why the cheap route failed and whether the routing rule should change.
 

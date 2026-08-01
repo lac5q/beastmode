@@ -21,8 +21,8 @@ wire them together.
 | Universal seat | Hermes implementation |
 |---|---|
 | Director / Lead (frontier tier) | The Hermes session itself - frontier model |
-| Watcher (adversarial review, frontier) | A second `delegate_task` on a frontier model, prefer cross-family vs director |
-| Executor (economy tier) | `delegate_task` children pinned to economy (MiniMax-M3 / qwen-coder / gpt-5-mini, etc.) |
+| Watcher (adversarial review, frontier) | A second `delegate_task` on a frontier model only after the user explicitly names it |
+| Executor (economy tier) | `delegate_task` children pinned to MiniMax-M3 |
 | Loop engine (continues until done) | The agent's own phase loop (director prompts itself between subagent results) |
 | Anti-spin circuit breaker | Director judgment + the run's usage / wall-clock budget; abort on 3 identical blockers |
 | Worker-contract enforcer | `~/.hermes/config.yaml` `permissions` / `toolsets` denials + a starter worker contract in the prompt |
@@ -30,6 +30,11 @@ wire them together.
 | Remote supervision | Optional: any deliver='telegram' cron mirroring, or the parent OpenClaw channel |
 | Durable goal record | Optional: write the acceptance contract to `<repo>/GOAL.md` (universal fallback) |
 | Self-improvement log | `<repo>/.learnings/BEASTMODE.md` (universal) |
+
+Automatic Hermes children use MiniMax-M3 only. If a failure or risk trigger
+would normally call for a frontier watcher, stop and ask the user to name the
+model; never silently fall back to Codex, GPT, Claude, Kimi, or another
+frontier lane.
 
 ## ACN - async parallel sub-agents
 

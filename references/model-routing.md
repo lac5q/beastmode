@@ -81,12 +81,12 @@ Why this split works: mechanical validation is where naive setups burn frontier 
 Every verifiable task starts at the bottom and climbs only on *verified* failure, per *task* (the rest of the phase stays on the cheap tier):
 
 1. **Retry on economy tier** with the verifier's failure output appended to the task spec (one retry max).
-2. **Escalate to frontier for diagnosis only:** frontier reads the failure + diff, writes a corrected task spec — often this means tightening the verifier or the design package, which is the real fix — then hands back to economy tier.
-3. **Escalate to frontier for execution:** frontier implements the task itself. Reserved for: second identical acceptance failure, security/auth/payments/data-loss surface, non-obvious architecture tradeoffs, or explicit user request.
+2. **Stop and ask before frontier diagnosis:** if the failure or diff requires frontier judgment, report the evidence and ask the user to name the frontier lane. Do not silently switch lanes.
+3. **Run frontier execution only after explicit selection:** frontier implements the task itself only when the user names the model/lane for this bounded task. Reserved for: second identical acceptance failure, security/auth/payments/data-loss surface, non-obvious architecture tradeoffs, or explicit user request.
 
 Rung 2 is the workhorse. Most executor failures are spec failures in disguise — the frontier model fixing the *spec* is cheaper than the frontier model doing the *work*, and it upgrades every similar future task.
 
-Automatic escalation triggers (skip the ladder, go straight to frontier):
+Frontier triggers that require a user decision (never automatic):
 - Security, auth, payments, data-loss, legal/financial data, production incidents
 - The executor proposes changing an interface defined in the design package
 
@@ -102,10 +102,10 @@ Map tiers to providers so `--provider auto` routes by task type:
 # ultraswarm config sketch — adapt to your installed version
 providers:
   design:
-    model: claude-fable-5        # or kimi-3 via your router
-    use_for: [plan, review, escalation]
+    model: <explicitly selected frontier model>
+    use_for: [plan, review, escalation]  # only after the user names the lane
   execute:
-    model: minimax-m3            # via OpenRouter/direct API — verify exact ID
+    model: minimax-m3            # automatic/default lane
     use_for: [implement, test, docs, validate]
 ```
 

@@ -78,9 +78,10 @@ claude --dangerously-skip-permissions -p --model opus "Reply with exactly: CLAUD
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
-smoke gate. Prefer pi-native routing for the director and watcher turns;
-prefer external CLI lanes for the bulk cheap-worker execution you already pay
-for. The verifier-first rule from the universal skill governs everything:
+smoke gate. Keep automatic worker and watcher routing on MiniMax-M3; use a
+frontier director or watcher only when the user explicitly names it. Prefer
+external CLI lanes for the bulk cheap-worker execution you already pay for.
+The verifier-first rule from the universal skill governs everything:
 if a cheap lane cannot produce a verifiable artifact cheaply, escalate to
 the frontier tier.
 
@@ -97,9 +98,10 @@ etc.) and that pool is rate-limited. Routing Claude work through
 
 The hard rule is enforced by:
 
-- `~/.pi/workflows/model-tiers.json` — every tier maps to a **non-Claude**
-  model (small/medium → MiniMax, big → `openai-codex/gpt-5.5`). Any `tier:`
-  on a beastmode worker routes away from Claude by construction.
+- `~/.pi/workflows/model-tiers.json` — every automatic tier maps to the
+  **approved cheap lane** (small/medium/big → MiniMax-M3). No automatic tier
+  maps to Codex or another frontier model. Any frontier/Codex worker must be
+  explicitly named by the user and pinned by exact `model:`.
 - A workflow author who explicitly writes
   `agent(prompt, { model: "anthropic/claude-opus-4-8" })` is bypassing the
   tier system. Don't do it. Use `claude -p --model opus` from the director
