@@ -1,6 +1,6 @@
 # Acceptance Contract — Beastmode on LangGraph (v2.4.0)
 
-This contract covers **P0–P6** of `ROADMAP.md`. P7 (the `forever` graph) and P8
+This contract covers **P0–P7** of `ROADMAP.md`. P8 (the `forever` graph) and P9
 (CrewAI) get their own contracts when they're unblocked.
 
 Written per `SKILL.md` §Step 1. `OPEN-QUESTIONS.md` Q1, Q2, Q3 and Q5 were
@@ -37,8 +37,6 @@ explicit ship-it.
   and completes.
 - `graph.get_graph().draw_mermaid()` renders the loop as a living flowchart,
   committed to `references/langgraph-pipeline.md`.
-- A beastmode user who never touches LangGraph installs nothing and sees no
-  behavior change.
 
 **Invariants that must hold (each negative-tested by deliberately breaking it):**
 

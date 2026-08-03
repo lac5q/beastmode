@@ -53,7 +53,7 @@ Per hard rule 9, frontier lanes are explicit-only — the seats below are a
   new runtime, a new dependency tree, and five invariants that must survive a
   paradigm change. This is not an economy-tier consolidation pass like v2.2.
 - **Worker (executor):** MiniMax-M3 for bounded slices — node authoring against
-  a written interface, test authoring, docs. Every P1–P6 task is specified to be
+  a written interface, test authoring, docs. Every P1–P7 task is specified to be
   cheap-routable (concrete interface + verify command), per the verification-cost
   rule.
 - **Watcher / validator:** cross-family frontier, and **mandatory on P2 and P4**.
@@ -73,20 +73,47 @@ Per hard rule 9, frontier lanes are explicit-only — the seats below are a
 | **P3** | `graphs/pipeline.py` — the loop as a DAG, gates via `interrupt()` | `--autonomy medium` stops at each gate and resumes on `Command(resume=…)`; `high` does not stop; **bash lane still install-free** |
 | **P4** | ACN fan-out: `Send` dispatch, worktree subprocess executors, consolidation | 3-child batch runs concurrently; one child killed pre-meta ⇒ gate fails; main tree unmodified; **bash lane still install-free** |
 | **P5** | `bm --harness langgraph` + persistence + mermaid export | `--harness langgraph` preflights and runs a real goal; absent package exits 2 with an install hint, never a traceback; kill/resume completes; **bash lane still install-free** |
-| **P6** | Docs, adapter SKILL, parity tests, release | `test-acn-parity.sh` covers the Python state shape; `SKILL.md` v2.4.0; package builds; **bash lane still install-free** |
-| **P7** | `graphs/forever.py` — the continuous evolver + bounded topology mutation (separate effort) | Gated on P1–P6 |
-| **P8** | CrewAI binding (separate effort) | Gated on P7 |
+| **P6** | **Composability — the LangGraph-user surface**: importable nodes, subgraph embedding, state interop, `langgraph.json` / Studio | A user drops `provenance_gate` into *their own* graph; beastmode embeds as a subgraph in a foreign parent; `langgraph dev` opens it in Studio; **bash lane still install-free** |
+| **P7** | Docs, adapter SKILL, parity tests, release | `test-acn-parity.sh` covers the Python state shape; `SKILL.md` v2.4.0; package builds; **bash lane still install-free** |
+| **P8** | `graphs/forever.py` — the continuous evolver + bounded topology mutation (separate effort) | Gated on P1–P7 |
+| **P9** | CrewAI binding (separate effort) | Gated on P8 |
 
-P5 is where the **primary audience** gets served. If the effort has to stop
-early, stopping after P5 leaves beastmode users with a working upgrade;
-stopping after P4 leaves them with nothing they can invoke.
+**Two audiences, two finish lines.** P5 is where *beastmode users* get served —
+stop after P5 and they have a working upgrade; stop after P4 and they have
+nothing they can invoke. **P6 is where LangGraph users get served** — stop
+before it and the package is a monolithic take-it-or-leave-it graph that nobody
+with an existing LangGraph app can adopt, which forfeits the entire adoption
+thesis this effort exists for.
+
+### Cross-cutting requirements (apply to P3, P4 and P5 — not a separate phase)
+
+These are properties, not features, so they are built in rather than bolted on.
+Retrofitting any of them is a rewrite of every node.
+
+- **Async-first.** Nodes are `async def`; `ainvoke` / `astream` are the primary
+  path with sync wrappers over them. `AsyncPostgresSaver` / `AsyncSqliteSaver`
+  for the checkpointers. LangGraph deployments are async, and a sync-only
+  library is unusable inside one.
+- **Streaming.** `.stream()` and `astream_events` must produce useful output —
+  node-level progress, token streams from judgment seats, and subprocess stdout
+  from executor seats surfaced as custom stream events. A multi-hour
+  orchestrator that only returns a final value is unusable in practice, and it
+  is also how the phase report reaches a UI.
+- **Accept a `BaseChatModel` directly.** Alias resolution via
+  `tier-aliases.json` is a beastmode-ism. A LangGraph user already holds a
+  configured model instance; every seat must accept one, with alias resolution
+  as the convenience path, not the only path.
+- **Retry and idempotency.** Per-node `retry_policy` via `set_node_defaults`,
+  and a written statement of which nodes are safe to re-run. Gate nodes replay
+  on resume (P0.2); executor nodes must be idempotent against a half-finished
+  worktree.
 
 ---
 
 ## P0 — Spikes
 
 Throwaway code in a scratch worktree. Nothing merges. The deliverable is three
-written verdicts and one table. **This phase exists to make P1–P6 estimable**;
+written verdicts and one table. **This phase exists to make P1–P7 estimable**;
 skipping it means committing to a design whose central guarantee (drift
 detection) is unverified.
 
@@ -300,7 +327,72 @@ beastmode user types one flag and gets the upgrade.
 
 ---
 
-## P6 — Docs, parity, release
+## P6 — Composability: the LangGraph-user surface
+
+**Why this phase exists.** P1–P5 produce one prebuilt `build_pipeline()` graph.
+That serves a beastmode user (via `bm`) and a greenfield LangGraph user who is
+happy to adopt our whole topology. It serves **nobody who already has a
+LangGraph app** — and that is the population the adoption thesis is aimed at.
+A monolithic graph is take-it-or-leave-it; the ask was ready-to-use *patterns*
+people can copy into their own graphs.
+
+Without this phase the effort ships something technically complete and
+strategically pointless.
+
+**Scope**
+
+1. **Nodes as importable primitives.** Every node from P3 is exported and
+   independently usable in a foreign graph, with a documented signature and no
+   hidden dependency on the rest of the pipeline:
+   - `provenance_gate` — the drift/unverifiable check as a drop-in node
+   - `autonomy_gate(node)` — a wrapper that adds `interrupt()`-below-`high` to
+     *any* node, including the user's own
+   - `route_by_verification_cost` — the tier-routing rule as a conditional edge
+   - `acceptance_contract` / `mechanical_validation` / `judgment_review`
+   - `SeatModel` — usable standalone as a `BaseChatModel` wrapper that records
+     requested-vs-actual provenance on any call, in any graph
+2. **Subgraph embedding.** `build_pipeline()` compiles cleanly as a subgraph of
+   a foreign parent. Concretely: the checkpointer stays on the parent only (per
+   `REQUIREMENTS.md` §4), `interrupt()` still propagates to the parent's resume
+   path, and the beastmode phase report reaches the parent's stream.
+3. **State interop.** `BeastmodeState` is a *mixin over* a user's own state
+   schema, not a replacement for it. Documented reducers, a documented reserved
+   key prefix, and a test proving a user's unrelated state keys survive a full
+   beastmode run untouched.
+4. **Custom node injection.** Replace or wrap any seat's node — swap `review`
+   for your own reviewer, insert a node before `merge` — without forking the
+   package. A `build_pipeline(overrides={...})` seam plus a documented list of
+   which nodes are safe to replace and which are load-bearing (the gates are not
+   replaceable; that is the point of them).
+5. **`langgraph.json` + Studio.** Ship a `langgraph.json` so `langgraph dev`
+   picks the graphs up, and confirm the pipeline renders and steps in LangGraph
+   Studio. This is how LangGraph users actually inspect a graph, and it is the
+   real version of the "living flowchart" story — better than a static mermaid
+   file.
+6. **Templates, plural.** Not one worked example: a small set of copy-pasteable
+   patterns — minimal-gated-loop, ACN-fan-out-only, provenance-gate-only,
+   full-pipeline. The provenance-gate-only template is the cheapest possible
+   on-ramp and probably the most-used artifact in the whole effort.
+
+**Exit (deterministic)**
+- A test builds a **foreign** `StateGraph` (its own state schema, its own
+  nodes), drops in `provenance_gate` and `autonomy_gate`, and both behave
+  correctly — gate blocks below `high`, drift fails closed
+- A test embeds `build_pipeline()` as a subgraph of a foreign parent that owns
+  the checkpointer; an `interrupt()` inside the subgraph is resumable from the
+  parent
+- A user state key unrelated to beastmode survives a full run byte-identical
+- `build_pipeline(overrides={"review": my_node})` runs with the replacement;
+  attempting to override `gate_provenance` raises rather than silently allowing
+  it
+- `langgraph dev` serves the graphs; the pipeline renders in Studio
+- Each template in the docs is executed by a test, so no published example can
+  rot
+- **bash lane still install-free**
+
+---
+
+## P7 — Docs, parity, release
 
 **Scope**
 - `adapters/langgraph/SKILL.md`, matching the vocabulary of the other four
@@ -312,7 +404,8 @@ beastmode user types one flag and gets the upgrade.
 - `references/langgraph-pipeline.md` — the mermaid render + node/edge reference
 - A worked example: "Beastmode on LangGraph" evolving a small project, showing
   the PRD + priority list surviving a restart
-- `python/README.md` for the PyPI page
+- `python/README.md` for the PyPI page — leads with the P6 drop-in primitives,
+  not with `build_pipeline()`; the smallest on-ramp goes first
 
 **Exit (deterministic)**
 - `test-acn-parity.sh` gains: Python `ChildMeta` fields == schema
@@ -327,7 +420,7 @@ beastmode user types one flag and gets the upgrade.
 
 ---
 
-## P7 — `graphs/forever.py` (separate effort, gated)
+## P8 — `graphs/forever.py` (separate effort, gated)
 
 Not the same thing as P3, and worth stating plainly: P3 ports the *existing*
 fixed loop. P7 is the **new capability** — the continuously-cooking evolver that
@@ -371,11 +464,11 @@ section part of the P7 diff. Note that it is the first time an autonomy level
 grants a *capability* rather than merely suppressing a prompt — worth one more
 look before P7 starts.
 
-**Gated on:** P1–P6 shipped.
+**Gated on:** P1–P7 shipped.
 
 ---
 
-## P8 — CrewAI binding (separate effort, gated)
+## P9 — CrewAI binding (separate effort, gated)
 
 A `beastmode.crewai` binding over the same `beastmode.core`: Flows'
 `@start` / `@listen` / `@router` wrapping the same seats, contract, provenance
@@ -383,7 +476,7 @@ gate, and reports. Its exit criterion is that it adds **no** logic already in
 `core` — if it needs to reimplement the gate, P1's boundary failed and that is
 the finding.
 
-**Gated on:** P7, and a decision that CrewAI adoption is still worth it then.
+**Gated on:** P8, and a decision that CrewAI adoption is still worth it then.
 
 ---
 

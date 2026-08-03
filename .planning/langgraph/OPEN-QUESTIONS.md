@@ -99,7 +99,8 @@ rather than "beastmode is another coding agent".
 
 > ### ✅ DECIDED — A: pipeline first, evolver as P7.
 >
-> Phase order in `ROADMAP.md` stands as written. P7 stays gated on P1–P6.
+> Phase order in `ROADMAP.md` stands as written. The evolver stays gated on
+> every phase before it (now P8 — a composability phase was later inserted at P6).
 
 Your two messages describe different graphs:
 

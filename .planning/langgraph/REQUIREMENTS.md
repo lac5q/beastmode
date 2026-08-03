@@ -87,7 +87,8 @@ port that loses any of them is a regression, not a feature.
    four guardrails: a mutation may not remove or weaken a gate; the pre-mutation
    topology is checkpointed and the diff rendered; mutation is added to
    `high.always_surfaces` in `schema/autonomy-levels.json`; and mutations are
-   bounded per run. Scope: P7 only — nothing in P1–P6 mutates anything.
+   bounded per run. Scope: the evolver phase only — nothing before it mutates
+   anything.
 
 ---
 
