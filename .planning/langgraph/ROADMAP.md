@@ -6,7 +6,24 @@ implementation on this branch). Implementation branches per phase, merged to
 
 Read `REQUIREMENTS.md` first — it holds the concept mapping, the LangGraph API
 facts each phase depends on, and the risk register phases P0–P2 exist to retire.
-Read `OPEN-QUESTIONS.md` before starting P1: **Q1–Q3 change this phase order**.
+
+**Decisions of 2026-08-03** (`OPEN-QUESTIONS.md` Q1, Q2, Q3, Q5) are folded in
+below. Q4 and Q6–Q10 remain open but do not block P0.
+
+> ### Invariant 0 — LangGraph is strictly additive
+>
+> **Beastmode works without LangGraph, exactly as it does today.** No bash
+> script, test, schema, doc, or adapter acquires a hard Python dependency;
+> `./tests/run-all.sh` passes with zero Python packages installed; no existing
+> `bm` invocation changes meaning. This outranks every other consideration in
+> this roadmap — where LangGraph idiom and this conflict, this wins. It appears
+> as a merge-blocking exit on **every** phase below, deliberately repeated, so
+> the dependency cannot leak in one phase at a time.
+>
+> Corollary: **existing beastmode users are the primary audience.**
+> `bm --harness langgraph` is a first-class deliverable. The package is the
+> implementation and the channel for LangGraph users arriving from the other
+> side; when the two audiences conflict, beastmode users win.
 
 ---
 
@@ -50,15 +67,19 @@ Per hard rule 9, frontier lanes are explicit-only — the seats below are a
 
 | Phase | Scope | Exit (deterministic) |
 |---|---|---|
-| **P0** | Spikes — retire the unknowns, throwaway code | Support matrix + 3 written verdicts (below) |
-| **P1** | `python/` skeleton, `beastmode.core`, schema loader, CI lane | `pytest` green; import-linter proves `core` has zero framework imports; `tests/run-all.sh` still passes with no Python deps installed |
-| **P2** | Seat layer + provenance: `SeatModel`, `ChildMeta`, drift gate | Every `acn_meta.py` fixture returns the identical verdict through the Python path; negative test per verdict |
-| **P3** | `graphs/pipeline.py` — the loop as a DAG, gates via `interrupt()` | A run at `--autonomy medium` stops at each gate and resumes on `Command(resume=…)`; at `high` it does not stop |
-| **P4** | ACN fan-out: `Send` dispatch, worktree subprocess executors, consolidation | 3-child batch runs concurrently; one child killed pre-meta ⇒ gate fails; main tree unmodified |
-| **P5** | Persistence, `bm --harness langgraph`, mermaid export | Kill mid-run, resume from checkpoint, run completes; `--harness langgraph` preflights and runs |
-| **P6** | Docs, adapter SKILL, parity tests, release | `test-acn-parity.sh` covers the Python state shape; `SKILL.md` v2.4.0; package builds |
-| **P7** | `graphs/forever.py` — the continuous evolver (separate effort) | Gated on P1–P6 + Q3 |
+| **P0** | Spikes — retire the unknowns, throwaway code | Support matrix + 3 written verdicts (below). **Gating**: P0.1 decides which seats may be direct-call |
+| **P1** | `python/` skeleton, `beastmode.core`, schema loader, CI lane | `pytest` green; import-linter proves `core` has zero framework imports; **`tests/run-all.sh` passes with no Python deps installed** |
+| **P2** | Seat layer + provenance: `SeatModel`, `ChildMeta`, drift gate | Every `acn_meta.py` fixture returns the identical verdict through the Python path; negative test per verdict; **bash lane still install-free** |
+| **P3** | `graphs/pipeline.py` — the loop as a DAG, gates via `interrupt()` | `--autonomy medium` stops at each gate and resumes on `Command(resume=…)`; `high` does not stop; **bash lane still install-free** |
+| **P4** | ACN fan-out: `Send` dispatch, worktree subprocess executors, consolidation | 3-child batch runs concurrently; one child killed pre-meta ⇒ gate fails; main tree unmodified; **bash lane still install-free** |
+| **P5** | `bm --harness langgraph` + persistence + mermaid export | `--harness langgraph` preflights and runs a real goal; absent package exits 2 with an install hint, never a traceback; kill/resume completes; **bash lane still install-free** |
+| **P6** | Docs, adapter SKILL, parity tests, release | `test-acn-parity.sh` covers the Python state shape; `SKILL.md` v2.4.0; package builds; **bash lane still install-free** |
+| **P7** | `graphs/forever.py` — the continuous evolver + bounded topology mutation (separate effort) | Gated on P1–P6 |
 | **P8** | CrewAI binding (separate effort) | Gated on P7 |
+
+P5 is where the **primary audience** gets served. If the effort has to stop
+early, stopping after P5 leaves beastmode users with a working upgrade;
+stopping after P4 leaves them with nothing they can invoke.
 
 ---
 
@@ -83,9 +104,15 @@ Classify each into:
 - **reports nothing** — same, `unverifiable`
 
 **Exit:** a `provider → provenance capability` matrix committed to
-`references/`, plus a one-paragraph verdict on whether direct-call nodes are
-viable at all or whether **every** executor must be a subprocess (which would
-make Q2 moot and simplify P4).
+`references/`, with a **`direct-call viable`** column per provider.
+
+This spike is now **gating**, because Q2 decided that judgment seats
+(director / watcher / validator) call chat models directly while executor seats
+stay subprocesses. Direct-call seats have no harness journal to fall back on —
+provider metadata is the only provenance they will ever have. Any frontier
+provider that lands in "echoes the alias" or "reports nothing" is demoted to a
+subprocess seat before P2 designs around it. If *no* frontier provider proves
+its model, the Q2 fallback applies and every seat becomes a subprocess.
 
 ### P0.2 — What does `interrupt()` replay actually cost? (retires risk 5.2)
 
@@ -242,7 +269,11 @@ The faithful port. Same eight steps, same gates, same reports — as a graph.
 
 ---
 
-## P5 — Persistence and the `bm` entrypoint
+## P5 — The `bm` entrypoint and persistence
+
+**The phase that serves the primary audience.** Everything before this is
+machinery only a LangGraph user could reach; this is where an existing
+beastmode user types one flag and gets the upgrade.
 
 **Scope**
 - `SqliteSaver` default, `PostgresSaver` opt-in (`.setup()` on first use;
@@ -255,11 +286,15 @@ The faithful port. Same eight steps, same gates, same reports — as a graph.
 - `bm --graph <name>` to choose `pipeline` (later `forever`)
 
 **Exit (deterministic)**
+- `bm "<goal>" --harness langgraph` runs a real goal end to end with the same
+  phase-report / gate / drift prompts as every other harness
+- `bm --harness langgraph` with the package absent exits 2 with an install hint,
+  never a traceback — and every *other* harness still works on that machine
+  (invariant 0, at the entrypoint where it is easiest to break)
+- `bm --harness bogus` still exits 2 (regression on `test-bm-model-check.sh`)
+- Every pre-existing `bm` invocation produces byte-identical behavior to `main`
 - Kill the process mid-phase; re-invoke with the same `thread_id`; the run
   resumes at the last checkpoint and completes
-- `bm --harness bogus` still exits 2 (regression on `test-bm-model-check.sh`)
-- `bm --harness langgraph` with the package absent exits 2 with an install hint,
-  never a traceback
 - Time-travel: replay from an earlier checkpoint produces a divergent thread
   without corrupting the original
 
@@ -311,10 +346,32 @@ New concerns this raises that P3 does not:
   anti-spin breaker (`pi-loop-police`'s role, with no LangGraph equivalent)
 - Supervision — checkpoints are not durable execution (`REQUIREMENTS.md` §5.5);
   an external supervisor is required before any "runs for days" claim is made
-- Whether the graph may edit its own topology (Q5) — currently forbidden by
-  hard rule "self-improvement writes notes only"
 
-**Gated on:** P1–P6 shipped, and Q3 answered.
+### Bounded topology mutation (decided — Q5)
+
+At `--autonomy high` **only**, the graph may rewrite its own topology. Below
+`high`, the existing rule holds unchanged: propose a diff, a human approves it.
+This loosens a rule the repo earned, so it ships with four guardrails:
+
+1. **A mutation may not remove or weaken a gate** — not `gate_provenance`, not
+   `gate_merge`, not the budget ceiling. `high` is precisely the mode where
+   nobody is watching, so a graph that can delete its own drift gate there is a
+   graph with no drift gate. Enforced by validating the post-mutation graph
+   against a required-node / required-edge set *before* `.compile()`, so an
+   illegal mutation cannot run even once.
+2. **Mutations are checkpointed and diffable** — pre-mutation topology
+   persisted, diff rendered as mermaid, both in the phase report.
+3. **Mutation is a surfacing event** — `topology_mutation` is added to
+   `high.always_surfaces` in `schema/autonomy-levels.json`, alongside
+   `budget_limited`. `high` never means silent.
+4. **Bounded per run** — a mutation counter with a ceiling.
+
+This makes `schema/autonomy-levels.json` and `SKILL.md`'s self-improvement
+section part of the P7 diff. Note that it is the first time an autonomy level
+grants a *capability* rather than merely suppressing a prompt — worth one more
+look before P7 starts.
+
+**Gated on:** P1–P6 shipped.
 
 ---
 
@@ -332,12 +389,18 @@ the finding.
 
 ## Success criteria for the effort
 
-- A LangGraph user runs `pip install beastmode-langgraph`, imports one builder,
-  and gets tier routing + contracts + drift gates + autonomy gating without
-  reading `SKILL.md`
-- The five invariants in `REQUIREMENTS.md` §2 hold, each asserted by a test that
-  was negative-tested by deliberately breaking it
-- `schema/*.json` is still the only source of truth; no field list exists twice
-- `scripts/lib/acn_meta.py` is still the only gate implementation
-- A bash-only beastmode user sees no change and installs nothing
-- `beastmode.core` has zero framework imports, proven by CI
+In priority order — the first one decides ties.
+
+1. **A bash-only beastmode user installs nothing and sees no change.**
+   Invariant 0. Asserted on every phase, not just at the end.
+2. **An existing beastmode user types `bm --harness langgraph` and gets an
+   upgrade** — the same loop, now with durable checkpoints, resumable runs,
+   `interrupt()`-backed gates, and an inspectable graph.
+3. A LangGraph user `pip install`s the package, imports one builder, and gets
+   tier routing + contracts + drift gates + autonomy gating without reading
+   `SKILL.md`.
+4. The invariants in `REQUIREMENTS.md` §2 hold, each asserted by a test that was
+   negative-tested by deliberately breaking it.
+5. `schema/*.json` is still the only source of truth; no field list exists twice.
+6. `scripts/lib/acn_meta.py` is still the only gate implementation.
+7. `beastmode.core` has zero framework imports, proven by CI.

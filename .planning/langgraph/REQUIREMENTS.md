@@ -41,6 +41,22 @@ skip a gate, because the gate is an edge.
 These are the invariants the last two releases were spent earning. A LangGraph
 port that loses any of them is a regression, not a feature.
 
+0. **LangGraph is strictly additive. Beastmode works without it.** *(Decided
+   2026-08-03 — Q1.)* No bash script, test, schema, doc, or adapter acquires a
+   hard Python dependency. `./tests/run-all.sh` passes on a machine with zero
+   Python packages installed. A user who never installs the package sees no
+   behavior change, and no existing `bm` invocation changes meaning. This
+   outranks every other consideration in this document: where LangGraph
+   idiom and this invariant conflict, this invariant wins. It is a
+   merge-blocking exit on **every** phase, not a §5 risk to manage.
+
+   The corollary is a priority: **existing beastmode users are the primary
+   audience.** `bm --harness langgraph` is a first-class deliverable, not a
+   late add-on. The package still ships — it is the implementation, and it is
+   the adoption channel for LangGraph users who arrive from the other
+   direction — but "beastmode users get an upgrade and lose nothing" is what
+   decides ties.
+
 1. **One vocabulary.** `schema/*.json` stays the source of truth. Python types
    are *derived from or validated against* the JSON — never hand-copied.
    `.learnings/BEASTMODE.md` already records what happens when `schema/` becomes
@@ -64,9 +80,14 @@ port that loses any of them is a regression, not a feature.
 6. **Gates are blocking below `high`.** Default autonomy is `medium`.
 7. **Model drift always surfaces**, at every autonomy level, and blocks
    `validated`.
-8. **Self-improvement writes notes only.** No lasting behavior change inside a
-   run. A graph that rewrites its own topology mid-run violates this and needs
-   an explicit, separately-approved decision (see `OPEN-QUESTIONS.md` Q5).
+8. **Self-improvement writes notes only — below `high`.** *(Amended 2026-08-03
+   — Q5.)* At `low` and `medium` autonomy the rule is unchanged: a run records
+   lessons, and any lasting behavior change is a separate user-approved task.
+   At `--autonomy high`, the graph **may** mutate its own topology, subject to
+   four guardrails: a mutation may not remove or weaken a gate; the pre-mutation
+   topology is checkpointed and the diff rendered; mutation is added to
+   `high.always_surfaces` in `schema/autonomy-levels.json`; and mutations are
+   bounded per run. Scope: P7 only — nothing in P1–P6 mutates anything.
 
 ---
 
@@ -150,7 +171,7 @@ and produces a support matrix. Providers that cannot prove the serving model
 are documented as unsupported for direct-call nodes (they remain fine behind a
 subprocess executor that writes its own meta).
 
-### 5.2 — In-process nodes cannot be constrained (**HIGH — hard rule 1**)
+### 5.2 — In-process nodes cannot be constrained (**HIGH — hard rule 1**) — *resolved by Q2*
 
 "Workers never commit/push", "workers never access secrets", and "stay inside
 `allowed_paths`" are enforced today by the worker being a *separate process*
@@ -166,9 +187,17 @@ then becomes a **harness-of-harnesses** — which is a stronger product position
 than a fifth harness, because it orchestrates any coding agent rather than
 competing with them.
 
-This is Q2 in `OPEN-QUESTIONS.md`. If the answer is instead "nodes call chat
-models directly", hard rule 1 needs to be rewritten and sandboxing becomes a
-phase of its own.
+**Decided (Q2): split by seat.** Judgment seats — director, watcher, validator —
+call chat models directly, because they read and decide and never write files.
+Executor seats are subprocesses in worktrees. Hard rule 1 survives untouched,
+since the only nodes that touch the filesystem are still separate processes with
+their own permission config.
+
+The residual exposure is narrow but real: direct-call judgment nodes get their
+`actual_model` only from provider response metadata, so risk 5.1 now **gates**
+this decision rather than sitting beside it. P0.1's matrix gains a
+`direct-call viable` column, and any frontier provider that cannot prove its
+serving model falls back to a subprocess seat rather than being trusted.
 
 ### 5.3 — Lane grouping has no LangGraph expression (**MEDIUM — cost**)
 
@@ -182,7 +211,7 @@ loses some parallelism, keeps the discount; (b) accept the degradation and
 measure it; (c) custom scheduling in the dispatch node. Decide with numbers
 from the P0 spike, not in advance.
 
-### 5.4 — The repo becomes polyglot (**MEDIUM**)
+### 5.4 — The repo becomes polyglot (**HIGH — this is now invariant 0, not a risk**)
 
 First `pyproject.toml`, first dependency tree, first release process, first
 version-sync problem (`SKILL.md` frontmatter `version:` vs package version).
@@ -192,10 +221,11 @@ install step, a lockfile, and a lane that can break for reasons unrelated to
 beastmode. `langgraph` also pulls `langchain-core` and friends — the transitive
 tree is not small.
 
-**Mitigation:** the LangGraph lane is *additive and optional*. `tests/run-all.sh`
-keeps passing with no Python deps installed; graph tests live behind a separate
-CI job that installs the package. A user who never touches LangGraph sees no
-change.
+**Mitigation — now mandatory, not a mitigation:** per Q1 this is invariant 0.
+`tests/run-all.sh` keeps passing with no Python deps installed; graph tests live
+behind a separate CI job that installs the package. Every phase carries the
+install-free bash-lane assertion as an exit, so the dependency cannot leak in
+gradually. A user who never touches LangGraph sees no change.
 
 ### 5.5 — Checkpoints are not durable execution (**MEDIUM — only for P7**)
 

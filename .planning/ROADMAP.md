@@ -3,7 +3,7 @@
 | Effort | Status | Docs |
 |---|---|---|
 | ACN Unification (v2.2.0) | **shipped** — see below; hardened in v2.3.0 | this file, `ACCEPTANCE.md` |
-| Beastmode on LangGraph (v2.4.0) | **planning** — blocked on `langgraph/OPEN-QUESTIONS.md` Q1–Q3 | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
+| Beastmode on LangGraph (v2.4.0) | **planning** — Q1/Q2/Q3/Q5 decided; P0 spikes ready to start | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
 | CrewAI binding | **deferred** — gated on the LangGraph effort's P7 | `langgraph/ROADMAP.md` §P8 |
 
 ---

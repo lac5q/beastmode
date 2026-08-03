@@ -3,8 +3,9 @@
 This contract covers **P0–P6** of `ROADMAP.md`. P7 (the `forever` graph) and P8
 (CrewAI) get their own contracts when they're unblocked.
 
-Written per `SKILL.md` §Step 1. Not authorized to start until `OPEN-QUESTIONS.md`
-Q1–Q3 are answered — the answers change P3 and P4.
+Written per `SKILL.md` §Step 1. `OPEN-QUESTIONS.md` Q1, Q2, Q3 and Q5 were
+answered 2026-08-03 and are folded in below; Q4 and Q6–Q10 remain open but do
+not block P0.
 
 ---
 
@@ -20,14 +21,18 @@ hermes / pi / claude / codex adapters. Any change to the meaning of
 `schema/*.json`. Self-modifying graph topology. Pushing to origin without an
 explicit ship-it.
 
-**User-visible acceptance:**
+**User-visible acceptance** (in priority order — the first decides ties):
 
+- **A beastmode user who never installs the package sees no change at all.**
+  Every existing `bm` invocation behaves identically to `main`, and
+  `./tests/run-all.sh` passes with no Python packages present.
+- `bm "<goal>" --harness langgraph --frontier <alias> --economy <alias>
+  --watcher <alias> --autonomy low|medium|high` preflights seats and runs with
+  the same phase-report / gate / drift prompts as every other harness — and
+  exits 2 with an install hint, never a traceback, when the package is absent.
 - A LangGraph user runs `pip install beastmode[langgraph]`, imports one builder,
   compiles a graph, and gets a beastmode run with gates that block below `high`
   autonomy — without reading `SKILL.md`.
-- `bm "<goal>" --harness langgraph --frontier <alias> --economy <alias>
-  --watcher <alias> --autonomy low|medium|high` preflights seats and runs with
-  the same phase-report / gate / drift prompts as every other harness.
 - A run killed mid-phase resumes from its checkpoint on the same `thread_id`
   and completes.
 - `graph.get_graph().draw_mermaid()` renders the loop as a living flowchart,
@@ -37,6 +42,11 @@ explicit ship-it.
 
 **Invariants that must hold (each negative-tested by deliberately breaking it):**
 
+0. **LangGraph is strictly additive.** `./tests/run-all.sh` passes with zero
+   Python packages installed; no bash script, test, schema, doc, or adapter
+   acquires a hard Python dependency; every pre-existing `bm` invocation behaves
+   identically to `main`. This is checked on every phase, and it outranks every
+   other item on this list.
 1. `schema/*.json` remains the single source of truth — no field list exists in
    two places. Python types are read from the JSON at import.
 2. `scripts/lib/acn_meta.py` remains the only implementation of the
@@ -45,8 +55,10 @@ explicit ship-it.
    cannot convert it into a pass or a silent skip.
 4. A passing child never carries a failing sibling. A child that wrote no meta
    at all is caught via `--expect`.
-5. The main working tree is unmodified for the duration of any run; executors
-   work in worktrees and never commit, push, or read secrets.
+5. The main working tree is unmodified for the duration of any run. Per Q2,
+   judgment seats (director / watcher / validator) may call chat models
+   directly, but **every seat that writes files is a subprocess** in its own
+   worktree, and never commits, pushes, or reads secrets.
 6. Gates block below `high` autonomy; `MODEL DRIFT` surfaces at every level.
 7. `beastmode.core` imports no agent framework — proven in CI, not by review.
 
@@ -82,8 +94,12 @@ git status --porcelain               # empty after the full suite (CI already as
 
 **Escalation triggers:**
 
-- P0.1 finds that `actual_model` is unprovable for a provider we intend to
-  support with direct-call nodes → stop, surface, re-decide Q2 before P2.
+- P0.1 finds that `actual_model` is unprovable for a frontier provider we intend
+  to run as a direct-call judgment seat → demote that provider to a subprocess
+  seat; if no frontier provider proves its model, stop and re-decide Q2 before
+  P2 designs around it.
+- Any proposal to add a hard Python dependency to the bash lane, or to make an
+  existing `bm` flag behave differently — invariant 0 is merge-blocking.
 - Any change to `scripts/lib/acn_meta.py`'s verdict logic — that file is the
   gate; edits to it are frontier-review-mandatory, not economy work.
 - Any proposal to add a `best-effort` or `warn-only` provenance mode.

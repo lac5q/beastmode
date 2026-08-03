@@ -4,9 +4,35 @@ Q1–Q3 change the phase order in `ROADMAP.md` and should be answered before P1
 starts. Q4–Q10 can be answered during P0/P1. Each has a recommendation, so
 silence is not a blocker — but a different answer means different phases.
 
+**Q1, Q2, Q3, Q5 are now DECIDED** (2026-08-03) — see the ✅ blocks. Q4, Q6–Q10
+remain open.
+
 ---
 
 ## Q1 — What is the deliverable, exactly? (**blocks P1**)
+
+> ### ✅ DECIDED — "Beastmode must still work without LangGraph. It's an upgrade for beastmode users."
+>
+> This is neither A nor B nor C as posed — it's a **constraint that outranks the
+> question**, plus a priority. Recorded as:
+>
+> **C1 (hard constraint, non-negotiable): LangGraph is strictly additive.**
+> Beastmode without LangGraph works exactly as it does today. No bash script,
+> no test, no schema, no doc, and no adapter acquires a hard Python dependency.
+> A user who never installs the package sees zero behavior change. This is
+> promoted out of the risk register (§5.4) into `REQUIREMENTS.md` §2 as
+> **invariant 0**, and it is a merge-blocking exit on every phase — not a
+> footnote.
+>
+> **C2 (priority): existing beastmode users are the primary audience.**
+> `bm --harness langgraph` is therefore a first-class deliverable, not a P5
+> afterthought. The package still ships (it's the implementation, and it's the
+> adoption channel for LangGraph users), but "beastmode users get an upgrade
+> and lose nothing" is the success criterion that decides ties.
+>
+> *Assumption flagged for correction:* read as "must still work **without
+> LangGraph**". If "Langston" meant something else, say so — C1 is doing a lot
+> of load-bearing work.
 
 Three different products hide behind "enable LangGraph":
 
@@ -27,6 +53,23 @@ package in P1–P4, `bm` flag in P5.
 ---
 
 ## Q2 — Do LangGraph nodes call models, or drive subprocesses? (**blocks P3/P4**)
+
+> ### ✅ DECIDED — C: split by seat.
+>
+> Judgment seats (director, watcher, validator) call chat models directly —
+> they read and decide, they don't write files. Executor seats spawn the
+> existing coding agents (`pi`, `claude -p`, `codex exec`, `delegate_task`) as
+> subprocesses in `git worktree`s.
+>
+> Consequences now locked into the roadmap:
+> - Hard rule 1 survives untouched, because the only nodes that write files are
+>   still separate processes with their own permission config.
+> - Direct-call judgment nodes depend on provider response metadata for
+>   `actual_model`. **P0.1 is now gating**: if a frontier provider we intend to
+>   use can't prove the serving model, its judgment nodes are `unverifiable` and
+>   must fall back to subprocess. P0.1's exit adds a per-provider
+>   direct-call-viable column.
+> - Fallback if P0.1 goes badly: option B (all seats subprocess).
 
 This is the single biggest architectural call, and it decides whether hard
 rule 1 survives.
@@ -53,6 +96,10 @@ rather than "beastmode is another coding agent".
 ---
 
 ## Q3 — Which graph ships first? (**blocks P3 vs P7 ordering**)
+
+> ### ✅ DECIDED — A: pipeline first, evolver as P7.
+>
+> Phase order in `ROADMAP.md` stands as written. P7 stays gated on P1–P6.
 
 Your two messages describe different graphs:
 
@@ -87,6 +134,35 @@ the packaging split.
 ---
 
 ## Q5 — May the graph rewrite itself?
+
+> ### ✅ DECIDED — B: topology mutation permitted at `--autonomy high` only.
+>
+> This **loosens a rule the repo earned**, so it ships with guardrails rather
+> than as a bare permission. Below `high`, the notes-only rule is unchanged: the
+> graph proposes a topology diff, a human approves it.
+>
+> Guardrails (proposed — these are my constraints, not your instruction; push
+> back on any of them):
+>
+> 1. **A mutation may not remove or weaken a gate.** Not `gate_provenance`, not
+>    `gate_merge`, not the budget ceiling. A graph that can delete its own drift
+>    gate at `high` autonomy is a graph with no drift gate — `high` is exactly
+>    the mode where nobody is watching. Enforced by validating the post-mutation
+>    graph against a required-node/required-edge set before it is compiled.
+> 2. **Mutations are checkpointed and diffable.** The pre-mutation topology is
+>    persisted, the diff is rendered as mermaid, and both land in the phase
+>    report. A self-edit nobody can read is not auditable.
+> 3. **Mutation is a surfacing event.** `schema/autonomy-levels.json` gets
+>    `topology_mutation` added to `high.always_surfaces`, alongside
+>    `budget_limited` and the watcher-unavailable case. `high` never means
+>    silent.
+> 4. **Bounded per run.** A mutation counter with a ceiling, so a graph cannot
+>    churn its own shape indefinitely.
+>
+> This makes `schema/autonomy-levels.json` and `SKILL.md`'s self-improvement
+> section part of the P7 diff, and it is the first time an autonomy level grants
+> a *capability* rather than just suppressing a prompt. Worth a second look
+> before P7 starts.
 
 Your framing includes "self-improvement loop that rewrites the orchestration
 itself" and "a graph agents can walk, branch, or rewrite". Today that is
