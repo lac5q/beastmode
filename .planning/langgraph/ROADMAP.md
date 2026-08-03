@@ -107,6 +107,15 @@ Retrofitting any of them is a rewrite of every node.
   and a written statement of which nodes are safe to re-run. Gate nodes replay
   on resume (P0.2); executor nodes must be idempotent against a half-finished
   worktree.
+- **Traceable, vendor-neutral, and never load-bearing.** Nodes carry beastmode
+  metadata and tags (`goal_id`, `phase`, `seat`, `autonomy`, `requested_model`,
+  `actual_model`; tags `drift` / `unverifiable` on a non-`ok` verdict) shaped to
+  be OTel-compatible, so the backend is an operator choice rather than a
+  rewrite. Two hard constraints: **(a)** each subprocess executor synthesizes a
+  child span from the `meta.json` it already writes, or the majority of every
+  run's tokens and wall-clock is invisible; **(b)** tracing being off,
+  unreachable, or sampled has **zero** effect on any gate verdict — traces may
+  display drift, never decide it. See `OPEN-QUESTIONS.md` Q8.
 
 ---
 
@@ -406,6 +415,11 @@ strategically pointless.
   the PRD + priority list surviving a restart
 - `python/README.md` for the PyPI page — leads with the P6 drop-in primitives,
   not with `build_pipeline()`; the smallest on-ramp goes first
+- `references/observability.md` — the LangSmith / OTel onboarding page: the
+  three env vars, self-hosted `LANGSMITH_ENDPOINT`, what the trace tree looks
+  like, how subprocess child spans are reconstructed from `meta.json`, the
+  metadata/tag vocabulary, masking options, sampling guidance, and the standing
+  rule that tracing is never load-bearing for a gate
 
 **Exit (deterministic)**
 - `test-acn-parity.sh` gains: Python `ChildMeta` fields == schema
@@ -417,6 +431,12 @@ strategically pointless.
   the repo — the v2.3 fixture-rewriting bug)
 - `python -m build` produces a wheel; the wheel imports with no provider SDKs
   present
+- With `LANGSMITH_TRACING=true`, one run produces a trace whose executor nodes
+  each carry a child span reconstructed from the child's `meta.json` — token
+  counts in the trace reconcile against `acn-report`'s phase report
+- With tracing off, unreachable, and pointed at a dead endpoint, all three
+  produce byte-identical gate verdicts (negative-tested — this is the fail-open
+  the rule exists to prevent)
 
 ---
 

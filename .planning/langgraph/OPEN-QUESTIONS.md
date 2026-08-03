@@ -220,6 +220,91 @@ hosted, which means run metadata leaves the machine.
 path. If a beastmode run's phase report requires a SaaS account, cost discipline
 and provenance stop being self-contained.
 
+### How onboarding actually works — scoped design
+
+Still open as a *policy* question (do we bless it?), but the *mechanics* are
+settled enough to scope, because two of them are non-obvious and one is a trap.
+
+**1. The graph traces itself for free.** Three env vars and every node becomes a
+span:
+
+```bash
+export LANGSMITH_TRACING=true
+export LANGSMITH_API_KEY=...
+export LANGSMITH_PROJECT=beastmode          # optional, defaults to "default"
+export LANGSMITH_ENDPOINT=https://...       # self-hosted only
+```
+
+No code change. `graph.ainvoke()` produces a trace tree with one run per node,
+nested correctly, with token usage on every model call.
+
+**2. The subprocess executors are a hole, and they're where the run actually
+lives.** Per Q2, executor seats are `pi` / `claude -p` / `codex exec`
+subprocesses. LangSmith sees a node that took eight minutes and returned a
+dict — the implementation work, the tool calls, and the majority of the run's
+tokens and wall-clock are all invisible. Tracing that shows only the cheap half
+of a cost-discipline framework is worse than no tracing, because it looks
+complete.
+
+LangSmith supports distributed tracing via a `langsmith-trace` header and a
+`tracing_context` manager, but that only helps when the child process is itself
+LangSmith-aware. `pi`, `codex exec`, and `claude -p` are not.
+
+**The fix falls out of something beastmode already does.** Every child already
+writes a `meta.json` with `usage`, `requested_model`, `actual_model`,
+`stop_reason`, `files_changed`, `commands_run`, and `verify`. **That record is a
+span.** The executor node synthesizes a LangSmith child run from it after the
+subprocess exits, attached to the node's own run as parent (the SDK's `parent`
+accepts a `RunTree` or a dotted-order string). No new artifact, no new
+collection, no change to the worker contract — the provenance record beastmode
+already requires becomes the trace.
+
+**3. The trap: LangSmith must never become the source of truth for the gate.**
+LangSmith records what the SDK reports, which is exactly the `response_metadata`
+P0.1 is investigating. It is therefore tempting to read drift out of the trace.
+Don't. The gate stays `scripts/lib/acn_meta.py` reading `meta.json` off disk.
+Tracing being off, unreachable, rate-limited, or sampled must have **zero**
+effect on whether a run is `validated`. An observability outage that turns a
+safety gate green is the same fail-open class the v2.3 review closed twice.
+
+Traces may *display* drift; they may never *decide* it.
+
+**4. What to attach so the trace is useful to beastmode specifically.** Default
+LangGraph traces show node names and tokens. Beastmode needs its own vocabulary
+on them:
+
+- `metadata`: `goal_id`, `thread_id`, `phase`, `seat` (director/watcher/executor),
+  `autonomy`, `harness`, `requested_model`, `actual_model`, `beastmode_version`
+- `tags`: `beastmode`, `phase:design`, `seat:executor`, and — the valuable one —
+  `drift` / `unverifiable` stamped on any run whose gate verdict wasn't `ok`
+
+That last tag is the whole payoff: "show me every run in the last month where a
+child drifted off its pinned model" becomes a filter instead of a grep across
+run directories.
+
+**5. Privacy is the real blocker, not cost.** Beastmode prompts contain the
+codebase — diffs, file contents, repo paths, design packages. The worker
+contract keeps secrets out of *prompts*, but source code is not nothing. Three
+postures, in order of preference:
+- **self-hosted LangSmith** via `LANGSMITH_ENDPOINT` — traces never leave your
+  network
+- **input/output masking** — LangSmith supports hiding inputs/outputs; confirm
+  the exact env-var / anonymizer surface at implementation time rather than
+  trusting this doc
+- **off** — the default
+
+**6. Cost, for the evolver.** LangSmith bills on ingested traces. A `forever`
+graph at high fan-out running for days generates enormous span volume. Sampling
+policy is a prerequisite for that phase, not a tuning step after it.
+
+**7. OpenTelemetry is the escape hatch.** LangSmith has native OTel support in
+both directions — the SDK exports OTLP, and `OTEL_EXPORTER_OTLP_ENDPOINT` /
+`OTEL_EXPORTER_OTLP_HEADERS` redirect it anywhere. So the instrumentation
+decision and the vendor decision are separable: instrument once, and let the
+operator point it at LangSmith, Langfuse, or their own collector. **Design the
+metadata and span shape as OTel-compatible from the start**, so choosing a
+backend never means re-instrumenting.
+
 ---
 
 ## Q9 — What's the budget ceiling for a `forever` run?
