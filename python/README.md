@@ -25,6 +25,8 @@ chat_model = as_chat_model(configured)
 
 The complete checkpointed pipeline is `build_pipeline()`. SQLite is the local
 default; install the `postgres` extra for `PostgresSaver`. Every executor child
-must write the schema-defined `meta.json`; drift and missing provenance fail
-closed. See the repository README and `references/beastmode-on-langgraph.md`
-for CLI and restart examples.
+writes schema-defined `meta.json`, while a parent-owned harness/provider
+attestation outside the worker run tree independently proves the serving
+model. Missing evidence, drift, validation, or review fails closed. See the
+repository README and `references/beastmode-on-langgraph.md` for the trusted
+helper contract, CLI, and restart examples.

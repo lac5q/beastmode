@@ -147,7 +147,9 @@ Parses `--harness hermes|pi|claude|codex|langgraph` (default `pi`), `--gsd`,
 aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
 `kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `minimax` →
 `minimax/MiniMax-M3`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
-with `<repo>/.beastmode/tier-aliases.json`. See `scripts/bm` and
+with the user-global `~/.beastmode/tier-aliases.json`. Repository-local
+aliases are ignored unless the operator explicitly sets
+`BM_TRUST_REPO_ALIASES=1` after review. See `scripts/bm` and
 `references/autonomy-levels.md`.
 
 Before spawning, `bm` runs `scripts/enforce-models` to preflight each
@@ -590,7 +592,8 @@ Beastmode runs accumulate context fast — subagent outputs, tool results, file 
 
 Verify caching survives your proxy chain with `scripts/cache-hitrate`. See
 `references/context-rot-mitigation.md` for the break-even math, architectural fixes,
-and monitoring.
+and monitoring. Custom endpoints require `--allow-custom-base-url`; ambient
+Anthropic credentials are never forwarded to them.
 
 ## References
 

@@ -15,7 +15,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Iterable
 
-from .schema import schema_root
+from .schema import source_repository_root
 
 
 class ProvenanceModuleNotFoundError(FileNotFoundError):
@@ -42,14 +42,25 @@ class ProvenanceResult:
 
 
 def canonical_gate_path(repo: Path | None = None) -> Path:
-    """Find the one gate implementation shipped with the repository."""
-    path = schema_root(repo).parent / "scripts" / "lib" / "acn_meta.py"
+    """Find the immutable gate bundled with the package or source checkout."""
+    bundled = Path(__file__).resolve().parents[1] / "_vendor" / "acn_meta.py"
+    source_root = source_repository_root()
+    path = bundled if bundled.is_file() else (
+        source_root / "scripts" / "lib" / "acn_meta.py"
+        if source_root is not None
+        else bundled
+    )
+    if repo is not None:
+        requested = Path(repo).resolve()
+        trusted = source_root.resolve() if source_root is not None else None
+        if trusted is None or requested != trusted:
+            raise ValueError("provenance implementation cannot be selected by a repository")
     if not path.is_file():
         raise ProvenanceModuleNotFoundError(
-            "could not locate scripts/lib/acn_meta.py next to the schema: "
+            "could not locate the package's trusted acn_meta.py: "
             f"{path}"
         )
-    return path
+    return path.resolve()
 
 
 def _load_gate(repo: Path | None = None) -> ModuleType:
@@ -69,6 +80,7 @@ def check_provenance(
     strict: bool = False,
     expect: Iterable[str] | None = None,
     repo: Path | None = None,
+    attestations: Path | None = None,
 ) -> ProvenanceResult:
     """Run ``acn_meta.check`` and preserve its verdicts and exit code."""
     gate = _load_gate(repo)
@@ -77,6 +89,7 @@ def check_provenance(
         allow_empty=allow_empty,
         strict=strict,
         expect=list(expect) if expect is not None else None,
+        attestations=Path(attestations) if attestations is not None else None,
     )
     return ProvenanceResult(
         rows=tuple(result.rows),

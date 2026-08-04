@@ -61,6 +61,7 @@ class BeastmodeState(TypedDict, total=False):
     execution_status: str
     review_report: dict[str, Any]
     merge_decision: Any
+    merge_report: dict[str, Any]
     status: str
     lane_batches: list[list[dict[str, Any]]]
     lane_index: int

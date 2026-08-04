@@ -1,0 +1,22 @@
+{
+  "attestations": [
+    {
+      "id": "a",
+      "requested_model": "anthropic/claude-opus-4-7",
+      "actual_model": "anthropic/claude-opus-4-7",
+      "source": "test-harness-journal"
+    },
+    {
+      "id": "b",
+      "requested_model": "anthropic/claude-opus-4-7",
+      "actual_model": "kimi-coding/k2",
+      "source": "test-harness-journal"
+    },
+    {
+      "id": "c",
+      "requested_model": "minimax/MiniMax-M3",
+      "actual_model": "minimax/MiniMax-M3",
+      "source": "test-harness-journal"
+    }
+  ]
+}

@@ -23,7 +23,7 @@ the canonical `beastmode` skill (v2.4.0) — load it first and follow it.
 | Executor (economy) | Task subagents, or parallel `claude -p --model <economy>` lanes |
 | Loop engine | Director self-prompts between subagent results |
 | Anti-spin | Director judgment + usage budget; abort on 3 identical blockers |
-| Worker-contract enforcer | `--permission-mode` plus a starter worker contract in the prompt |
+| Worker-contract enforcer | Claude permission defaults plus a starter worker contract in the prompt; autonomy never weakens permissions |
 | Live progress | Tail Task subagent transcripts or tmux panes running `claude -p` |
 | Goal / self-improvement log | `<repo>/GOAL.md` and `<repo>/.learnings/BEASTMODE.md` (universal) |
 
@@ -76,11 +76,10 @@ and pin the model explicitly so the run record proves the actual model.
 | **medium** (default) | Whole phase: acceptance → design → delegate → validate → review | Security/auth/payments/data-loss events, model failure, **MODEL DRIFT**, `goal_blocked`, the merge gate |
 | **high** | Multi-batch until `goal_complete` or repeated `goal_blocked` (≤ 3) | Budget exhaustion, no-watcher / no-validated, secrets in prompt, unrevalidated drift |
 
-Gates are blocking below high. At low, prefer `--permission-mode plan` or
-`ask` before each batch; every child result surfaces; every merge waits
-for approval. To enter high inside the worker contract, use
-`--dangerously-skip-permissions` on the worker `claude -p` invocation or
-the Task subagent's permission field. Even at high, the run still halts
+Gates are blocking below high. Use `--permission-mode plan` for read-only
+watcher/verifier batches and Claude's normal approval flow for tool-using
+workers; every merge waits for approval. High autonomy changes phase
+progression only and never bypasses tool permissions. Even at high, the run still halts
 on budget exhaustion, no watcher, no validated, secrets-in-prompt, and
 unrevalidated MODEL DRIFT — those are universal. **gates are blocking
 below high.**
@@ -113,7 +112,7 @@ Unverifiable child model = **UNVERIFIED DRAFT** lane. A child whose meta is
 missing, unreadable, or carries a single merged `model` instead of both
 model fields cannot be compared, and an impossible comparison is not a
 pass. Output may be used as input but is never `validated` until re-checked
-under a pinned model. `scripts/enforce-models --check-meta <run-dir>` is the
+under a pinned model. `scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json>` is the
 gate; exit 1 means drift or unverifiable.
 
 ## Operating loop

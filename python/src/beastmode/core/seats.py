@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from .schema import schema_root
+from .schema import source_repository_root
 
 
 class UnknownAliasError(LookupError):
@@ -270,14 +270,23 @@ def _observed_model(
     return None
 
 
-def _candidate_files(repo: Path, home: Path) -> Iterable[Path]:
-    # This is intentionally the same precedence as scripts/bm.
-    yield repo / ".beastmode" / "tier-aliases.json"
+def _candidate_files(
+    repo: Path,
+    home: Path,
+    *,
+    trust_project_aliases: bool,
+) -> Iterable[Path]:
+    # A checkout controls code and task text, so its model aliases are not a
+    # trusted policy source unless the operator opts in explicitly.
+    if trust_project_aliases:
+        yield repo / ".beastmode" / "tier-aliases.json"
     yield home / ".beastmode" / "tier-aliases.json"
-    try:
-        yield schema_root(repo).parent / "scripts" / "tier-aliases.json"
-    except OSError:
-        return
+    bundled = Path(__file__).resolve().parents[1] / "_vendor" / "tier-aliases.json"
+    if bundled.is_file():
+        yield bundled
+    source_root = source_repository_root()
+    if source_root is not None:
+        yield source_root / "scripts" / "tier-aliases.json"
 
 
 def _read_alias_file(path: Path) -> dict[str, Any]:
@@ -294,15 +303,20 @@ def resolve_alias(
     *,
     repo: Path | None = None,
     home: Path | None = None,
+    trust_project_aliases: bool = False,
 ) -> SeatModel:
-    """Resolve a friendly alias using project, user, then shipped config."""
+    """Resolve an alias using trusted user/shipped config by default."""
     if "/" in alias:
         provider, model = alias.split("/", 1)
         return SeatModel(alias, provider, model)
 
     repo_path = (repo or Path.cwd()).resolve()
     home_path = (home or Path.home()).resolve()
-    for path in _candidate_files(repo_path, home_path):
+    for path in _candidate_files(
+        repo_path,
+        home_path,
+        trust_project_aliases=trust_project_aliases,
+    ):
         entry = _read_alias_file(path).get(alias)
         if not isinstance(entry, dict):
             continue
@@ -310,12 +324,20 @@ def resolve_alias(
         model = entry.get("model")
         if not isinstance(provider, str) or not isinstance(model, str):
             raise ValueError(f"alias {alias!r} in {path} lacks provider/model")
+        tier = entry.get("tier")
+        family = entry.get("family")
+        if not isinstance(tier, str) or not isinstance(family, str):
+            raise ValueError(f"alias {alias!r} in {path} lacks declared tier/family")
+        if alias in {"frontier", "economy"} and tier != alias:
+            raise ValueError(
+                f"alias {alias!r} in {path} declares mismatched tier {tier!r}"
+            )
         return SeatModel(
             alias=alias,
             provider=provider,
             model=model,
-            tier=entry.get("tier"),
-            family=entry.get("family"),
+            tier=tier,
+            family=family,
         )
     raise UnknownAliasError(f"unknown Beastmode tier alias: {alias}")
 
@@ -325,6 +347,15 @@ def resolve_many(
     *,
     repo: Path | None = None,
     home: Path | None = None,
+    trust_project_aliases: bool = False,
 ) -> tuple[SeatModel, ...]:
     """Resolve several aliases while preserving input order."""
-    return tuple(resolve_alias(alias, repo=repo, home=home) for alias in aliases)
+    return tuple(
+        resolve_alias(
+            alias,
+            repo=repo,
+            home=home,
+            trust_project_aliases=trust_project_aliases,
+        )
+        for alias in aliases
+    )

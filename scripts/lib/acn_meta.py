@@ -250,14 +250,22 @@ def _validate_json_shape(value: object) -> None:
 class Row:
     """One child's provenance verdict, ready for either tool's output."""
 
-    def __init__(self, path: Path, data: dict | None, error: str | None = None):
+    def __init__(
+        self,
+        path: Path,
+        data: dict | None,
+        error: str | None = None,
+        attestation: dict | None = None,
+    ):
         self.path = path
         self.error = error
         data = data if isinstance(data, dict) else {}
         self.raw_id = _first(data, "id", "name") or path.stem
         self.id = safe_report_text(self.raw_id)
         self._requested_raw = _first(data, "requested_model") or UNAVAILABLE
-        self._actual_raw = _first(data, "actual_model") or UNAVAILABLE
+        self._worker_actual_raw = _first(data, "actual_model") or UNAVAILABLE
+        self._attestation = attestation
+        self._actual_raw = _first(attestation or {}, "actual_model") or UNAVAILABLE
         self._legacy_raw = _first(data, "model") or UNAVAILABLE
         self.requested = safe_report_text(self._requested_raw)
         self.actual = safe_report_text(self._actual_raw)
@@ -272,6 +280,17 @@ class Row:
     def _classify(self) -> tuple[str, str]:
         if self.error:
             return UNVERIFIABLE, f"unreadable meta: {self.error}"
+        if self._attestation is None:
+            return UNVERIFIABLE, (
+                "missing independent harness/provider attestation; "
+                "worker-authored actual_model is not trusted evidence"
+            )
+        attested_id = _first(self._attestation, "id")
+        attested_requested = _first(self._attestation, "requested_model")
+        if attested_id != self.raw_id or attested_requested != self._requested_raw:
+            return UNVERIFIABLE, "trusted attestation does not bind this child id/request"
+        if self._worker_actual_raw != self._actual_raw:
+            return UNVERIFIABLE, "worker metadata disagrees with trusted actual_model"
         has_req = self._requested_raw != UNAVAILABLE
         has_act = self._actual_raw != UNAVAILABLE
         if has_req and has_act:
@@ -307,13 +326,72 @@ def _stringify(value) -> str:
     return UNAVAILABLE if value is None else safe_report_text(value)
 
 
-def load_rows(target: Path) -> list[Row]:
+def _attestation_records(source: Path) -> list[dict]:
+    if source.is_symlink():
+        raise MetadataLimitError("attestation source must not be a symlink")
+    paths = sorted(source.glob("*.json")) if source.is_dir() else [source]
+    records: list[dict] = []
+    for path in paths:
+        body = _load_json(path)
+        values = body.get("attestations") if isinstance(body, dict) else None
+        if values is None:
+            values = [body]
+        if not isinstance(values, list):
+            raise MetadataLimitError("attestations must be a JSON list or object")
+        for value in values:
+            if not isinstance(value, dict):
+                raise MetadataLimitError("each attestation must be a JSON object")
+            if not all(
+                isinstance(value.get(key), str) and value.get(key)
+                for key in ("id", "requested_model", "actual_model", "source")
+            ):
+                raise MetadataLimitError(
+                    "attestation requires nonempty id/requested_model/actual_model/source"
+                )
+            records.append(value)
+            if len(records) > MAX_META_FILES:
+                raise MetadataLimitError(
+                    f"attestation count cannot exceed {MAX_META_FILES}"
+                )
+    return records
+
+
+def load_attestations(target: Path, source: Path | None) -> dict[str, dict]:
+    """Load parent-owned evidence outside the worker-writable run tree."""
+    if source is None:
+        return {}
+    target_resolved = target.resolve()
+    source_resolved = source.resolve()
+    if source_resolved == target_resolved or target_resolved in source_resolved.parents:
+        raise MetadataLimitError(
+            "attestations must be outside the worker-writable run directory"
+        )
+    records = _attestation_records(source_resolved)
+    result: dict[str, dict] = {}
+    for record in records:
+        child_id = str(record["id"])
+        if child_id in result:
+            raise MetadataLimitError(
+                f"duplicate trusted attestation id: {safe_report_text(child_id)}"
+            )
+        result[child_id] = record
+    return result
+
+
+def load_rows(target: Path, attestations: dict[str, dict] | None = None) -> list[Row]:
     rows = []
+    attestations = attestations or {}
     for path in find_meta_files(target):
         try:
             body = _load_json(path)
-            rows.append(Row(path, body if isinstance(body, dict) else None,
-                            error=None if isinstance(body, dict) else "meta must be a JSON object"))
+            row_data = body if isinstance(body, dict) else None
+            row_id = _first(row_data or {}, "id", "name") or path.stem
+            rows.append(Row(
+                path,
+                row_data,
+                error=None if isinstance(body, dict) else "meta must be a JSON object",
+                attestation=attestations.get(row_id),
+            ))
         except (OSError, json.JSONDecodeError, RecursionError, MetadataLimitError) as e:
             rows.append(Row(path, None, error=safe_report_text(e)))
     return rows
@@ -346,18 +424,30 @@ def expected_ids(source: str) -> list[str]:
         ids = [part.strip() for part in source.split(",") if part.strip()]
     if len(ids) > MAX_META_FILES:
         raise ValueError(f"expected child count cannot exceed {MAX_META_FILES}")
+    duplicates = sorted({child_id for child_id in ids if ids.count(child_id) > 1})
+    if duplicates:
+        names = ", ".join(safe_report_text(child_id) for child_id in duplicates)
+        raise ValueError(f"expected child ids must be unique; duplicates: {names}")
     return ids
 
 
 def check(target: Path, allow_empty: bool = False, strict: bool = False,
-          expect: list[str] | None = None) -> GateResult:
+          expect: list[str] | None = None,
+          attestations: Path | None = None) -> GateResult:
     """Run the provenance gate over a directory of child metas."""
+    if expect is not None and len(expect) != len(set(expect)):
+        return GateResult(
+            [],
+            ["UNVERIFIABLE: expected child ids must be unique"],
+            1,
+        )
     if target.is_symlink() or not target.is_dir():
         return GateResult([], [f"not a regular directory: {safe_report_text(target)}"], 2)
 
     try:
-        rows = load_rows(target)
-    except (OSError, MetadataLimitError) as exc:
+        trusted_attestations = load_attestations(target, attestations)
+        rows = load_rows(target, trusted_attestations)
+    except (OSError, json.JSONDecodeError, RecursionError, MetadataLimitError) as exc:
         return GateResult(
             [],
             [f"UNVERIFIABLE: metadata scan rejected: {safe_report_text(exc)}"],
@@ -384,6 +474,15 @@ def check(target: Path, allow_empty: bool = False, strict: bool = False,
 
     messages = [row.line() for row in rows if row.failed]
 
+    observed_ids = [row.raw_id for row in rows]
+    duplicate_observed = sorted(
+        {child_id for child_id in observed_ids if observed_ids.count(child_id) > 1}
+    )
+    for child_id in duplicate_observed:
+        messages.append(
+            f"UNVERIFIABLE: duplicate observed child id {safe_report_text(child_id)!r}"
+        )
+
     # A child that died before writing anything leaves no file, so scanning
     # what is present can never notice it — one surviving sibling would carry
     # the batch to exit 0. Only the batch's own list of ids can catch that.
@@ -404,7 +503,11 @@ def check(target: Path, allow_empty: bool = False, strict: bool = False,
             f"({safe_report_text(row.path)})"
         )
 
-    failed = any(row.failed for row in rows) or bool(missing_children)
+    failed = (
+        any(row.failed for row in rows)
+        or bool(missing_children)
+        or bool(duplicate_observed)
+    )
     if failed or (strict and incomplete):
         return GateResult(rows, messages, 1)
     return GateResult(rows, messages, 0)
@@ -415,6 +518,7 @@ def main(argv: list[str]) -> int:
     allow_empty = False
     strict = False
     expect: list[str] | None = None
+    attestations: Path | None = None
     args = list(argv)
     while args:
         arg = args.pop(0)
@@ -432,6 +536,14 @@ def main(argv: list[str]) -> int:
             except (OSError, ValueError, json.JSONDecodeError) as e:
                 print(f"acn_meta: --expect: {safe_report_text(e)}", file=sys.stderr)
                 return 2
+        elif arg == "--attestations":
+            if not args:
+                print(
+                    "acn_meta: --attestations needs a JSON file or directory",
+                    file=sys.stderr,
+                )
+                return 2
+            attestations = Path(args.pop(0))
         elif arg == "--allow-empty":
             allow_empty = True
         elif arg == "--strict":
@@ -444,11 +556,17 @@ def main(argv: list[str]) -> int:
             return 2
 
     if target is None:
-        print("usage: acn_meta.py --check <dir> [--expect <batch.json|id,...>] "
-              "[--allow-empty] [--strict]", file=sys.stderr)
+        print("usage: acn_meta.py --check <dir> --attestations <json|dir> "
+              "[--expect <batch.json|id,...>] [--allow-empty] [--strict]", file=sys.stderr)
         return 2
 
-    result = check(target, allow_empty=allow_empty, strict=strict, expect=expect)
+    result = check(
+        target,
+        allow_empty=allow_empty,
+        strict=strict,
+        expect=expect,
+        attestations=attestations,
+    )
     stream = sys.stderr if result.exit_code == 2 else sys.stdout
     for message in result.messages:
         print(message, file=stream)

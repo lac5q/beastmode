@@ -65,6 +65,8 @@ run_step "phase-estimate self-test" python3 scripts/phase-estimate --self-test
 run_step "ACN parity" ./tests/test-acn-parity.sh
 run_step "bm model preflight" ./tests/test-bm-model-check.sh
 run_step "bm thinking passthrough" ./tests/test-bm-thinking.sh
+run_step "shell security regressions" ./tests/test-shell-security.sh
+run_step "installer integrity" ./tests/test-installer-integrity.sh
 run_step "public artifact guard" ./tests/test-public-artifact-guard.sh
 
 # ---- summary ----

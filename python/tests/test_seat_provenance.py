@@ -52,7 +52,7 @@ class _ChatModel:
         return _ChatResponse()
 
 
-def test_seat_writes_metadata_that_the_canonical_gate_accepts(tmp_path: Path) -> None:
+def test_seat_metadata_requires_independent_provider_attestation(tmp_path: Path) -> None:
     seat = resolve_alias("minimax/MiniMax-M3", repo=tmp_path, home=tmp_path / "home")
     seat = seat.with_chat_model(_Model())
     response = seat.invoke("hello", run_dir=tmp_path / "child", child_id="child-1")
@@ -60,7 +60,25 @@ def test_seat_writes_metadata_that_the_canonical_gate_accepts(tmp_path: Path) ->
     meta = json.loads((tmp_path / "child" / "meta.json").read_text())
     assert meta["requested_model"] == "minimax/MiniMax-M3"
     assert meta["actual_model"] == "minimax/MiniMax-M3"
-    assert check_provenance(tmp_path / "child", repo=ROOT).exit_code == 0
+    assert check_provenance(tmp_path / "child", repo=ROOT).exit_code == 1
+    attestation = tmp_path / "provider-attestation.json"
+    attestation.write_text(
+        json.dumps(
+            {
+                "id": "child-1",
+                "requested_model": meta["requested_model"],
+                "actual_model": meta["actual_model"],
+                "source": "provider-response",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert (
+        check_provenance(
+            tmp_path / "child", repo=ROOT, attestations=attestation
+        ).exit_code
+        == 0
+    )
 
 
 def test_silent_provider_is_unverifiable_and_async_path_writes(tmp_path: Path) -> None:

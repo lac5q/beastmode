@@ -27,6 +27,7 @@ class PipelineDependencies:
     """Optional integrations; defaults are deterministic and side-effect-free."""
 
     executor: NodeCallable | None = None
+    validator: NodeCallable | None = None
     reviewer: NodeCallable | None = None
     merger: NodeCallable | None = None
     challenger: NodeCallable | None = None
@@ -34,6 +35,7 @@ class PipelineDependencies:
 
 def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     context = runtime.context
+    trusted_run_dir = getattr(context, "run_dir", None)
     requested = state.get("requested_seats")
     requested = requested if isinstance(requested, Mapping) else {}
     batch_source = state.get("batch")
@@ -53,8 +55,27 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
     repo = Path(str(state.get("repo") or Path.cwd()))
     try:
         git_status = SubprocessExecutor(
-            command=("git", "-C", str(repo), "status", "--porcelain=v1"),
+            command=(
+                "git",
+                "-c",
+                "core.fsmonitor=false",
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "diff.external=",
+                "-c",
+                "core.pager=cat",
+                "-C",
+                str(repo),
+                "status",
+                "--porcelain=v1",
+            ),
             timeout=5.0,
+            extra_env={
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_TERMINAL_PROMPT": "0",
+            },
         )({"worktree": repo})
         status_lines = [line for line in str(git_status["executor_stdout"]).splitlines() if line]
         git_report = {
@@ -84,6 +105,7 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
         "goal_id": getattr(context, "goal_id", None) or state.get("goal_id"),
         "preflight_ok": bool(
             git_report["available"]
+            and trusted_run_dir is not None
             and seat_report
             and all(value in {"resolved", "not_requested"} for value in seat_report.values())
         ),
@@ -92,6 +114,9 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
         "executor_model": batch["executor_model"],
         "watcher_model": batch["watcher_model"],
         "concurrency": batch["concurrency"],
+        "run_dir": str(Path(trusted_run_dir).resolve())
+        if trusted_run_dir is not None
+        else "",
         "batch": batch,
         "preflight_report": {"git": git_report, "seats": seat_report},
     }
@@ -167,8 +192,12 @@ def dispatch(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> di
     child_ids = [str(task["id"]) for task in tasks]
     if len(child_ids) != len(set(child_ids)):
         raise ValueError("ACN task ids must be unique")
+    trusted_run_dir = getattr(context, "run_dir", None)
+    if trusted_run_dir is None:
+        raise ValueError("pipeline dispatch requires a trusted runtime run_dir")
     return {
         "phase": "dispatch",
+        "run_dir": str(Path(trusted_run_dir).resolve()),
         "batch": batch,
         "expected_child_ids": child_ids,
         "lane_batches": group_tasks_by_lane(tasks),
@@ -212,7 +241,11 @@ def execute(
     }
 
 
-def validate_mechanical(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
+def validate_mechanical(
+    state: Mapping[str, Any],
+    runtime: Runtime[BeastmodeContext],
+    dependencies: PipelineDependencies | None = None,
+) -> dict[str, Any]:
     expected = [str(task["id"]) for task in validate_tasks(state.get("tasks", ()))]
     results = list(state.get("task_results") or ())
     by_id: dict[str, Mapping[str, Any]] = {}
@@ -239,6 +272,22 @@ def validate_mechanical(state: Mapping[str, Any], runtime: Runtime[BeastmodeCont
     unexpected = sorted(set(by_id).difference(expected))
     if unexpected:
         failures.append("unexpected task results: " + ", ".join(redact_text(item) for item in unexpected))
+    trusted_report: dict[str, Any]
+    if dependencies is None or dependencies.validator is None:
+        trusted_report = {
+            "passed": False,
+            "failures": ["trusted mechanical validator is not configured"],
+        }
+    else:
+        update = redact_value(validate_executor_result(dependencies.validator(dict(state))))
+        supplied = update.get("validation_report")
+        if not isinstance(supplied, Mapping):
+            raise ValueError("trusted mechanical validator must return validation_report")
+        trusted_report = dict(supplied)
+        if trusted_report.get("passed") is not True:
+            failures.append("trusted mechanical validation did not pass")
+    if trusted_report.get("passed") is not True and not failures:
+        failures.append("trusted mechanical validation did not pass")
     return {
         "phase": "validate_mechanical",
         "validation_report": {
@@ -247,6 +296,7 @@ def validate_mechanical(state: Mapping[str, Any], runtime: Runtime[BeastmodeCont
             "observed": len(results),
             "retried": sorted(redact_text(task_id) for task_id in retried),
             "failures": failures,
+            "trusted": trusted_report,
         },
     }
 
@@ -257,16 +307,31 @@ def review(
     dependencies: PipelineDependencies,
 ) -> dict[str, Any]:
     if dependencies.reviewer is None:
-        return {"phase": "review", "review_report": {"approved": True}}
+        return {
+            "phase": "review",
+            "review_report": {
+                "approved": False,
+                "reason": "explicit trusted reviewer is not configured",
+            },
+        }
     update = redact_value(validate_executor_result(dependencies.reviewer(dict(state))))
+    report = update.get("review_report")
+    if not isinstance(report, Mapping) or report.get("approved") is not True:
+        return {
+            "phase": "review",
+            "review_report": dict(report) if isinstance(report, Mapping) else {
+                "approved": False,
+                "reason": "trusted reviewer returned no review_report",
+            },
+        }
     return {"phase": "review", **update}
 
 
 def merge(
     state: Mapping[str, Any],
     runtime: Runtime[BeastmodeContext],
-    dependencies: PipelineDependencies,
 ) -> dict[str, Any]:
+    """Mark a graph run ready; only the trusted runtime wrapper may merge."""
     validation = state.get("validation_report")
     review_report = state.get("review_report")
     merge_decision = state.get("merge_decision")
@@ -280,10 +345,7 @@ def merge(
         or not _is_approved(merge_decision)
     ):
         raise PermissionError("merge requires successful preflight, validation, provenance, review, and gate approval")
-    if dependencies.merger is None:
-        return {"phase": "merge", "status": "merged"}
-    update = redact_value(validate_executor_result(dependencies.merger(dict(state))))
-    return {"phase": "merge", **update}
+    return {"phase": "merge", "status": "ready_to_merge"}
 
 
 def self_improve(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:

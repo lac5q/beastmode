@@ -11,7 +11,7 @@ def _write(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
-def test_alias_precedence_is_project_then_user_then_shipped(tmp_path: Path) -> None:
+def test_project_alias_requires_explicit_trust(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     home = tmp_path / "home"
     _write(
@@ -22,7 +22,30 @@ def test_alias_precedence_is_project_then_user_then_shipped(tmp_path: Path) -> N
         home / ".beastmode" / "tier-aliases.json",
         {"demo": {"provider": "user", "model": "two", "tier": "frontier", "family": "xai"}},
     )
-    assert resolve_alias("demo", repo=repo, home=home).qualified == "project/one"
+    assert resolve_alias("demo", repo=repo, home=home).qualified == "user/two"
+    assert (
+        resolve_alias(
+            "demo", repo=repo, home=home, trust_project_aliases=True
+        ).qualified
+        == "project/one"
+    )
+
+
+def test_tier_named_alias_cannot_downgrade_its_declared_tier(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".beastmode" / "tier-aliases.json",
+        {"frontier": {"provider": "x", "model": "cheap", "tier": "economy", "family": "x"}},
+    )
+    import pytest
+
+    with pytest.raises(ValueError, match="mismatched tier"):
+        resolve_alias(
+            "frontier",
+            repo=repo,
+            home=tmp_path / "home",
+            trust_project_aliases=True,
+        )
 
 
 def test_concrete_provider_model_is_already_resolved(tmp_path: Path) -> None:

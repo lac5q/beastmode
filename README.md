@@ -68,9 +68,9 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
-   scripts/enforce-models --check-meta <run-dir>        # postflight gate: drift + unprovable provenance
-   scripts/enforce-models --check-meta <run-dir> --expect <batch.json>  # also catch a child that wrote nothing
-   scripts/acn-report <dir-of-meta.json>                # phase usage report + MODEL DRIFT check
+   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json>  # postflight gate
+   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect <batch.json>
+   scripts/acn-report <dir-of-meta.json> --attestations <trusted.json>  # usage + MODEL DRIFT
    ```
 
    See `scripts/bm` and `references/autonomy-levels.md`.
@@ -91,16 +91,23 @@ custom phase/executor streaming, and fail-closed model provenance. SQLite is
 the local persistence default; PostgreSQL is opt-in with
 `python -m pip install -e 'python[postgres]'`.
 
-For a real CLI goal, provide the child driver explicitly:
+For a real CLI goal, provide the child driver and trusted parent-side evidence,
+validation, and review helpers explicitly:
 
 ```bash
 bm "add a health check" --harness langgraph \
-  --executor-command 'your-child-driver'
+  --executor-command 'your-child-driver' \
+  --attestor-command /trusted/bin/read-harness-journal \
+  --validator-command /trusted/bin/validate-result \
+  --reviewer-command /trusted/bin/review-result
 ```
 
 The driver receives `BEASTMODE_META_DIR`, `BEASTMODE_TASK_ID`, and
 `BEASTMODE_REQUESTED_MODEL` (and the goal in `BEASTMODE_TASK_GOAL`), and must
-write the canonical `meta.json` there.
+write the canonical `meta.json` there. The worker record is not trusted as its
+own model proof; the attestor produces parent-owned evidence outside the
+worker-writable run tree. The validator and reviewer must explicitly pass
+before the trusted runtime wrapper can invoke a merger.
 Child processes run with a reduced environment, each child uses a disposable
 git worktree, and the optional runtime requires a Linux `bubblewrap` filesystem
 sandbox so the shared checkout and Git metadata are read-only to workers.
@@ -115,7 +122,7 @@ and never changes that verdict. See
 
 Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`, `adapters/langgraph`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
 
-The provenance gate is fail-closed in both directions: a child whose model **differs** from the pinned one is `drift`, and a child whose model **cannot be established** — missing meta, unreadable meta, or a single merged `model` field instead of `requested_model` + `actual_model` — is `unverifiable`. Both block `validated`. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`, and it reads the required field list out of `schema/acn-contract.json` rather than hard-coding it.
+The provenance gate is fail-closed in both directions: a child whose independently attested serving model **differs** from the pin is `drift`, while missing/unreadable metadata, a legacy merged `model` field, or a worker-authored `actual_model` without parent/provider evidence is `unverifiable`. Both block `validated`. Pass a parent-owned harness journal or provider-response export through `--attestations`; it must live outside the worker-writable run directory. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`.
 
 ## Files
 

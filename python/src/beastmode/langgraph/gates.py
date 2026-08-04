@@ -83,7 +83,33 @@ def _run_provenance_gate(
             "gate_decision": decision,
             "provenance_retry_count": int(state.get("provenance_retry_count", 0)) + 1,
         }
-    result = check_provenance(Path(target).resolve(), expect=expected)
+    target_path = Path(target).resolve()
+    attestations = getattr(runtime.context, "attestations", None)
+    attestation_path = (
+        Path(attestations).expanduser().absolute()
+        if attestations is not None
+        else None
+    )
+    if attestation_path is not None and (
+        attestation_path == target_path or target_path in attestation_path.parents
+    ):
+        return {
+            "provenance_verdict": "unverifiable",
+            "provenance_messages": [
+                "attestations must be outside the worker-writable run_dir"
+            ],
+            "provenance_exit_code": 1,
+            "gate_decision": decision,
+            "provenance_retry_count": int(
+                state.get("provenance_retry_count", 0)
+            )
+            + 1,
+        }
+    result = check_provenance(
+        target_path,
+        expect=expected,
+        attestations=attestation_path,
+    )
     _stream(runtime, {"event": "provenance_gate", "verdict": result.verdict})
     trace = trace_metadata(
         {

@@ -69,7 +69,7 @@ commands_run [bash, ...]
 verify { commands: [...], passed: bool, notes: string }
 ```
 
-The director compares `actual_model` against `requested_model` before
+The director compares independently attested `actual_model` against `requested_model` before
 reading the body. Any mismatch is **MODEL DRIFT** - surfaces at every
 autonomy level, blocks `validated` until the same task is re-run under the
 pinned model. Drift is fail-closed: a drifted child is treated as
@@ -85,7 +85,20 @@ nothing to compare, and a comparison that cannot be made is not a pass.
 |---|---|---|
 | `ok` | `requested_model == actual_model` | pass |
 | `drift` | `requested_model != actual_model` | **fail** - re-run under the pinned model |
-| `unverifiable` | meta missing, unreadable, missing either model field, or an expected child that wrote no meta at all | **fail** - provenance cannot be established |
+| `unverifiable` | meta missing/unreadable, independent attestation missing or inconsistent, either model field missing, duplicate IDs, or an expected child wrote no meta | **fail** - provenance cannot be established |
+
+`meta.json` is worker output, not independent evidence. The parent harness or
+provider adapter must also write an attestation outside the worker-writable run
+tree. Each attestation binds `id`, `requested_model`, and `actual_model`, and
+names a nonempty `source` such as `harness-journal` or `provider-response`:
+
+```json
+{"id":"child-1","requested_model":"minimax/MiniMax-M3","actual_model":"minimax/MiniMax-M3","source":"harness-journal"}
+```
+
+The gate rejects absent attestations, disagreement between worker metadata and
+trusted evidence, duplicate expected/observed IDs, and attestations stored
+inside the run directory.
 
 One valid sibling does not carry a batch. Each child is judged on its own
 record, so a run where nine children proved their model and one did not is a
@@ -107,8 +120,8 @@ before it wrote any meta leaves no file, so a surviving sibling would carry
 the batch to a clean exit. Pass the batch's expected child ids to close that:
 
 ```bash
-enforce-models --check-meta <run-dir> --expect <batch.json>   # reads tasks[].id
-enforce-models --check-meta <run-dir> --expect child-1,child-2
+enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect <batch.json>
+enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect child-1,child-2
 ```
 
 The manifest is not a new artifact - `tasks[].id` is already required by
@@ -125,7 +138,7 @@ load-bearing: change the field list there and the gate follows.
  models resolve against the harness's known-model list. Missing model
  = exit 2 with the available alternatives, not a mid-run crash.
 2. **Pin the executor model** for the run. The runtime must be able to
- prove the child model (config pin, harness journal, or response meta).
+ prove the child model through parent-owned harness journal or provider-response evidence.
  If it cannot prove it, the child is an unverified draft lane.
 3. **Parallel by default, lane-grouped.** Group same-model tasks so the
  prompt cache stays hot; alternating lanes force a fresh 1.25x write on

@@ -64,8 +64,6 @@ if [[ -z "$PROMPT" ]]; then
   exit 2
 fi
 
-# --dangerously-skip-permissions keeps non-interactive runs from hanging on
-# tool-permission prompts. Remove it if you want the lane to require explicit
-# approval for tool calls (it will block indefinitely in -p mode without a
-# human at the terminal).
-exec claude --dangerously-skip-permissions -p --model "$MODEL" "$PROMPT"
+# This wrapper is a watcher/verifier lane. Plan mode keeps it useful for
+# read-only judgment while failing closed instead of granting unattended tools.
+exec claude -p --permission-mode plan --model "$MODEL" "$PROMPT"

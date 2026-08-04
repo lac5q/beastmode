@@ -109,10 +109,10 @@ for f in bm tier-aliases.json phase-estimate claude-pro; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   case "$f" in
-    bm) HASH="51b2b071c6c20f46626bd67123f39ca8a2c98bdb0ce36dd654c2c7f02139262e" ;;
+    bm) HASH="86f0bbc3ac7e7274cbf00358db1bea4ce409861f566bad7ff9a95548e68753b8" ;;
     tier-aliases.json) HASH="f731437e1a6917ae8f21302c3e8d54cb2c82a9e937623993b031e935e12356b4" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
-    claude-pro) HASH="49f00e49bed0568fc6c9c8363c0cfdbf8f7ca96ce6585c1e56ba0e2fef423954" ;;
+    claude-pro) HASH="de550548e30f0634c275a4d6f78acebddceb838a80b33cf5c369e0323c85bbda" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
     chmod +x "$DEST" 2>/dev/null || true

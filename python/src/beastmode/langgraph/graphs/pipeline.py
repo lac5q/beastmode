@@ -57,7 +57,9 @@ def build_pipeline(
         "dispatch",
         "validate_mechanical",
         "gate_provenance",
+        "review",
         "gate_merge",
+        "merge",
         "blocked",
     }
     illegal = protected.intersection(overrides)
@@ -73,11 +75,11 @@ def build_pipeline(
         "dispatch": lambda state, runtime: dispatch(state, runtime),
         "dispatch_next": lambda state, runtime: dispatch_next(state, runtime),
         "execute": lambda state, runtime: execute(state, runtime, dependencies),
-        "validate_mechanical": lambda state, runtime: validate_mechanical(state, runtime),
+        "validate_mechanical": lambda state, runtime: validate_mechanical(state, runtime, dependencies),
         "gate_provenance": gate_provenance,
         "review": lambda state, runtime: review(state, runtime, dependencies),
         "gate_merge": gate_merge,
-        "merge": lambda state, runtime: merge(state, runtime, dependencies),
+        "merge": lambda state, runtime: merge(state, runtime),
         "self_improve": self_improve,
         "blocked": blocked,
     }

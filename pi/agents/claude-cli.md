@@ -1,8 +1,11 @@
 ---
 name: claude-cli
 description: |
-  MARKER — Claude Pro lane. The director (pi session) must invoke `claude -p --model opus "<prompt>"` directly via bash as an external lane, NOT call workflow `agent()` with this agentType. The Claude Pro lane draws from the claude.ai Pro/Max subscription quota, separate from the API OAuth credential in `~/.pi/agent/auth.json` (which shares a single rate-limited "extra usage" pool across every Claude model). See pi/SKILL.md "Claude routing rule (hard rule)".
+  MARKER — read-only Claude Pro lane. The director must supply prompt bytes on stdin to `claude -p --model opus --permission-mode plan`, NOT call workflow `agent()` with this agentType. See pi/SKILL.md "Claude routing rule (hard rule)".
 model: claude-cli-do-not-call-via-agent
+yoloMode: false
+permission:
+  "*": deny
 ---
 
 # Claude Pro lane marker
@@ -17,12 +20,10 @@ If you reached this file because a workflow script wrote
 direct invocation from the director (the pi session itself):
 
 ```bash
-claude -p --model opus --dangerously-skip-permissions "<prompt>"
-# or equivalently:
-~/.local/bin/claude-pro "<prompt>"
+printf '%s' "$prompt" | claude -p --model opus --permission-mode plan
 ```
 
-Both forms draw from the claude.ai Pro/Max subscription quota. The
+This form draws from the claude.ai Pro/Max subscription quota. The
 `workflow agent()` path with `model: "anthropic/claude-opus-4-8"` (or
 any other `anthropic/*` spec) draws from the `anthropic` OAuth API
 credential in `~/.pi/agent/auth.json`, which shares a single "extra
@@ -40,18 +41,25 @@ rule is repeated here.
 ## When to use this marker
 
 Write `agentType: "claude-cli"` in a workflow script whenever a slot is
-"reserved for Claude Pro work." The director reading the script sees
-the marker and knows to invoke the lane directly rather than fanning
-out via `agent()`. Common pattern:
+"reserved for Claude Pro work." The marker itself denies every tool and
+cannot be used as a working agent. The director invokes the external,
+read-only lane with an argv array and prompt bytes on stdin. Common pattern:
 
 ```js
 // Instead of:
 //   await agent("audit this", { agentType: "claude-cli" })
 //
 // Do this from the director (this pi session):
-//   const out = await exec(`~/.local/bin/claude-pro "audit this"`)
+//   const out = spawnSync(
+//     "claude",
+//     ["-p", "--model", "opus", "--permission-mode", "plan"],
+//     { input: prompt, encoding: "utf8" },
+//   )
 //   return out.stdout
 ```
+
+Never build a shell command by interpolating `prompt`. Never add a permission
+bypass flag or route this marker through a wrapper that adds one.
 
 The marker is documentation that survives into committed scripts, which
 is the point — anyone editing the workflow later sees the rule without
@@ -61,5 +69,3 @@ having to read this file.
 
 - `pi/SKILL.md` — "Claude routing rule (hard rule)"
 - `~/.pi/workflows/model-tiers.json` — tier map (no `anthropic/*` in any tier)
-- `~/.local/bin/claude-pro` — wrapper for the Claude Pro lane
-- `scripts/claude-pro` — same wrapper in the source repo

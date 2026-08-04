@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from .schema import schema_root
+from .schema import source_repository_root
 
 
 _ALLOWED_PROMPTS = frozenset(
@@ -14,10 +14,19 @@ _ALLOWED_PROMPTS = frozenset(
 
 
 def prompt_library_path(path: Path | None = None) -> Path:
-    """Locate scripts/lib/prompts.sh without copying its prompt strings."""
-    if path is not None:
-        return path.resolve()
-    return schema_root().parent / "scripts" / "lib" / "prompts.sh"
+    """Locate the immutable bundled or source-checkout prompt library."""
+    bundled = Path(__file__).resolve().parents[1] / "_vendor" / "prompts.sh"
+    source_root = source_repository_root()
+    canonical = bundled if bundled.is_file() else (
+        source_root / "scripts" / "lib" / "prompts.sh"
+        if source_root is not None
+        else bundled
+    )
+    if path is not None and path.resolve() != canonical.resolve():
+        raise ValueError("prompt script must be the package's trusted canonical library")
+    if not canonical.is_file():
+        raise FileNotFoundError(f"could not locate bundled prompt library: {canonical}")
+    return canonical.resolve()
 
 
 def render_prompt(name: str, *args: str, script: Path | None = None) -> str:
@@ -25,9 +34,6 @@ def render_prompt(name: str, *args: str, script: Path | None = None) -> str:
     if name not in _ALLOWED_PROMPTS:
         raise ValueError(f"unknown prompt name: {name}")
     script_path = prompt_library_path(script)
-    canonical = (schema_root().parent / "scripts" / "lib" / "prompts.sh").resolve()
-    if script_path != canonical:
-        raise ValueError("prompt script must be the repository canonical library")
     command = 'set -e; source "$1"; shift; "$@"'
     completed = subprocess.run(
         ["bash", "-c", command, "beastmode-prompts", str(script_path), name, *args],

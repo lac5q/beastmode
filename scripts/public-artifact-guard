@@ -6,6 +6,34 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+TREEISH="HEAD"
+HISTORY=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --history) HISTORY=1; shift ;;
+    --treeish)
+      [ $# -ge 2 ] || { printf '%s\n' "public-artifact-guard: --treeish requires a revision" >&2; exit 2; }
+      TREEISH="$2"
+      shift 2
+      ;;
+    --treeish=*) TREEISH="${1#*=}"; shift ;;
+    -h|--help)
+      printf '%s\n' "usage: public-artifact-guard [--treeish REV] [--history]"
+      exit 0
+      ;;
+    *) printf 'public-artifact-guard: unknown argument: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
+
+if [[ -z "$TREEISH" || "$TREEISH" == -* ]]; then
+  printf '%s\n' "public-artifact-guard: invalid treeish" >&2
+  exit 2
+fi
+TARGET="$(git rev-parse --verify "${TREEISH}^{commit}" 2>/dev/null)" || {
+  printf 'public-artifact-guard: could not resolve treeish: %s\n' "$TREEISH" >&2
+  exit 2
+}
+
 scan_for_matches() {
   local label="$1"
   shift
@@ -31,11 +59,11 @@ scan_for_matches() {
 }
 
 scan_for_matches "Potential credential material" git grep -l -E \
-  'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' -- .
+  'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' "$TARGET" -- .
 scan_for_matches "Machine-specific absolute paths" git grep -l -E \
-  '/(home|Users)/[[:alnum:]_.-]+|C:[\\/]+Users[\\/]+[[:alnum:]_.-]+' -- .
+  '/(home|Users)/[[:alnum:]_.-]+|C:[\\/]+Users[\\/]+[[:alnum:]_.-]+' "$TARGET" -- .
 
-tracked_files="$(git ls-files)" || {
+tracked_files="$(git ls-tree -r --name-only "$TARGET")" || {
   printf '%s\n' "tracked-file scanner failed" >&2
   exit 2
 }
@@ -51,8 +79,8 @@ if ((${#blocked_files[@]})); then
   exit 1
 fi
 
-if [[ "${1:-}" == "--history" ]]; then
-  history_matches="$(git log --all -E -G 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|/(home|Users)/[[:alnum:]_.-]+' --format='%H %s' -- .)" || {
+if [ "$HISTORY" = "1" ]; then
+  history_matches="$(git log "$TARGET" -E -G 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|/(home|Users)/[[:alnum:]_.-]+' --format='%H %s' -- .)" || {
     printf '%s\n' "history scanner failed" >&2
     exit 2
   }
@@ -62,4 +90,4 @@ if [[ "${1:-}" == "--history" ]]; then
   fi
 fi
 
-printf '%s\n' "public artifact guard: clean"
+printf 'public artifact guard: clean (%s)\n' "$TARGET"

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -12,30 +11,47 @@ class SchemaNotFoundError(FileNotFoundError):
     """Raised when the repository schema cannot be found."""
 
 
-def _schema_candidates(start: Path | None) -> list[Path]:
-    anchor = (start or Path(__file__)).resolve()
-    if anchor.is_file():
-        anchor = anchor.parent
-    candidates: list[Path] = []
-    configured = os.environ.get("BEASTMODE_SCHEMA_ROOT")
-    if configured:
-        configured_path = Path(configured).expanduser().resolve()
-        candidates.append(
-            configured_path
-            if configured_path.name == "schema"
-            else configured_path / "schema"
-        )
-    for parent in (anchor, *anchor.parents):
-        candidates.append(parent if parent.name == "schema" else parent / "schema")
-    return candidates
+def source_repository_root() -> Path | None:
+    """Return the trusted source checkout containing this installed module."""
+    path = Path(__file__).resolve()
+    if len(path.parents) < 5:
+        return None
+    candidate = path.parents[4]
+    if (
+        (candidate / "python" / "pyproject.toml").is_file()
+        and (candidate / "schema" / "acn-contract.json").is_file()
+    ):
+        return candidate
+    return None
+
+
+def _schema_candidates() -> tuple[Path, ...]:
+    package_schema = Path(__file__).resolve().parents[1] / "schema"
+    source_root = source_repository_root()
+    if source_root is None:
+        return (package_schema,)
+    return (package_schema, source_root / "schema")
 
 
 def schema_root(start: Path | None = None) -> Path:
-    """Return the nearest directory containing the repository JSON schemas."""
-    for candidate in _schema_candidates(start):
+    """Return the immutable package or source-checkout schema directory.
+
+    ``start`` remains accepted for API compatibility, but may only identify
+    one of those trusted locations. It can no longer redirect security policy
+    through an arbitrary checkout or environment variable.
+    """
+    candidates = _schema_candidates()
+    if start is not None:
+        requested = Path(start).expanduser().resolve()
+        if requested.name != "schema":
+            requested = requested / "schema"
+        if requested not in candidates:
+            raise ValueError("schema root must be the installed package or its source checkout")
+        candidates = (requested,)
+    for candidate in candidates:
         if (candidate / "acn-contract.json").is_file():
             return candidate
-    searched = ", ".join(str(path) for path in _schema_candidates(start))
+    searched = ", ".join(str(path) for path in candidates)
     raise SchemaNotFoundError(
         "could not locate schema/acn-contract.json; searched: " + searched
     )

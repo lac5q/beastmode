@@ -30,7 +30,7 @@ gates apply.
 | Executor (economy) | External cheap lanes (Qwen, MiniMax API, Droid MiniMax, GLM, custom Droid models) |
 | Loop engine | Director self-prompts between worker results |
 | Anti-spin | Director judgment + usage budget; abort on 3 identical blockers |
-| Worker-contract enforcer | Codex sandbox defaults + starter worker contract; `--yolo` is high-only |
+| Worker-contract enforcer | Codex sandbox defaults + starter worker contract; autonomy never weakens the sandbox |
 | Live progress | `.codex/beastmode-runs/<ts>-<lane>/output.md` plus any task transcript |
 | Goal record | `<repo>/GOAL.md` (universal fallback) |
 | Self-improvement log | `<repo>/.learnings/BEASTMODE.md` (universal) |
@@ -58,7 +58,7 @@ GLM when an independent cross-family validator is wanted.
 
 ```bash
 # Qwen
-~/.local/bin/qwen-agent --dangerously-skip-permissions -p "Reply with exactly: QWEN OK"
+~/.local/bin/qwen-agent -p "Reply with exactly: QWEN OK"
 
 # Direct MiniMax API (MINIMAX_API_KEY in env; never print the key)
 curl -sS https://api.minimax.io/v1/chat/completions \
@@ -118,7 +118,7 @@ Unverifiable child model = **UNVERIFIED DRAFT** lane. Output may be used
 as input but is never `validated` until re-checked under a pinned model.
 A meta carrying a single merged `model` instead of both `requested_model`
 and `actual_model` is unverifiable — there is nothing to compare.
-`scripts/enforce-models --check-meta <run-dir>` is the gate; exit 1 means
+`scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json>` is the gate; exit 1 means
 drift or unverifiable.
 
 ## Autonomy mapping
@@ -129,10 +129,10 @@ drift or unverifiable.
 | **medium** (default) | Whole phase: acceptance → design → delegate → validate → review | Security/auth/payments/data-loss events, model failure, **MODEL DRIFT**, `goal_blocked`, the merge gate |
 | **high** | Multi-batch until `goal_complete` or repeated `goal_blocked` (≤ 3) | Budget exhaustion, no-watcher / no-validated, secrets in prompt, unrevalidated drift |
 
-Gates are blocking below high. At low, Codex sandbox approval prompts
-stay on; no `--yolo`; every merge waits for approval. To enter high
-inside the worker contract, pass
-`--yolo` or `--full-auto` to `codex exec`. Even at high, the run still
+Gates are blocking below high. Codex sandbox and approval controls stay
+on at every level; every merge waits for approval. High autonomy changes
+phase progression only and never enables `--yolo` or `--full-auto`.
+Even at high, the run still
 halts on budget exhaustion, no watcher, no validated, secrets-in-prompt,
 and unrevalidated MODEL DRIFT — those are universal. **gates are blocking
 below high.**

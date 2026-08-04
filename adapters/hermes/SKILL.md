@@ -132,7 +132,7 @@ under a pinned model. Run the gate over the batch directory before you
 report `validated`:
 
 ```bash
-scripts/enforce-models --check-meta ~/.hermes/cache/delegation/live/<batch-id>
+scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-harness-journal.json>
 ```
 
 Exit 1 means drift or unverifiable; either way the batch is not validated.

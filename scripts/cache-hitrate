@@ -6,17 +6,35 @@ This probe verifies the cache fields survive your proxy chain and reports the hi
 rate on a repeated stable prefix.
 
 Usage:
-  scripts/cache-hitrate                      # uses $ANTHROPIC_BASE_URL
-  scripts/cache-hitrate --base-url URL --model claude-sonnet-4-6
+  scripts/cache-hitrate                      # official Anthropic endpoint
+  scripts/cache-hitrate --base-url URL --allow-custom-base-url
 """
 import argparse
+import ipaddress
 import json
+import os
+import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
+DEFAULT_BASE_URL = "https://api.anthropic.com"
+MAX_RESPONSE_BYTES = 1024 * 1024
+
 p = argparse.ArgumentParser()
-p.add_argument("--base-url", default=None, help="default: $ANTHROPIC_BASE_URL")
+p.add_argument("--base-url", default=DEFAULT_BASE_URL, help=f"default: {DEFAULT_BASE_URL}")
+p.add_argument(
+    "--allow-custom-base-url",
+    action="store_true",
+    help="explicitly trust a non-Anthropic endpoint; ambient Anthropic tokens are not forwarded",
+)
+p.add_argument(
+    "--auth-token-env",
+    default=None,
+    metavar="NAME",
+    help="explicit environment variable containing the token for a custom endpoint",
+)
 p.add_argument("--model", default="claude-sonnet-4-6")
 p.add_argument("--calls", type=int, default=3)
 args = p.parse_args()
@@ -24,11 +42,47 @@ args = p.parse_args()
 if not 1 <= args.calls <= 10:
     p.error("--calls must be between 1 and 10")
 
-import os
+base = args.base_url.rstrip("/")
+try:
+    parsed = urllib.parse.urlsplit(base)
+    port = parsed.port
+except ValueError as exc:
+    p.error(f"invalid --base-url: {exc}")
+if not parsed.scheme or not parsed.hostname or parsed.username or parsed.password:
+    p.error("--base-url must be an absolute URL without embedded credentials")
+if parsed.query or parsed.fragment:
+    p.error("--base-url must not contain a query string or fragment")
 
-base = (args.base_url or os.environ.get("ANTHROPIC_BASE_URL", "")).rstrip("/")
-if not base:
-    sys.exit("no --base-url and $ANTHROPIC_BASE_URL is unset")
+official = (
+    parsed.scheme == "https"
+    and parsed.hostname.lower() == "api.anthropic.com"
+    and port in (None, 443)
+    and parsed.path in ("", "/")
+)
+if not official and not args.allow_custom_base_url:
+    p.error("custom endpoints require --allow-custom-base-url")
+
+if parsed.scheme != "https":
+    try:
+        loopback = ipaddress.ip_address(parsed.hostname).is_loopback
+    except ValueError:
+        loopback = parsed.hostname.lower() == "localhost"
+    if not (args.allow_custom_base_url and parsed.scheme == "http" and loopback):
+        p.error("custom endpoints require HTTPS (HTTP is allowed only for loopback testing)")
+
+if args.auth_token_env and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.auth_token_env):
+    p.error("--auth-token-env must be a valid environment variable name")
+
+if args.auth_token_env:
+    token = os.environ.get(args.auth_token_env, "")
+    if not token:
+        p.error(f"${args.auth_token_env} is unset or empty")
+elif official:
+    token = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
+    if not token:
+        p.error("official endpoint requires $ANTHROPIC_API_KEY or $ANTHROPIC_AUTH_TOKEN")
+else:
+    token = ""
 
 # Large enough to exceed the ~1024-token minimum cacheable prefix.
 system = "You are a cache probe. " + ("filler context. " * 400)
@@ -45,19 +99,36 @@ print(f"endpoint: {base}\nmodel:    {args.model}\n")
 
 saw_fields = False
 for i in range(1, args.calls + 1):
+    headers = {
+        "content-type": "application/json",
+        "anthropic-version": "2023-06-01",
+    }
+    if token:
+        headers["x-api-key"] = token
     req = urllib.request.Request(
         base + "/v1/messages",
         data=json.dumps(body).encode(),
-        headers={
-            "content-type": "application/json",
-            "anthropic-version": "2023-06-01",
-            "x-api-key": os.environ.get("ANTHROPIC_AUTH_TOKEN", "placeholder"),
-        },
+        headers=headers,
     )
     try:
-        r = json.load(urllib.request.urlopen(req, timeout=120))
+        with urllib.request.urlopen(req, timeout=120) as response:
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None:
+                try:
+                    if int(content_length) > MAX_RESPONSE_BYTES:
+                        raise ValueError("response too large")
+                except ValueError as exc:
+                    if str(exc) == "response too large":
+                        raise
+                    raise ValueError("invalid Content-Length") from exc
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError("response too large")
+        r = json.loads(raw.decode("utf-8"))
+        if not isinstance(r, dict):
+            raise ValueError("response JSON must be an object")
     except urllib.error.HTTPError as e:
-        sys.exit(f"call {i}: HTTP {e.code} {e.read()[:200]!r}")
+        sys.exit(f"call {i}: HTTP {e.code} {e.read(200)!r}")
     except Exception as e:
         sys.exit(f"call {i}: {type(e).__name__}: {e}")
 

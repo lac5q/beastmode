@@ -10,6 +10,48 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts" / "langgraph-runner"
 
 
+def _trusted_helpers(tmp_path: Path) -> tuple[Path, Path, Path]:
+    trusted = tmp_path / "trusted"
+    trusted.mkdir()
+    attestor = trusted / "attest"
+    attestor.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json,sys\n"
+        "p=json.load(sys.stdin)\n"
+        "print(json.dumps({'id':p['id'],'requested_model':p['requested_model'],"
+        "'actual_model':p['requested_model'],'source':'test-parent-journal'}))\n",
+        encoding="utf-8",
+    )
+    validator = trusted / "validate"
+    validator.write_text(
+        "#!/usr/bin/env python3\nimport json,sys\njson.load(sys.stdin)\n"
+        "print(json.dumps({'validation_report':{'passed':True,'source':'test-validator'}}))\n",
+        encoding="utf-8",
+    )
+    reviewer = trusted / "review"
+    reviewer.write_text(
+        "#!/usr/bin/env python3\nimport json,sys\njson.load(sys.stdin)\n"
+        "print(json.dumps({'review_report':{'approved':True,'source':'test-reviewer'}}))\n",
+        encoding="utf-8",
+    )
+    for path in (attestor, validator, reviewer):
+        path.chmod(0o700)
+    return attestor, validator, reviewer
+
+
+def _helper_args(tmp_path: Path) -> list[str]:
+    attestor, validator, reviewer = _trusted_helpers(tmp_path)
+    return [
+        "--allow-worker-network",
+        "--attestor-command",
+        str(attestor),
+        "--validator-command",
+        str(validator),
+        "--reviewer-command",
+        str(reviewer),
+    ]
+
+
 def test_runner_requires_an_explicit_child_driver(tmp_path: Path) -> None:
     result = subprocess.run(
         [sys.executable, str(RUNNER), "missing-driver", "--database", str(tmp_path / "db.sqlite")],
@@ -40,8 +82,7 @@ def test_runner_executes_a_real_goal_in_a_worktree(tmp_path: Path) -> None:
         "'files_changed':[],'commands_run':[],'verify':{'passed':True}}))"
     )
     command = f"{sys.executable} -c {json.dumps(child_code)}"
-    result = subprocess.run(
-        [
+    argv = [
             sys.executable,
             str(RUNNER),
             "real-goal",
@@ -57,13 +98,16 @@ def test_runner_executes_a_real_goal_in_a_worktree(tmp_path: Path) -> None:
             str(repo),
             "--executor-command",
             command,
-        ],
+        ]
+    argv.extend(_helper_args(tmp_path))
+    result = subprocess.run(
+        argv,
         cwd=repo,
         check=False,
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stderr + result.stdout
     payload = json.loads(result.stdout)
     assert payload["status"] == "merged"
     traces = payload["trace_records"]
@@ -90,8 +134,7 @@ def test_runner_default_run_dir_does_not_use_goal_as_a_path(tmp_path: Path) -> N
         "'requested_model':model,'actual_model':model,'stop_reason':'end_turn','usage':{},"
         "'files_changed':[],'commands_run':[],'verify':{'passed':True}}))"
     )
-    result = subprocess.run(
-        [
+    argv = [
             sys.executable,
             str(RUNNER),
             "../private goal",
@@ -105,12 +148,46 @@ def test_runner_default_run_dir_does_not_use_goal_as_a_path(tmp_path: Path) -> N
             str(tmp_path / "worktrees"),
             "--executor-command",
             f"{sys.executable} -c {json.dumps(child_code)}",
+        ]
+    argv.extend(_helper_args(tmp_path))
+    result = subprocess.run(
+        argv,
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert not (tmp_path / "private goal").exists()
+    assert not (repo.parent / "private goal").exists()
+
+
+def test_runner_rejects_parent_helper_from_target_repository(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    helper = repo / "attest"
+    helper.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    helper.chmod(0o700)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER),
+            "unsafe-helper",
+            "--repo",
+            str(repo),
+            "--executor-command",
+            "/bin/true",
+            "--attestor-command",
+            str(helper),
+            "--validator-command",
+            str(helper),
+            "--reviewer-command",
+            str(helper),
         ],
         cwd=repo,
         check=False,
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, result.stderr
-    assert not (tmp_path / "private goal").exists()
-    assert not (repo.parent / "private goal").exists()
+    assert result.returncode == 2
+    assert "outside the target repository" in result.stderr

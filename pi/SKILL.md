@@ -34,11 +34,25 @@ them together.
 ```bash
 pi --version                    # must be >= 0.80.6 (pi-goal requires it)
 pi list                         # must include all six packages; install missing:
-pi install npm:@narumitw/pi-goal \
-  npm:@quintinshaw/pi-dynamic-workflows \
-  npm:pi-loop-police npm:@gotgenes/pi-permission-system \
-  npm:@juicesharp/rpiv-todo npm:@llblab/pi-telegram
+pi install npm:@narumitw/pi-goal@0.43.0 \
+  npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
+  npm:pi-loop-police@1.14.0 npm:@gotgenes/pi-permission-system@24.0.0 \
+  npm:@juicesharp/rpiv-todo@2.3.1 npm:@llblab/pi-telegram@0.27.0
 pi --list-models | head         # confirm frontier + economy models exist on this host
+```
+
+Before `/goal` or any workflow call, install the canonical policy from
+`pi/config/pi-permission-system.json` at
+`<repo>/.pi/extensions/pi-permission-system/config.json`, trust the project,
+and verify Pi reports that the project policy loaded. Missing, invalid, or
+skipped policy is a hard preflight failure. Never continue under only a global
+fallback, and never enable automatic approval.
+
+```bash
+install -Dm600 pi/config/pi-permission-system.json \
+  .pi/extensions/pi-permission-system/config.json
+cmp -s pi/config/pi-permission-system.json \
+  .pi/extensions/pi-permission-system/config.json
 ```
 
 **Model availability.** `bm "<goal>" --frontier kimi3 --economy minimax` will
@@ -60,7 +74,8 @@ different lane (or the pi-native tier).
 
 ```bash
 # Qwen lane
-~/.local/bin/qwen-agent --dangerously-skip-permissions -p "Reply with exactly: QWEN OK"
+printf '%s\n' 'Reply with exactly: QWEN OK' | \
+  ~/.local/bin/qwen-agent --max-tool-calls 0
 
 # Direct MiniMax API lane (the key is fed on stdin, never placed in process argv)
 printf 'Authorization: Bearer %s\nContent-Type: application/json\n' "$MINIMAX_API_KEY" | \
@@ -72,9 +87,8 @@ curl -sS https://api.minimax.io/v1/chat/completions \
 ~/.local/bin/droid exec --model minimax-m3 "Reply with exactly: MINIMAX OK"
 
 # Claude Pro lane (Claude Code CLI print mode, uses claude.ai Pro/Max quota)
-claude --dangerously-skip-permissions -p --model opus "Reply with exactly: CLAUDE OK"
-# Or via the wrapper:
-~/.local/bin/claude-pro "Reply with exactly: CLAUDE OK"
+printf '%s\n' 'Reply with exactly: CLAUDE OK' | \
+  claude -p --model opus --permission-mode plan
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
@@ -87,9 +101,9 @@ the frontier tier.
 
 ## Claude routing rule (hard rule)
 
-**All Claude work in beastmode routes through the Claude Pro lane (`claude -p`,
-`~/.local/bin/claude-pro`), never through the workflow tool's `agent()` with
-an `anthropic/*` model spec.** The `anthropic` OAuth API credential in
+**All Claude work in beastmode routes through the read-only Claude Pro lane
+(`claude -p --permission-mode plan`), never through the workflow tool's
+`agent()` with an `anthropic/*` model spec.** The `anthropic` OAuth API credential in
 `~/.pi/agent/auth.json` shares a single "extra usage" pool across every
 Claude model (`claude-opus-4-8`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 etc.) and that pool is rate-limited. Routing Claude work through
@@ -104,20 +118,21 @@ The hard rule is enforced by:
   explicitly named by the user and pinned by exact `model:`.
 - A workflow author who explicitly writes
   `agent(prompt, { model: "anthropic/claude-opus-4-8" })` is bypassing the
-  tier system. Don't do it. Use `claude -p --model opus` from the director
-  instead, exactly like the Qwen / MiniMax / droid lanes above.
+  tier system. Don't do it. Use the read-only external invocation from the
+  director instead, exactly like the Qwen / MiniMax / droid lanes above.
 
 For Claude frontier work, the pattern is:
 
 ```bash
-# Director (this pi session) calls the lane directly via bash
-claude -p --model opus --dangerously-skip-permissions "<prompt>"
-# or, equivalently:
-~/.local/bin/claude-pro "<prompt>"
+# Director (this pi session) supplies prompt data on stdin, never shell code.
+printf '%s' "$prompt" | claude -p --model opus --permission-mode plan
 ```
 
-`claude -p` is non-interactive (`--print`), reads the prompt from argv (or
-stdin via `<`), and exits with the model's reply on stdout. It draws from
+`claude -p` is non-interactive (`--print`) and exits with the model's reply on
+stdout. Always omit the positional prompt and supply prompt bytes on stdin;
+never interpolate prompt text into a shell command. `plan` mode keeps this
+watcher lane read-only. Do not use wrappers or flags that bypass permission
+checks. The lane draws from
 the claude.ai Pro/Max subscription quota, which is separate from and not
 rate-coupled to the API OAuth credential.
 
@@ -200,14 +215,15 @@ verifier-tier review, never for bulk cheap work.
    unified diff or exact files changed, commands run, verification notes,
    risks/blockers). Workers never commit or push — the director merges.
 
-6. **Guardrails are already on.** loop-police needs no configuration; if it
+6. **Guardrails are mandatory.** loop-police needs no configuration; if it
    fires repeatedly on one subtask, shrink the slice or switch worker lane.
-   The project permission config (see `references/pi-permission-config.md`
-   for a starter) denies secret paths and forces `ask` on `git push`,
-   `git commit`, `rm -rf`, `sudo`, publish-class commands; the director
-   (human or pi session) approves merges; workers physically cannot reach
-   secrets or leave the repo. `/goal --tokens` plus workflow phase budgets
-   bound total spend.
+   The exact project permission config in `pi/config/pi-permission-system.json`
+   must be installed and loaded before workers start. It defaults all tools and
+   shell commands to `ask`, denies secret paths and external directories, and
+   denies commit, publish, privilege, and destructive commands. Worker agent
+   files must not broaden policy in frontmatter. If any of those checks fail,
+   abort the run. `/goal --tokens` plus workflow phase budgets bound total
+   spend.
 
 7. **Visibility.** In the TUI, rpiv-todo keeps a live checklist and
    `/workflows` opens the run navigator. If telegram was set up, proactive

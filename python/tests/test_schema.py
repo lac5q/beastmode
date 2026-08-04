@@ -33,3 +33,10 @@ def test_required_meta_fields_match_the_existing_gate() -> None:
 def test_schema_name_cannot_escape_schema_root() -> None:
     with pytest.raises(ValueError, match="inside the schema"):
         load_schema("../scripts/tier-aliases")
+
+
+def test_schema_root_rejects_caller_controlled_checkout(tmp_path: Path) -> None:
+    (tmp_path / "schema").mkdir()
+    (tmp_path / "schema" / "acn-contract.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="installed package"):
+        schema_root(tmp_path)

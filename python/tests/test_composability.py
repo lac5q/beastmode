@@ -1,20 +1,39 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TypedDict
 
+import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
 from beastmode.langgraph import BeastmodeContext, BeastmodeState, autonomy_gate, provenance_gate
+import beastmode.langgraph.gates as gates_module
 from beastmode.langgraph.graphs.pipeline import build_pipeline
 from beastmode.langgraph.nodes import PipelineDependencies
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MATCH_RUN = ROOT / "tests" / "fixtures" / "acn-meta" / "match"
-OK_DEPENDENCIES = PipelineDependencies(executor=lambda state: {"execution_status": "ok"})
+OK_DEPENDENCIES = PipelineDependencies(
+    executor=lambda state: {"execution_status": "ok"},
+    validator=lambda state: {"validation_report": {"passed": True}},
+    reviewer=lambda state: {"review_report": {"approved": True}},
+)
+
+
+@pytest.fixture(autouse=True)
+def _trusted_provenance_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep graph-composition tests independent of provider evidence fixtures."""
+    monkeypatch.setattr(
+        gates_module,
+        "check_provenance",
+        lambda target, expect, attestations=None: SimpleNamespace(
+            verdict="ok", messages=(), exit_code=0
+        ),
+    )
 
 
 class ForeignState(TypedDict, total=False):
@@ -98,7 +117,7 @@ def test_pipeline_accepts_a_foreign_state_schema() -> None:
         context=BeastmodeContext(autonomy="high", run_dir=MATCH_RUN),
     )
     assert result["user_note"] == "preserve me"
-    assert result["status"] == "merged"
+    assert result["status"] == "ready_to_merge"
 
 
 def test_pipeline_subgraph_uses_parent_checkpointer_and_preserves_parent_state() -> None:
@@ -132,7 +151,7 @@ def test_pipeline_subgraph_uses_parent_checkpointer_and_preserves_parent_state()
     paused_again = compiled.invoke(Command(resume="approved"), config=config, context=context)
     assert "__interrupt__" in paused_again
     result = compiled.invoke(Command(resume="approved"), config=config, context=context)
-    assert result["status"] == "merged"
+    assert result["status"] == "ready_to_merge"
     assert result["user_note"] == "start|before|after"
 
 

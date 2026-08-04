@@ -76,7 +76,10 @@ The real CLI driver requires an explicit child command:
 
 ```bash
 bm "add a health check" --harness langgraph \
-  --executor-command 'your-child-driver'
+  --executor-command 'your-child-driver' \
+  --attestor-command /trusted/bin/read-harness-journal \
+  --validator-command /trusted/bin/validate-result \
+  --reviewer-command /trusted/bin/review-result
 ```
 
 The driver receives `BEASTMODE_META_DIR`, `BEASTMODE_TASK_ID`, and

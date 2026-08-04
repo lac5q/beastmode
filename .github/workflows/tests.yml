@@ -67,3 +67,18 @@ jobs:
 
       - name: Build the package
         run: PIP_CONSTRAINT="$PWD/python/constraints-ci.txt" python -m build python/
+
+      - name: Smoke-test the isolated wheel
+        shell: bash
+        run: |
+          python -m venv /tmp/beastmode-wheel-smoke
+          /tmp/beastmode-wheel-smoke/bin/python -m pip install --no-deps python/dist/*.whl
+          /tmp/beastmode-wheel-smoke/bin/python - <<'PY'
+          from beastmode.core import schema
+          from beastmode.core.prompts import bm_phase_prompt
+          from beastmode.core.provenance import canonical_gate_path
+
+          assert schema.acn_contract()["concurrency_default"] > 0
+          assert "MODEL DRIFT" in bm_phase_prompt()
+          assert canonical_gate_path().is_file()
+          PY

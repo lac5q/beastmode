@@ -149,11 +149,12 @@ fi
 # schema they are supposed to exemplify.
 echo "check (e): enforce-models --check-meta"
 FIX="$ROOT/tests/fixtures/acn-meta"
+ATTEST="$ROOT/tests/fixtures/acn-attestations.json"
 
 set +e
-out_match="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" 2>&1)"
+out_match="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" 2>&1)"
 rc_match=$?
-out_drift="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/drift" 2>&1)"
+out_drift="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/drift" --attestations "$ATTEST" 2>&1)"
 rc_drift=$?
 set -e
 
@@ -168,13 +169,19 @@ else
   fail "enforce-models --check-meta drift dir: expected exit 1 with 'MODEL DRIFT', got rc=$rc_drift out=$out_drift"
 fi
 
+run_gate() { set +e; GATE_OUT="$("$@" 2>&1)"; GATE_RC=$?; set -e; }
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "independent"; then
+  pass "worker self-attestation is UNVERIFIABLE without trusted evidence"
+else
+  fail "self-attestation: expected exit 1 requiring independent evidence, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
 # ---- (e2) the gate fails closed on unprovable provenance ----
 # Regression for the v2.2 fail-open pair: a legacy {"id","model",...} meta was
 # skipped as "not a meta file we recognise", and an empty run dir returned 0.
 # Both reported a clean batch while proving nothing about which model ran.
 echo "check (e2): provenance gate fails closed"
-run_gate() { set +e; GATE_OUT="$("$@" 2>&1)"; GATE_RC=$?; set -e; }
-
 run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/legacy"
 if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "UNVERIFIABLE"; then
   pass "legacy model-only meta is UNVERIFIABLE, exit 1"
@@ -287,7 +294,7 @@ fi
 CFG="$TMP/withcfg"; mkdir -p "$CFG"
 cp "$FIX/match/a.json" "$CFG/a.json"
 printf '%s\n' '{"model": "minimax/MiniMax-M3", "provider": "minimax"}' > "$CFG/config.json"
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$CFG"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$CFG" --attestations "$ATTEST"
 if [ "$GATE_RC" = "0" ]; then
   pass "provider config is not mistaken for a child record"
 else
@@ -296,18 +303,25 @@ fi
 
 # A child that wrote nothing at all leaves no file to scan, so only the
 # batch's own id list can catch it.
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect a,ghost
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a,ghost
 if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
   pass "--expect catches a child that wrote no meta"
 else
   fail "--expect: expected exit 1 naming 'ghost', got rc=$GATE_RC out=$GATE_OUT"
 fi
 
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect a
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a
 if [ "$GATE_RC" = "0" ]; then
   pass "--expect passes when every expected child reported"
 else
   fail "--expect all-present: expected exit 0, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a,a
+if [[ "$GATE_RC" -eq 2 && "$GATE_OUT" == *"must be unique"* ]]; then
+  pass "--expect rejects duplicate child ids"
+else
+  fail "--expect duplicate ids: expected exit 2 and unique-id error, got rc=$GATE_RC out=$GATE_OUT"
 fi
 
 # --expect also reads the batch file directly, since schema/acn-contract.json
@@ -317,7 +331,7 @@ cat > "$TMP/batch.json" <<'JSON'
  "tasks": [{"id": "a", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]},
            {"id": "ghost", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]}]}
 JSON
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --expect "$TMP/batch.json"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect "$TMP/batch.json"
 if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
   pass "--expect reads child ids from a batch file"
 else
@@ -331,9 +345,9 @@ echo "check (e3): enforce-models and acn-report agree"
 AGREE=1
 for case_dir in match drift legacy empty; do
   set +e
-  "$ROOT/scripts/enforce-models" --check-meta "$FIX/$case_dir" >/dev/null 2>&1
+  "$ROOT/scripts/enforce-models" --check-meta "$FIX/$case_dir" --attestations "$ATTEST" >/dev/null 2>&1
   rc_enforce=$?
-  "$ROOT/scripts/acn-report" "$FIX/$case_dir" >/dev/null 2>&1
+  "$ROOT/scripts/acn-report" "$FIX/$case_dir" --attestations "$ATTEST" >/dev/null 2>&1
   rc_report=$?
   set -e
   if [ "$rc_enforce" != "$rc_report" ]; then

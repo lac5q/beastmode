@@ -28,6 +28,7 @@ __pycache__/
 .venv/
 .beastmode/
 .langgraph_api/
+.codex/beastmode-runs/
 
 # Local credentials and key material; keep examples explicit and reviewable.
 .env

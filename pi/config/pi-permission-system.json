@@ -1,0 +1,49 @@
+{
+  "permissionReviewLog": true,
+  "yoloMode": false,
+  "doublePressToConfirm": true,
+  "authorizerChain": [],
+  "permission": {
+    "*": "ask",
+    "path": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      ".env.local": "deny",
+      "**/.ssh/*": "deny",
+      "**/.memroos/agent-keys/*": "deny",
+      "**/.memroos/*.env": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/*.p12": "deny",
+      "**/*.pfx": "deny",
+      "**/*.sqlite": "deny",
+      "**/*.sqlite3": "deny",
+      "**/auth.json": "deny",
+      "**/credentials.json": "deny",
+      ".env.example": "allow",
+      "**/.env.example": "allow"
+    },
+    "read": "allow",
+    "find": "allow",
+    "grep": "allow",
+    "ls": "allow",
+    "write": "ask",
+    "edit": "ask",
+    "external_directory": "deny",
+    "mcp": "ask",
+    "skill": "ask",
+    "bash": {
+      "*": "ask",
+      "git push *": "deny",
+      "git push": "deny",
+      "git commit *": "deny",
+      "git commit": "deny",
+      "rm -rf *": "deny",
+      "sudo *": "deny",
+      "gh pr create *": "deny",
+      "gh release *": "deny",
+      "npm publish *": "deny"
+    }
+  }
+}

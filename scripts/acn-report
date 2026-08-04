@@ -22,7 +22,7 @@ output; identifiers and diagnostic text are bounded and sanitized.
 Exit codes: 0 clean, 1 gate failure (drift or unverifiable), 2 usage error.
 
 Usage:
-    acn-report <dir-of-meta.json> [--allow-empty] [--strict]
+    acn-report <dir-of-meta.json> --attestations <json-or-dir> [--allow-empty] [--strict]
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ UNAVAILABLE = acn_meta.UNAVAILABLE
 
 def usage() -> int:
     print("usage: acn-report <dir-of-meta.json> [--expect <batch.json|id,...>] "
-          "[--allow-empty] [--strict]", file=sys.stderr)
+          "--attestations <json-or-dir> [--allow-empty] [--strict]", file=sys.stderr)
     return 2
 
 
@@ -47,6 +47,7 @@ def main() -> int:
     allow_empty = False
     strict = False
     expect = None
+    attestations = None
     positional: list[str] = []
     args = sys.argv[1:]
     while args:
@@ -64,6 +65,14 @@ def main() -> int:
             except Exception as e:
                 print(f"acn-report: --expect: {e}", file=sys.stderr)
                 return 2
+        elif arg == "--attestations":
+            if not args:
+                print(
+                    "acn-report: --attestations needs a JSON file or directory",
+                    file=sys.stderr,
+                )
+                return usage()
+            attestations = Path(args.pop(0))
         elif arg.startswith("-"):
             print(f"acn-report: unknown arg: {arg}", file=sys.stderr)
             return usage()
@@ -73,7 +82,13 @@ def main() -> int:
         return usage()
 
     target = Path(positional[0])
-    result = acn_meta.check(target, allow_empty=allow_empty, strict=strict, expect=expect)
+    result = acn_meta.check(
+        target,
+        allow_empty=allow_empty,
+        strict=strict,
+        expect=expect,
+        attestations=attestations,
+    )
     if result.exit_code == 2:
         for message in result.messages:
             print(f"acn-report: {message}", file=sys.stderr)

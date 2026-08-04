@@ -10,7 +10,9 @@
 #   bm "<goal>" --frontier sol --thinking medium
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
-#   bm "<goal>" --harness langgraph --executor-command '<child argv>'
+#   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
+#      --attestor-command /trusted/attest --validator-command /trusted/validate \
+#      --reviewer-command /trusted/review
 #
 # The goal can appear anywhere on the command line; flags are parsed first
 # and the remaining args are joined into the goal string.
@@ -35,6 +37,10 @@ AUTONOMY="medium"
 THINKING="high"
 LANGGRAPH_GRAPH="pipeline"
 EXECUTOR_COMMAND=""
+ATTESTOR_COMMAND=""
+VALIDATOR_COMMAND=""
+REVIEWER_COMMAND=""
+ALLOW_WORKER_NETWORK=0
 WORKTREE_ROOT=""
 GOAL_PARTS=()
 PRINT_HELP=0
@@ -43,8 +49,9 @@ PRINT_HELP=0
 # lookup beats a 14-line bash case statement, and the file is the source of
 # truth the docs reference. Fallback: pass the alias through unchanged so
 # `pi` reports the real error instead of us silently mapping wrong.
-# Look in: <this-script-dir>/tier-aliases.json (shipped together), then
-# $HOME/.beastmode/tier-aliases.json, then <repo>/.beastmode/tier-aliases.json.
+# Look in the user-global file first, then the shipped file. Repository aliases
+# are untrusted by default because a checkout must not be able to downgrade the
+# requested model. Set BM_TRUST_REPO_ALIASES=1 only after reviewing that file.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
 
@@ -56,18 +63,53 @@ resolve_alias() {
 
   local repo_aliases="$PWD/.beastmode/tier-aliases.json"
   local user_aliases="$HOME/.beastmode/tier-aliases.json"
-  local candidates=("$repo_aliases" "$user_aliases" "$SHIP_ALIASES")
+  local candidates=("$user_aliases" "$SHIP_ALIASES")
+  case "${BM_TRUST_REPO_ALIASES:-0}" in
+    0|"") ;;
+    1) candidates=("$repo_aliases" "${candidates[@]}") ;;
+    *)
+      echo "bm: BM_TRUST_REPO_ALIASES must be 0 or 1" >&2
+      return 2
+      ;;
+  esac
   for f in "${candidates[@]}"; do
     [ -f "$f" ] || continue
     local hit
-    hit="$(python3 -c "import json,sys
-d=json.load(open(sys.argv[1]))
-a=d.get(sys.argv[2])
-print(f'{a[\"provider\"]}/{a[\"model\"]}' if a and 'provider' in a else '')" "$f" "$alias" 2>/dev/null || true)"
+    if ! hit="$(python3 - "$f" "$alias" <<'PY'
+import json
+import sys
+
+path, alias = sys.argv[1:]
+try:
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+except (OSError, json.JSONDecodeError) as exc:
+    print(f"bm: invalid alias file {path}: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+
+entry = data.get(alias)
+if entry is None:
+    raise SystemExit(0)
+if not isinstance(entry, dict):
+    print(f"bm: alias {alias!r} in {path} must be an object", file=sys.stderr)
+    raise SystemExit(2)
+provider = entry.get("provider")
+model = entry.get("model")
+if not all(isinstance(value, str) and value and len(value) <= 200 for value in (provider, model)):
+    print(f"bm: alias {alias!r} in {path} needs non-empty provider and model strings", file=sys.stderr)
+    raise SystemExit(2)
+if "/" in provider or any(ord(char) < 32 for value in (provider, model) for char in value):
+    print(f"bm: alias {alias!r} in {path} contains unsafe provider/model characters", file=sys.stderr)
+    raise SystemExit(2)
+print(f"{provider}/{model}")
+PY
+)"; then
+      return 2
+    fi
     [ -n "$hit" ] && { echo "$hit"; return; }
   done
-  # Fallback: bare alias → pi may or may not accept it.
-  echo "$alias"
+  echo "bm: unknown model alias '$alias'; use a reviewed alias or provider/model" >&2
+  return 2
 }
 
 usage() {
@@ -97,6 +139,13 @@ while [ $# -gt 0 ]; do
     --graph=*)         LANGGRAPH_GRAPH="${1#*=}"; shift ;;
     --executor-command) EXECUTOR_COMMAND="${2:-}"; shift 2 ;;
     --executor-command=*) EXECUTOR_COMMAND="${1#*=}"; shift ;;
+    --attestor-command) ATTESTOR_COMMAND="${2:-}"; shift 2 ;;
+    --attestor-command=*) ATTESTOR_COMMAND="${1#*=}"; shift ;;
+    --validator-command) VALIDATOR_COMMAND="${2:-}"; shift 2 ;;
+    --validator-command=*) VALIDATOR_COMMAND="${1#*=}"; shift ;;
+    --reviewer-command) REVIEWER_COMMAND="${2:-}"; shift 2 ;;
+    --reviewer-command=*) REVIEWER_COMMAND="${1#*=}"; shift ;;
+    --allow-worker-network) ALLOW_WORKER_NETWORK=1; shift ;;
     --worktree-root)   WORKTREE_ROOT="${2:-}"; shift 2 ;;
     --worktree-root=*) WORKTREE_ROOT="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
@@ -138,9 +187,14 @@ GOAL="${GOAL_PARTS[*]:-}"
 [ -z "$GOAL" ] && usage
 
 # Resolve aliases after parsing so the help path stays side-effect free.
-[ -n "$FRONTIER" ] && FRONTIER="$(resolve_alias "$FRONTIER")"
-[ -n "$ECONOMY" ]  && ECONOMY="$(resolve_alias "$ECONOMY")"
-[ -n "$WATCHER" ]  && WATCHER="$(resolve_alias "$WATCHER")"
+if [ -n "$FRONTIER" ] && ! FRONTIER="$(resolve_alias "$FRONTIER")"; then exit 2; fi
+if [ -n "$ECONOMY" ] && ! ECONOMY="$(resolve_alias "$ECONOMY")"; then exit 2; fi
+if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
+
+if [ "$HARNESS" = "codex" ] && [ -z "$FRONTIER" ]; then
+  echo "bm: --harness codex requires --frontier <alias|provider/model> so the model is pinned" >&2
+  exit 2
+fi
 
 # Resolve --on auto: prefer remote if BM_AUTO_TARGET is set, else local.
 if [ "$ON" = "auto" ]; then
@@ -227,6 +281,10 @@ if [ "$ON" != "local" ]; then
   REMOTE_CMD="$REMOTE_CMD --thinking $(shquote "$THINKING")"
   [ "$HARNESS" = "langgraph" ] && REMOTE_CMD="$REMOTE_CMD --graph $(shquote "$LANGGRAPH_GRAPH")"
   [ -n "$EXECUTOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --executor-command $(shquote "$EXECUTOR_COMMAND")"
+  [ -n "$ATTESTOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --attestor-command $(shquote "$ATTESTOR_COMMAND")"
+  [ -n "$VALIDATOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --validator-command $(shquote "$VALIDATOR_COMMAND")"
+  [ -n "$REVIEWER_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --reviewer-command $(shquote "$REVIEWER_COMMAND")"
+  [ "$ALLOW_WORKER_NETWORK" = "1" ] && REMOTE_CMD="$REMOTE_CMD --allow-worker-network"
   [ -n "$WORKTREE_ROOT" ] && REMOTE_CMD="$REMOTE_CMD --worktree-root $(shquote "$WORKTREE_ROOT")"
   exec ssh -- "$ON" "$REMOTE_CMD"
 fi
@@ -260,6 +318,10 @@ case "$HARNESS" in
       --economy "$ECONOMY" \
       --watcher "$WATCHER")
     [ -n "$EXECUTOR_COMMAND" ] && LG_ARGS+=(--executor-command "$EXECUTOR_COMMAND")
+    [ -n "$ATTESTOR_COMMAND" ] && LG_ARGS+=(--attestor-command "$ATTESTOR_COMMAND")
+    [ -n "$VALIDATOR_COMMAND" ] && LG_ARGS+=(--validator-command "$VALIDATOR_COMMAND")
+    [ -n "$REVIEWER_COMMAND" ] && LG_ARGS+=(--reviewer-command "$REVIEWER_COMMAND")
+    [ "$ALLOW_WORKER_NETWORK" = "1" ] && LG_ARGS+=(--allow-worker-network)
     [ -n "$WORKTREE_ROOT" ] && LG_ARGS+=(--worktree-root "$WORKTREE_ROOT")
     exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
     ;;
@@ -276,7 +338,7 @@ case "$HARNESS" in
     H_ARGS=(-z "$FULL_PROMPT" -s beastmode)
     [ -n "$FRONTIER" ]   && H_ARGS+=(--model "${FRONTIER#*/}")
     [ -n "$H_PROVIDER" ] && H_ARGS+=(--provider "$H_PROVIDER")
-    [ "$AUTONOMY" = "high" ] && H_ARGS+=(--yolo)
+    # Autonomy controls phase progression, never tool permissions.
     exec hermes "${H_ARGS[@]}"
     ;;
   claude)
@@ -288,13 +350,12 @@ case "$HARNESS" in
     # remember which harness wants which form.
     C_ARGS=(-p "$FULL_PROMPT")
     [ -n "$FRONTIER" ] && C_ARGS+=(--model "${FRONTIER#*/}")
-    [ "$AUTONOMY" = "high" ] && C_ARGS+=(--dangerously-skip-permissions)
+    # Claude's normal permission controls remain active at every autonomy.
     exec claude "${C_ARGS[@]}"
     ;;
   codex)
     # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.
-    X_ARGS=(exec "$FULL_PROMPT")
-    [ "$AUTONOMY" = "high" ] && X_ARGS=(--yolo "${X_ARGS[@]}")
+    X_ARGS=(exec --model "$FRONTIER" "$FULL_PROMPT")
     exec codex "${X_ARGS[@]}"
     ;;
 esac

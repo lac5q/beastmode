@@ -9,7 +9,7 @@ CI checks, and drift audits.
 | Requirement | Minimum | Why |
 |---|---|---|
 | `pi` (pi-coding-agent) | **≥ 0.80.6** | `@narumitw/pi-goal` registers an `agent_settled` lifecycle handler that was added in 0.80.6. Earlier versions will load the extension but the loop engine will silently never auto-continue. |
-| `node` | **≥ 20.x** | Pi package extensions are TypeScript ESM; modern pi releases depend on Node 20+ APIs. |
+| `node` | **≥ 22.19.0** | The pinned Telegram extension requires Node 22.19.0; the pinned permission system requires Node 22. |
 | `npm` | **≥ 10.x** | Required by `pi install` for package resolution and the user-level install path (`~/.pi/agent/npm/`). |
 | Operating system | Linux x86_64 / aarch64, macOS arm64 / x86_64, WSL2 | Tested targets. Other Unix-likes likely work but are not in the support matrix. |
 
@@ -18,33 +18,33 @@ CI checks, and drift audits.
 All six are MIT-licensed (or near-MIT) and install from npm:
 
 ```bash
-pi install npm:@narumitw/pi-goal \
-  npm:@quintinshaw/pi-dynamic-workflows \
-  npm:pi-loop-police \
-  npm:@gotgenes/pi-permission-system \
-  npm:@juicesharp/rpiv-todo \
-  npm:@llblab/pi-telegram
+pi install npm:@narumitw/pi-goal@0.43.0 \
+  npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
+  npm:pi-loop-police@1.14.0 \
+  npm:@gotgenes/pi-permission-system@24.0.0 \
+  npm:@juicesharp/rpiv-todo@2.3.1 \
+  npm:@llblab/pi-telegram@0.27.0
 ```
 
 | Package | Role | Optional? | Notes |
 |---|---|---|---|
-| `@narumitw/pi-goal` | Loop engine — `/goal`, `goal_complete`, `goal_blocked` | **required** | Without this, the skill's auto-continuation step is inert. |
-| `@quintinshaw/pi-dynamic-workflows` | Fan-out + model routing + verifier primitives | **required** | Without this, only single-agent work is possible. |
-| `pi-loop-police` | Anti-spin circuit breaker | **required** | Unattended runs WILL spin eventually; this is the kill switch. |
-| `@gotgenes/pi-permission-system` | Worker-contract enforcer | **required** | Without a project-level config, worker contracts rely on prose alone. See `pi-permission-config.md`. |
-| `@juicesharp/rpiv-todo` | Live progress overlay (TUI) | recommended | Strongly recommended for visibility; not blocking. |
-| `@llblab/pi-telegram` | Remote supervision (phone) | optional | Requires one-time `/telegram-setup` with a bot token. If absent, skip telegram and continue. |
+| `@narumitw/pi-goal@0.43.0` | Loop engine — `/goal`, `goal_complete`, `goal_blocked` | **required** | Without this, the skill's auto-continuation step is inert. |
+| `@quintinshaw/pi-dynamic-workflows@3.5.0` | Fan-out + model routing + verifier primitives | **required** | Without this, only single-agent work is possible. |
+| `pi-loop-police@1.14.0` | Anti-spin circuit breaker | **required** | Unattended runs WILL spin eventually; this is the kill switch. |
+| `@gotgenes/pi-permission-system@24.0.0` | Worker-contract enforcer | **required** | Without the pinned extension and required project config, worker contracts rely on prose alone. See `pi-permission-config.md`. |
+| `@juicesharp/rpiv-todo@2.3.1` | Live progress overlay (TUI) | recommended | Strongly recommended for visibility; not blocking. |
+| `@llblab/pi-telegram@0.27.0` | Remote supervision (phone) | optional | Requires one-time `/telegram-setup` with a bot token. If absent, skip telegram and continue. |
 
 ## One-line install + verify
 
 ```bash
 # Install
-pi install npm:@narumitw/pi-goal \
-  npm:@quintinshaw/pi-dynamic-workflows \
-  npm:pi-loop-police \
-  npm:@gotgenes/pi-permission-system \
-  npm:@juicesharp/rpiv-todo \
-  npm:@llblab/pi-telegram
+pi install npm:@narumitw/pi-goal@0.43.0 \
+  npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
+  npm:pi-loop-police@1.14.0 \
+  npm:@gotgenes/pi-permission-system@24.0.0 \
+  npm:@juicesharp/rpiv-todo@2.3.1 \
+  npm:@llblab/pi-telegram@0.27.0
 
 # Verify all six are present
 pi list | grep -E 'pi-goal|pi-dynamic-workflows|pi-loop-police|pi-permission-system|rpiv-todo|pi-telegram' | wc -l   # expect: 6
@@ -63,7 +63,7 @@ from all of them and project-local wins over global on name collision:
 |---|---|---|
 | `~/.agents/skills/beastmode-pi/SKILL.md` | global | one-shot install across every repo |
 | `<repo>/.agents/skills/beastmode-pi/SKILL.md` | project (requires trusted project) | repos that want to pin a version |
-| Shipped as a pi package | npm-installable | shared team installs via `pi install npm:@scope/beastmode-pi` |
+| Shipped as a pi package | npm-installable | shared team installs from an exact, reviewed package version |
 
 For the canonical lac5q/beastmode home, both a project copy and the
 `pi/SKILL.md` reference live in the repo; install via copy or as a pi
@@ -71,11 +71,12 @@ package.
 
 ## Permission-system config
 
-The worker contract from the universal `beastmode` skill requires a
-project-level permission config at
-`<repo>/.pi/extensions/pi-permission-system/config.json`. Without it,
-secrets are not gated and `git push` / `git commit` run unprompted.
-See `pi-permission-config.md` for the starter.
+The worker contract from the universal `beastmode` skill requires the exact
+published policy from `pi/config/pi-permission-system.json` at
+`<repo>/.pi/extensions/pi-permission-system/config.json`. Verify the project
+is trusted and the policy loaded before `/goal` or any workflow call. If the
+policy is absent, invalid, skipped, or enables automatic approval, abort the
+run. See `pi-permission-config.md` for installation and policy details.
 
 ## Compatibility notes
 
@@ -85,10 +86,10 @@ See `pi-permission-config.md` for the starter.
 - **pi-dynamic-workflows** writes workflow runs to the user-level session
   directory (`~/.pi/agent/sessions/`). Quotas and disk usage scale with
   the number of long-running workflows.
-- **pi-permission-system** follows most-restrictive-wins semantics; a
-  broad `allow` cannot override a narrow `deny` on the same surface.
-  Project config overrides global config; per-agent YAML frontmatter
-  overrides both.
+- **pi-permission-system** follows most-restrictive-wins semantics across
+  surfaces and last-match-wins within a pattern map. Per-agent YAML
+  frontmatter has higher precedence than project policy, so do not use an
+  agent that declares a broader `permission` policy or enables `yoloMode`.
 - **pi-loop-police** has no configuration; counters reset on
   `/loop-police reset` if you want a manual clear mid-session.
 - **pi-telegram** requires a BotFather token and a one-time

@@ -13,6 +13,8 @@ import hashlib
 import json
 import os
 import shlex
+import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -45,9 +47,106 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="argv string run once per child worktree; child writes $BEASTMODE_META_DIR/meta.json",
     )
+    parser.add_argument(
+        "--attestor-command",
+        default=None,
+        help="trusted absolute executable; reads task JSON on stdin and returns an attestation object",
+    )
+    parser.add_argument(
+        "--validator-command",
+        default=None,
+        help="trusted absolute executable; reads state JSON and returns validation_report",
+    )
+    parser.add_argument(
+        "--reviewer-command",
+        default=None,
+        help="trusted absolute executable; reads state JSON and returns review_report",
+    )
     parser.add_argument("--worktree-root", default=None)
+    parser.add_argument(
+        "--allow-worker-network",
+        action="store_true",
+        help="explicitly share network with the sandboxed worker command",
+    )
     parser.add_argument("--mermaid", action="store_true", help="print the selected graph and exit")
     return parser
+
+
+def _trusted_helper(raw: str | None, *, repo: Path, label: str) -> tuple[str, ...]:
+    if not raw:
+        raise ValueError(f"--{label}-command is required")
+    try:
+        parts = tuple(shlex.split(raw))
+    except ValueError as exc:
+        raise ValueError(f"invalid --{label}-command: {exc}") from exc
+    if len(parts) != 1:
+        raise ValueError(
+            f"--{label}-command must be one absolute executable without shell arguments"
+        )
+    path = Path(parts[0])
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise ValueError(f"--{label}-command must name a regular absolute executable")
+    resolved = path.resolve()
+    if resolved == repo or repo in resolved.parents:
+        raise ValueError(f"--{label}-command must be outside the target repository")
+    metadata = resolved.stat()
+    if metadata.st_uid not in {0, os.geteuid()} or stat.S_IMODE(metadata.st_mode) & 0o022:
+        raise ValueError(
+            f"--{label}-command must be owned by root/current user and not group/world writable"
+        )
+    if not os.access(resolved, os.X_OK):
+        raise ValueError(f"--{label}-command is not executable")
+    return (str(resolved),)
+
+
+def _json_callback(command: tuple[str, ...], *, required_key: str | None):
+    def invoke(payload):
+        encoded = json.dumps(payload, separators=(",", ":"), default=str).encode()
+        if len(encoded) > 1024 * 1024:
+            raise ValueError("trusted helper input exceeds 1 MiB")
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key in {"LANG", "LC_ALL", "LC_CTYPE"} or key.startswith("LC_")
+        }
+        env["PATH"] = os.pathsep.join(
+            path
+            for path in (
+                "/usr/local/sbin",
+                "/usr/local/bin",
+                "/usr/sbin",
+                "/usr/bin",
+                "/sbin",
+                "/bin",
+            )
+            if Path(path).is_dir()
+        )
+        completed = subprocess.run(
+            command,
+            input=encoded,
+            cwd="/",
+            env=env,
+            check=False,
+            capture_output=True,
+            timeout=30.0,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                f"trusted helper failed with exit {completed.returncode}"
+            )
+        if len(completed.stdout) > 1024 * 1024 or len(completed.stderr) > 64 * 1024:
+            raise ValueError("trusted helper output exceeds its bound")
+        try:
+            value = json.loads(completed.stdout)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("trusted helper did not return one JSON object") from exc
+        if not isinstance(value, dict):
+            raise ValueError("trusted helper result must be a JSON object")
+        if required_key is not None and not isinstance(value.get(required_key), dict):
+            raise ValueError(f"trusted helper result must contain {required_key}")
+        return value
+
+    return invoke
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -87,20 +186,38 @@ def main(argv: list[str] | None = None) -> int:
     if not command:
         print("bm: --executor-command cannot be empty", file=sys.stderr)
         return 2
+    try:
+        attestor_command = _trusted_helper(
+            args.attestor_command, repo=project_root, label="attestor"
+        )
+        validator_command = _trusted_helper(
+            args.validator_command, repo=project_root, label="validator"
+        )
+        reviewer_command = _trusted_helper(
+            args.reviewer_command, repo=project_root, label="reviewer"
+        )
+    except ValueError as exc:
+        print(f"bm: {exc}", file=sys.stderr)
+        return 2
     thread_id = args.thread_id or args.goal
     default_db = Path.home() / ".beastmode" / "langgraph.sqlite"
     database = Path(args.database or os.environ.get("BEASTMODE_LANGGRAPH_DB", default_db))
     run_dir = Path(args.run_dir or (Path.cwd() / ".beastmode" / "runs" / _run_dir_component(thread_id)))
     run_dir.mkdir(parents=True, exist_ok=True)
     executor_model = args.economy or "minimax/MiniMax-M3"
+    executor = WorktreeSubprocessExecutor(
+        repo=project_root,
+        command=command,
+        worktree_root=Path(args.worktree_root).resolve()
+        if args.worktree_root
+        else None,
+        allow_network=args.allow_worker_network,
+        model_attestor=_json_callback(attestor_command, required_key=None),
+    )
     dependencies = PipelineDependencies(
-        executor=WorktreeSubprocessExecutor(
-            repo=project_root,
-            command=command,
-            worktree_root=Path(args.worktree_root).resolve()
-            if args.worktree_root
-            else None,
-        )
+        executor=executor,
+        validator=_json_callback(validator_command, required_key="validation_report"),
+        reviewer=_json_callback(reviewer_command, required_key="review_report"),
     )
     state = {
         "goal": args.goal,
@@ -132,6 +249,7 @@ def main(argv: list[str] | None = None) -> int:
         autonomy=args.autonomy,
         database=database,
         run_dir=run_dir,
+        attestations=executor.attestation_directory_for(run_dir),
         dependencies=dependencies,
         resume=args.resume,
     )
