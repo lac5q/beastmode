@@ -9,14 +9,14 @@ from langgraph.runtime import Runtime
 from langgraph.types import RetryPolicy
 
 from ..context import BeastmodeContext
-from ..gates import gate_merge, gate_provenance, phase_gate
+from ..gates import _is_approved, gate_merge, gate_provenance, phase_gate
 from ..dispatch import first_lane_sends, next_lane_sends
 from ..nodes import PipelineDependencies, blocked, challenge, contract, design, dispatch, dispatch_next, execute, merge, preflight, review, self_improve, validate_mechanical
 from ..state import BeastmodeState
 
 
 def _provenance_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
-    if state.get("provenance_verdict") == "ok":
+    if _is_approved(state.get("gate_decision")) and state.get("provenance_verdict") == "ok":
         return "review"
     retries = int(state.get("provenance_retry_count", 0))
     limit = int(getattr(runtime.context, "max_provenance_retries", 1))
@@ -25,7 +25,7 @@ def _provenance_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContex
 
 def _merge_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
     decision = state.get("merge_decision")
-    return "merge" if decision in ("approved", True, {"approved": True}) else "design"
+    return "merge" if _is_approved(decision) else "design"
 
 
 def build_pipeline(

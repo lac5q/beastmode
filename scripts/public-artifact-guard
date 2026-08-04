@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Fail-closed guard for credentials, private paths, and credential-like files.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+scan_for_matches() {
+  local label="$1"
+  shift
+  local matches rc
+  set +e
+  matches="$("$@" 2>&1)"
+  rc=$?
+  set -e
+  case "$rc" in
+    0)
+      printf '%s\n' "${label} found in tracked files:" >&2
+      printf '%s\n' "$matches" >&2
+      return 1
+      ;;
+    1)
+      return 0
+      ;;
+    *)
+      printf '%s scanner failed with exit %s:\n%s\n' "$label" "$rc" "$matches" >&2
+      return 2
+      ;;
+  esac
+}
+
+scan_for_matches "Potential credential material" git grep -I -l -E \
+  'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' -- .
+scan_for_matches "Machine-specific absolute paths" git grep -I -l -E \
+  '/(home|Users)/[[:alnum:]_.-]+|C:[\\/]+Users[\\/]+[[:alnum:]_.-]+' -- .
+
+tracked_files="$(git ls-files)" || {
+  printf '%s\n' "tracked-file scanner failed" >&2
+  exit 2
+}
+blocked_files=()
+while IFS= read -r path; do
+  if [[ "$path" =~ (^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$) ]]; then
+    blocked_files+=("$path")
+  fi
+done <<< "$tracked_files"
+if ((${#blocked_files[@]})); then
+  printf '%s\n' "Credential-like files are tracked:" >&2
+  printf '  %s\n' "${blocked_files[@]}" >&2
+  exit 1
+fi
+
+if [[ "${1:-}" == "--history" ]]; then
+  history_matches="$(git log --all -E -G 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|/(home|Users)/[[:alnum:]_.-]+' --format='%H %s' -- .)" || {
+    printf '%s\n' "history scanner failed" >&2
+    exit 2
+  }
+  if [ -n "$history_matches" ]; then
+    printf '%s\n%s\n' "Sensitive-looking history changes found:" "$history_matches" >&2
+    exit 1
+  fi
+fi
+
+printf '%s\n' "public artifact guard: clean"

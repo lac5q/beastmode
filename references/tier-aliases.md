@@ -76,7 +76,9 @@ validation goal with `bm "<validation goal>" --frontier sol --thinking medium`.
 ## How to verify on a new host
 
 ```bash
-pi --list-models | awk 'NR>3 {print $1, $2}' > /tmp/host-models.txt
+host_models="$(mktemp "${TMPDIR:-/tmp}/beastmode-host-models.XXXXXX")"
+trap 'rm -f "$host_models"' EXIT
+pi --list-models | awk 'NR>3 {print $1, $2}' > "$host_models"
 # diff against the table above; any missing row is an alias that needs
 # a project-local override at <repo>/.beastmode/tier-aliases.json.
 ```

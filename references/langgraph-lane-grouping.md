@@ -5,9 +5,9 @@ Date: 2026-08-03
 ## Measurement status
 
 No live provider completion was available for a `usage_metadata` comparison:
-the only configured provider returned HTTP 402 during P0.1, and the other
-provider adapters/credentials were unavailable. No synthetic token result is
-being presented as a provider measurement.
+the configured probe failed before completion, and the other provider
+adapters were unavailable. No synthetic token result is being presented as a
+provider measurement.
 
 ## Provisional number
 

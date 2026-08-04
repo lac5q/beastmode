@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -50,6 +51,23 @@ UNAVAILABLE = "unavailable"
 OK = "ok"
 DRIFT = "drift"
 UNVERIFIABLE = "unverifiable"
+
+_REPORT_SECRET_PATTERNS = (
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"),
+    re.compile(r"/(?:home|Users)/[^/\s]+"),
+    re.compile(r"\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s]+"),
+)
+
+
+def safe_report_text(value: object, *, limit: int = 256) -> str:
+    """Keep report identifiers/reasons bounded and free of obvious secrets/paths."""
+    text = str(value)
+    for pattern in _REPORT_SECRET_PATTERNS:
+        text = pattern.sub("[REDACTED]", text)
+    if len(text) > limit:
+        text = text[:limit] + "…[TRUNCATED]"
+    return text
 
 # Fallback used only when schema/acn-contract.json cannot be located (the
 # module is vendored somewhere without the repo). Keep in sync with the

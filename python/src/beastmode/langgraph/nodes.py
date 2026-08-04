@@ -10,10 +10,12 @@ from typing import Any, Callable, Mapping
 from langgraph.runtime import Runtime
 
 from beastmode.core.contract import AcceptanceContract
+from beastmode.core.observability import redact_value
 from beastmode.core.schema import concurrency_default, required_batch_fields, required_task_fields
 from beastmode.core.seats import preflight_seat, resolve_alias
 
 from .context import BeastmodeContext
+from .limits import validate_concurrency
 
 
 NodeCallable = Callable[[dict[str, Any]], Mapping[str, Any]]
@@ -38,7 +40,9 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
     batch.setdefault("director_model", state.get("director_model") or requested.get("frontier") or "unconfigured/director")
     batch.setdefault("executor_model", state.get("executor_model") or requested.get("economy") or "unconfigured/executor")
     batch.setdefault("watcher_model", state.get("watcher_model") or requested.get("watcher") or "unconfigured/watcher")
-    batch.setdefault("concurrency", state.get("concurrency") or concurrency_default())
+    if "concurrency" not in batch:
+        batch["concurrency"] = state["concurrency"] if "concurrency" in state else concurrency_default()
+    batch["concurrency"] = validate_concurrency(batch["concurrency"])
     repo = Path(str(state.get("repo") or Path.cwd()))
     try:
         git_status = subprocess.run(
@@ -65,7 +69,11 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
     return {
         "phase": "preflight",
         "goal_id": getattr(context, "goal_id", None) or state.get("goal_id"),
-        "preflight_ok": True,
+        "preflight_ok": bool(
+            git_report["available"]
+            and seat_report
+            and all(value == "resolved" for value in seat_report.values())
+        ),
         "autonomy": batch["autonomy"],
         "director_model": batch["director_model"],
         "executor_model": batch["executor_model"],
@@ -125,7 +133,9 @@ def dispatch(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> di
     batch.setdefault("director_model", state.get("director_model") or requested.get("frontier") or "unconfigured/director")
     batch.setdefault("executor_model", state.get("executor_model") or requested.get("economy") or "unconfigured/executor")
     batch.setdefault("watcher_model", state.get("watcher_model") or requested.get("watcher") or "unconfigured/watcher")
-    batch.setdefault("concurrency", state.get("concurrency") or concurrency_default())
+    if "concurrency" not in batch:
+        batch["concurrency"] = state["concurrency"] if "concurrency" in state else concurrency_default()
+    batch["concurrency"] = validate_concurrency(batch["concurrency"])
     batch.setdefault("tasks", tasks)
     missing_batch = [field for field in required_batch_fields() if field not in batch]
     if missing_batch:
@@ -168,7 +178,7 @@ def execute(
     # Multiple Send branches write in one super-step.  Keep the complete
     # executor record under a reducer-backed list; a last-value field such as
     # phase or execution_status would make LangGraph reject the update.
-    result = dict(dependencies.executor(dict(state)))
+    result = redact_value(dict(dependencies.executor(dict(state))))
     _stream(runtime, {
         "event": "executor",
         "task_id": task.get("id"),

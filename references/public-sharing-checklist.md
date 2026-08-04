@@ -6,9 +6,9 @@ When publishing beastmode or similar skills publicly, sanitize these items:
 
 | Item | Example | Why |
 |------|---------|-----|
-| Local file paths | `~/.local/bin/qwen-agent`, `~/.codex/ultraswarm/state/` | Reveals machine setup |
+| Local file paths | `<user-local-tool-path>`, `<private-run-directory>` | Reveals machine setup |
 | Internal project names | Client names, internal codenames | Leaks client/project info |
-| Directory structure | `~/github/knowledge/skills` | Shows repo organization |
+| Directory structure | `<private-knowledge-directory>` | Shows repo organization |
 | Personal symlinks | "Codex, Qwen symlink to that store" | Reveals multi-agent setup |
 | Credentials/secrets | API keys, tokens, service account paths | Obvious |
 | Machine-specific commands | Custom automation scripts | Ties to your environment |
@@ -23,10 +23,11 @@ When publishing beastmode or similar skills publicly, sanitize these items:
 
 ## Publishing Workflow
 
-1. **Audit**: Read full SKILL.md, grep for home-directory paths and project names
+1. **Audit**: Scan every tracked file, generated artifact, and release commit for credentials, private paths, internal names, and sensitive metadata
 2. **Sanitize**: Remove or generalize local references
-3. **Create repo**: Public GitHub repo with clean skill files
-4. **Share**: Use the repo URL in social posts, docs, etc.
+3. **Verify**: Run the repository's fail-closed public-artifact guard and the official security scan on the exact release commit
+4. **Create repo**: Publish only after both checks complete successfully
+5. **Share**: Use the repo URL in social posts, docs, etc.
 
 ## Social Promotion Pattern
 

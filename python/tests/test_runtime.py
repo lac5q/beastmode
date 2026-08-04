@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import asyncio
+import stat
 
 from langgraph.types import Command
 
@@ -57,6 +58,14 @@ def test_sqlite_checkpoint_survives_reopen_and_resumes(tmp_path: Path) -> None:
             context=BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN),
         )
     assert completed["status"] == "merged"
+
+
+def test_sqlite_checkpoint_storage_is_private(tmp_path: Path) -> None:
+    database = tmp_path / "private" / "run.sqlite"
+    with sqlite_checkpointer(database):
+        pass
+    assert stat.S_IMODE(database.stat().st_mode) == 0o600
+    assert stat.S_IMODE(database.parent.stat().st_mode) == 0o700
 
 
 def test_async_runtime_uses_async_sqlite_saver(tmp_path: Path) -> None:

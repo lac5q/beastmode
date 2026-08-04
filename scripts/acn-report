@@ -16,6 +16,8 @@ Missing usage fields are reported as "unavailable". The model-provenance
 gate — MODEL DRIFT, and children whose model cannot be proven at all — is
 `scripts/lib/acn_meta.py`, the same module `enforce-models --check-meta`
 runs, so the two tools cannot disagree about whether a batch is validated.
+Reports intentionally omit commands, verification details, and raw child
+output; identifiers and diagnostic text are bounded and sanitized.
 
 Exit codes: 0 clean, 1 gate failure (drift or unverifiable), 2 usage error.
 
@@ -88,12 +90,12 @@ def main() -> int:
     print("Per-child usage:")
     print("-" * 72)
     for row in result.rows:
-        print(f"  {row.id}")
-        print(f"    requested: {row.requested}")
-        print(f"    actual:    {row.actual}")
+        print(f"  {acn_meta.safe_report_text(row.id)}")
+        print(f"    requested: {acn_meta.safe_report_text(row.requested)}")
+        print(f"    actual:    {acn_meta.safe_report_text(row.actual)}")
         print(f"    tokens:    in={row.input_tokens} out={row.output_tokens}")
         if row.missing_fields:
-            print(f"    incomplete: missing {', '.join(row.missing_fields)}")
+            print(f"    incomplete: missing {', '.join(acn_meta.safe_report_text(field) for field in row.missing_fields)}")
         if requested_overall == UNAVAILABLE and row.requested != UNAVAILABLE:
             requested_overall = row.requested
         if row.actual != UNAVAILABLE:
@@ -102,13 +104,17 @@ def main() -> int:
     print()
 
     actual_summary = ", ".join(actual_lines) if actual_lines else UNAVAILABLE
-    print(f"Models: requested {requested_overall} -> actual {actual_summary}")
+    print(
+        "Models: requested "
+        f"{acn_meta.safe_report_text(requested_overall)} -> actual "
+        f"{acn_meta.safe_report_text(actual_summary)}"
+    )
 
     drifted = [r for r in result.rows if r.status == acn_meta.DRIFT]
     unproven = [r for r in result.rows if r.status == acn_meta.UNVERIFIABLE]
     if drifted:
         ids = ", ".join(r.id for r in drifted)
-        print(f"Drift: MODEL DRIFT: {requested_overall} -> see per-child rows on {ids}")
+        print(f"Drift: MODEL DRIFT: {acn_meta.safe_report_text(requested_overall)} -> see per-child rows on {acn_meta.safe_report_text(ids)}")
     else:
         print("Drift: none")
 
@@ -117,7 +123,7 @@ def main() -> int:
     # "Drift: none" — which is what this tool used to do — reads as a pass.
     if unproven:
         print("Unverifiable: "
-              + "; ".join(f"{r.id} ({r.reason})" for r in unproven))
+              + "; ".join(f"{acn_meta.safe_report_text(r.id)} ({acn_meta.safe_report_text(r.reason)})" for r in unproven))
         print("Unverifiable children are not `validated` — re-run them under a "
               "pinned model that reports requested_model and actual_model.")
 

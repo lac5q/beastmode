@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from beastmode.core.executors import WorktreeSubprocessExecutor
+from beastmode.core.executors import SubprocessExecutor, WorktreeSubprocessExecutor
 from beastmode.core.provenance import check_provenance
 
 
@@ -92,3 +92,15 @@ def test_task_id_cannot_escape_run_or_worktree_root(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="task id"):
         executor({"run_dir": run_dir, "task": {"id": "../outside", "goal": "escape"}})
     assert not outside.exists()
+
+
+def test_subprocess_executor_bounds_and_redacts_output(tmp_path: Path) -> None:
+    token = "ghp_" + "a" * 24
+    executor = SubprocessExecutor(
+        command=(sys.executable, "-c", f"print({token!r}); print('x' * 20000)"),
+    )
+    result = executor({"worktree": tmp_path})
+    assert result["execution_status"] == "ok"
+    assert token not in result["executor_stdout"]
+    assert len(result["executor_stdout"]) <= 16_384 + len("…[TRUNCATED]")
+    assert result["executor_output_truncated"] is True

@@ -10,9 +10,49 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Any, Callable, Iterable, Mapping
 
 from .provenance import check_provenance
+
+
+MAX_PUBLIC_TEXT_CHARS = 16_384
+MAX_TRACE_ITEMS = 128
+_SECRET_PATTERNS = (
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"),
+    re.compile(r"/(?:home|Users)/[^/\s]+"),
+    re.compile(r"\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s]+"),
+)
+
+
+def redact_text(value: object, *, limit: int = MAX_PUBLIC_TEXT_CHARS) -> str:
+    """Bound and redact text before it enters traces, reports, or graph state."""
+    text = str(value)
+    for pattern in _SECRET_PATTERNS:
+        text = pattern.sub("[REDACTED]", text)
+    if len(text) > limit:
+        return text[:limit] + "…[TRUNCATED]"
+    return text
+
+
+def redact_value(value: Any, *, limit: int = MAX_PUBLIC_TEXT_CHARS, depth: int = 0) -> Any:
+    """Recursively sanitize bounded trace/state values without changing scalars."""
+    if depth > 4:
+        return "[TRUNCATED]"
+    if isinstance(value, Mapping):
+        return {
+            str(key): redact_value(item, limit=limit, depth=depth + 1)
+            for key, item in list(value.items())[:MAX_TRACE_ITEMS]
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [
+            redact_value(item, limit=limit, depth=depth + 1)
+            for item in list(value)[:MAX_TRACE_ITEMS]
+        ]
+    if isinstance(value, str):
+        return redact_text(value, limit=limit)
+    return value
 
 
 def trace_metadata(
@@ -73,9 +113,9 @@ def child_span_from_meta(
             "requested_model": meta.get("requested_model"),
             "actual_model": meta.get("actual_model"),
             "stop_reason": meta.get("stop_reason"),
-            "usage": dict(meta.get("usage") or {}),
-            "files_changed": list(meta.get("files_changed") or []),
-            "commands_run": list(meta.get("commands_run") or []),
+            "usage": redact_value(dict(meta.get("usage") or {})),
+            "files_changed": redact_value(list(meta.get("files_changed") or [])),
+            "commands_run": redact_value(list(meta.get("commands_run") or [])),
         },
         "tags": tags,
         "status": {

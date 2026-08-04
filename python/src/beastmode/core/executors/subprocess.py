@@ -15,7 +15,10 @@ from pathlib import Path
 from typing import Iterable, Mapping
 
 from ..worktree import isolated_worktree
-from ..observability import child_span_from_meta
+from ..observability import MAX_PUBLIC_TEXT_CHARS, child_span_from_meta, redact_text
+
+
+DEFAULT_EXECUTOR_TIMEOUT = 300.0
 
 
 @dataclass(frozen=True)
@@ -31,7 +34,7 @@ class SubprocessExecutor:
     """Run an argv command in a supplied child worktree with a reduced env."""
 
     command: tuple[str, ...]
-    timeout: float | None = None
+    timeout: float | None = DEFAULT_EXECUTOR_TIMEOUT
     extra_env: Mapping[str, str] = field(default_factory=dict)
 
     def __call__(self, state: Mapping[str, object]) -> dict[str, object]:
@@ -39,21 +42,14 @@ class SubprocessExecutor:
         if not isinstance(worktree, (str, Path)):
             raise ValueError("subprocess executor needs a child worktree path")
         env = _safe_environment(self.extra_env or {})
-        completed = subprocess.run(
-            list(self.command),
-            cwd=Path(worktree),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=self.timeout,
-            check=False,
-        )
+        completed = _run_bounded(self.command, cwd=Path(worktree), env=env, timeout=self.timeout)
         return {
-            "execution_status": "ok" if completed.returncode == 0 else "failed",
-            "executor_returncode": completed.returncode,
+            "execution_status": "ok" if completed.returncode == 0 and not completed.timed_out else "failed",
+            "executor_returncode": 124 if completed.timed_out else completed.returncode,
             "executor_stdout": completed.stdout,
             "executor_stderr": completed.stderr,
-            "commands_run": [" ".join(self.command)],
+            "executor_output_truncated": completed.truncated,
+            "commands_run": [redact_text(" ".join(self.command))],
         }
 
 
@@ -72,7 +68,7 @@ class WorktreeSubprocessExecutor:
     repo: Path
     command: tuple[str, ...]
     worktree_root: Path | None = None
-    timeout: float | None = None
+    timeout: float | None = DEFAULT_EXECUTOR_TIMEOUT
     extra_env: Mapping[str, str] | None = None
 
     def __call__(self, state: Mapping[str, object]) -> dict[str, object]:
@@ -128,46 +124,82 @@ class WorktreeSubprocessExecutor:
                     },
                     path_prefix=(shim_root,),
                 )
-                try:
-                    completed = subprocess.run(
-                        list(self.command),
-                        cwd=worktree,
-                        env=env,
-                        capture_output=True,
-                        text=True,
-                        timeout=self.timeout,
-                        check=False,
-                    )
-                    result = {
-                        "execution_status": "ok" if completed.returncode == 0 else "failed",
-                        "executor_returncode": completed.returncode,
-                        "executor_stdout": completed.stdout,
-                        "executor_stderr": completed.stderr,
-                        "executor_worktree": str(worktree),
-                        "child_run_dir": str(child_run_dir),
-                        "commands_run": [" ".join(self.command)],
-                    }
-                    meta_path = child_run_dir / "meta.json"
-                    if meta_path.is_file():
-                        try:
-                            result["trace_records"] = [
-                                child_span_from_meta(
-                                    meta_path,
-                                    goal_id=str(state.get("goal_id") or state.get("thread_id") or "") or None,
-                                )
-                            ]
-                        except (OSError, ValueError, json.JSONDecodeError):
-                            result["trace_records"] = []
-                    return result
-                except subprocess.TimeoutExpired as exc:
-                    return {
-                        "execution_status": "failed",
-                        "executor_returncode": 124,
-                        "executor_stdout": _text_output(exc.stdout),
-                        "executor_stderr": _text_output(exc.stderr),
-                        "child_run_dir": str(child_run_dir),
-                        "commands_run": [" ".join(self.command)],
-                    }
+                completed = _run_bounded(self.command, cwd=worktree, env=env, timeout=self.timeout)
+                result = {
+                    "execution_status": "ok" if completed.returncode == 0 and not completed.timed_out else "failed",
+                    "executor_returncode": 124 if completed.timed_out else completed.returncode,
+                    "executor_stdout": completed.stdout,
+                    "executor_stderr": completed.stderr,
+                    "executor_output_truncated": completed.truncated,
+                    "executor_worktree": str(worktree),
+                    "child_run_dir": str(child_run_dir),
+                    "commands_run": [redact_text(" ".join(self.command))],
+                }
+                meta_path = child_run_dir / "meta.json"
+                if meta_path.is_file():
+                    try:
+                        result["trace_records"] = [
+                            child_span_from_meta(
+                                meta_path,
+                                goal_id=str(state.get("goal_id") or state.get("thread_id") or "") or None,
+                            )
+                        ]
+                    except (OSError, ValueError, json.JSONDecodeError):
+                        result["trace_records"] = []
+                return result
+
+
+@dataclass(frozen=True)
+class _BoundedCompleted:
+    returncode: int
+    stdout: str
+    stderr: str
+    truncated: bool
+    timed_out: bool
+
+
+def _run_bounded(
+    command: Iterable[str],
+    *,
+    cwd: Path,
+    env: Mapping[str, str],
+    timeout: float | None,
+) -> _BoundedCompleted:
+    """Run argv without retaining unbounded child output in memory."""
+    with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+        process = subprocess.Popen(
+            list(command),
+            cwd=cwd,
+            env=dict(env),
+            stdout=stdout_file,
+            stderr=stderr_file,
+        )
+        timed_out = False
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            process.kill()
+            process.wait()
+            returncode = 124
+        stdout, stdout_truncated = _read_bounded(stdout_file)
+        stderr, stderr_truncated = _read_bounded(stderr_file)
+    return _BoundedCompleted(
+        returncode=returncode,
+        stdout=stdout,
+        stderr=stderr,
+        truncated=stdout_truncated or stderr_truncated,
+        timed_out=timed_out,
+    )
+
+
+def _read_bounded(handle) -> tuple[str, bool]:
+    handle.seek(0)
+    data = handle.read(MAX_PUBLIC_TEXT_CHARS + 1)
+    truncated = len(data) > MAX_PUBLIC_TEXT_CHARS
+    if truncated:
+        data = data[:MAX_PUBLIC_TEXT_CHARS]
+    return redact_text(data.decode(errors="replace")), truncated
 
 
 def _safe_environment(

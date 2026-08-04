@@ -13,14 +13,14 @@ from langgraph.types import Command
 
 from .context import BeastmodeContext
 from .graphs.pipeline import build_pipeline
+from .limits import validate_concurrency
 from .nodes import PipelineDependencies
 
 
 @contextmanager
 def sqlite_checkpointer(path: Path) -> Iterator[SqliteSaver]:
     """Open the local checkpointer and initialize its tables."""
-    database = Path(path)
-    database.parent.mkdir(parents=True, exist_ok=True)
+    database = _secure_sqlite_path(path)
     with SqliteSaver.from_conn_string(str(database)) as saver:
         saver.setup()
         yield saver
@@ -70,8 +70,7 @@ async def async_sqlite_checkpointer(path: Path) -> AsyncIterator[Any]:
     behavior instead of hanging a goal.  PostgreSQL deployments can provide a
     true async saver through their own checkpointer injection.
     """
-    database = Path(path)
-    database.parent.mkdir(parents=True, exist_ok=True)
+    database = _secure_sqlite_path(path)
     if os.environ.get("BEASTMODE_NATIVE_ASYNC_SQLITE") == "1":
         async with AsyncSqliteSaver.from_conn_string(str(database)) as saver:
             await saver.setup()
@@ -204,7 +203,25 @@ def _run_config(goal_id: str, initial_state: Mapping[str, Any] | Command) -> dic
     if isinstance(initial_state, Mapping):
         batch = initial_state.get("batch")
         batch = batch if isinstance(batch, Mapping) else {}
-        value = initial_state.get("concurrency") or batch.get("concurrency")
-        if isinstance(value, int) and value > 0:
-            config["max_concurrency"] = value
+        value = (
+            initial_state.get("concurrency")
+            if "concurrency" in initial_state
+            else batch.get("concurrency")
+        )
+        if value is not None:
+            config["max_concurrency"] = validate_concurrency(value)
     return config
+
+
+def _secure_sqlite_path(path: Path) -> Path:
+    """Create checkpoint storage with private directory and file modes."""
+    database = Path(path)
+    if database.is_symlink():
+        raise ValueError("SQLite checkpoint path must not be a symlink")
+    parent_missing = not database.parent.exists()
+    database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if parent_missing:
+        database.parent.chmod(0o700)
+    database.touch(mode=0o600, exist_ok=True)
+    database.chmod(0o600)
+    return database

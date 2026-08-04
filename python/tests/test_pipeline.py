@@ -42,6 +42,38 @@ def test_medium_pipeline_resumes_through_both_gates() -> None:
     assert completed["provenance_verdict"] == "ok"
 
 
+def test_gate_rejects_unapproved_resume_value() -> None:
+    graph = build_pipeline(checkpointer=InMemorySaver())
+    config = {"configurable": {"thread_id": "rejected-resume"}}
+    context = BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN)
+    paused = graph.invoke(
+        {
+            "goal": "reject",
+            "run_dir": str(MATCH_RUN),
+            "tasks": [{"id": "a", "goal": "reject", "allowed_paths": [], "verify_cmds": []}],
+        },
+        config=config,
+        context=context,
+    )
+    assert "__interrupt__" in paused
+    with pytest.raises(PermissionError, match="requires an explicit approved decision"):
+        graph.invoke(Command(resume="rejected"), config=config, context=context)
+
+
+def test_pipeline_rejects_excessive_concurrency() -> None:
+    graph = build_pipeline(checkpointer=InMemorySaver())
+    with pytest.raises(ValueError, match="cannot exceed"):
+        graph.invoke(
+            {
+                "goal": "bounded",
+                "concurrency": 33,
+                "tasks": [{"id": "a", "goal": "bounded", "allowed_paths": [], "verify_cmds": []}],
+            },
+            config={"configurable": {"thread_id": "bounded-concurrency"}},
+            context=BeastmodeContext(autonomy="high"),
+        )
+
+
 def test_high_pipeline_does_not_interrupt() -> None:
     graph = build_pipeline(checkpointer=InMemorySaver())
     result = graph.invoke(

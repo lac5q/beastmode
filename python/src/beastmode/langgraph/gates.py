@@ -8,7 +8,7 @@ from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
 from beastmode.core.provenance import check_provenance
-from beastmode.core.observability import trace_metadata
+from beastmode.core.observability import redact_value, trace_metadata
 
 from .context import BeastmodeContext
 
@@ -18,9 +18,22 @@ def _autonomy(runtime: Runtime[BeastmodeContext], state: Mapping[str, Any]) -> s
     return getattr(context, "autonomy", None) or str(state.get("autonomy", "medium"))
 
 
+def _is_approved(decision: Any) -> bool:
+    """Accept only the explicit approval values supported by the public API."""
+    if decision is True or decision == "approved":
+        return True
+    return isinstance(decision, Mapping) and dict(decision) == {"approved": True}
+
+
+def _require_approved(decision: Any, gate: str) -> None:
+    if not _is_approved(decision):
+        raise PermissionError(f"{gate} gate requires an explicit approved decision")
+
+
 def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Pause for approval below high, then run the canonical provenance gate."""
     decision = interrupt({"gate": "provenance", "phase": state.get("phase", "execute")}) if _autonomy(runtime, state) != "high" else "approved"
+    _require_approved(decision, "provenance")
     target = state.get("run_dir")
     if target is None:
         return {
@@ -33,9 +46,10 @@ def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
     _stream(runtime, {"event": "provenance_gate", "verdict": result.verdict})
     trace = trace_metadata(
         {
-            **dict(state),
             "goal_id": state.get("goal_id") or getattr(runtime.context, "goal_id", None),
             "phase": "provenance",
+            "autonomy": _autonomy(runtime, state),
+            "executor_model": state.get("executor_model"),
         },
         {"provenance_verdict": result.verdict},
         tags=() if result.verdict == "ok" else (result.verdict,),
@@ -53,6 +67,7 @@ def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
 def gate_merge(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Pause for merge approval below high; no side effects precede the pause."""
     decision = interrupt({"gate": "merge", "phase": state.get("phase", "review")}) if _autonomy(runtime, state) != "high" else "approved"
+    _require_approved(decision, "merge")
     _stream(runtime, {"event": "merge_gate", "decision": decision})
     return {"merge_decision": decision}
 
@@ -65,6 +80,7 @@ def autonomy_gate(node):
 
     def wrapped(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]):
         decision = interrupt({"gate": "autonomy", "node": getattr(node, "__name__", "node")}) if _autonomy(runtime, state) != "high" else "approved"
+        _require_approved(decision, "autonomy")
         update = dict(node(state, runtime))
         update["gate_decision"] = decision
         return update
@@ -86,6 +102,7 @@ def phase_gate(node, *, phase: str | None = None):
 
     def wrapped(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]):
         decision = interrupt({"gate": "phase", "phase": phase or getattr(node, "__name__", "node")}) if _autonomy(runtime, state) == "low" else "approved"
+        _require_approved(decision, "phase")
         update = dict(node(state, runtime))
         update["phase_gate_decision"] = decision
         _stream(runtime, {"event": "phase", "phase": phase or update.get("phase")})
@@ -98,6 +115,6 @@ def phase_gate(node, *, phase: str | None = None):
 def _stream(runtime: Runtime[BeastmodeContext], event: Mapping[str, Any]) -> None:
     """Emit custom progress without making stream delivery load-bearing."""
     try:
-        runtime.stream_writer(dict(event))
+        runtime.stream_writer(redact_value(dict(event)))
     except Exception:
         pass

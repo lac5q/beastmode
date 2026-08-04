@@ -13,9 +13,8 @@ resolved serving model is treated as **unverifiable** until a live probe proves
 otherwise. The safe implementation fallback is Q2 option B: keep every seat
 behind an existing subprocess harness until the matrix is completed.
 
-The Minimax request did reach the configured API, but the account returned HTTP
-402 (`insufficient_balance_error`) before a completion was produced. That is an
-access/budget failure, not evidence that Minimax reports or fails to report
+The configured provider probe failed before a completion was produced. That is
+an unavailable-completion result, not evidence about whether a provider reports
 `actual_model`.
 
 ## Provider matrix
@@ -25,7 +24,7 @@ access/budget failure, not evidence that Minimax reports or fails to report
 | anthropic | not run; adapter/credential unavailable in the probe environment | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
 | openai-codex | not run; no direct LangChain adapter/credential available | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
 | kimi | not run; adapter/credential unavailable | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
-| minimax | `MiniMax-M3` request reached `api.minimax.io`; HTTP 402 before completion | unavailable because the call failed | unavailable because the call failed | blocked, not a provenance result | no evidence |
+| minimax | request failed before completion | unavailable because the call failed | unavailable because the call failed | blocked, not a provenance result | no evidence |
 | qwen | not run; adapter/credential unavailable | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
 | xai | not run; adapter/credential unavailable | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
 | zai | not run; adapter/credential unavailable | unobserved | unobserved | not measured → treat as unverifiable | no evidence |
