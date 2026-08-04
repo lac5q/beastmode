@@ -151,10 +151,9 @@ case "$HARNESS" in
     cfg="$HOME/.hermes/config.yaml"
     auth="$HOME/.hermes/auth.json"
     [ -f "$cfg" ] || [ -f "$auth" ] || {
-      echo "enforce-models: hermes config not found at $cfg or $auth; skipping presence check" >&2
-      # No config on this host — treat as pass-through so the ACN run can
-      # still proceed; the runner will surface the real error.
-      exit 0
+      echo "enforce-models: hermes config not found; requested providers cannot be proven available" >&2
+      echo "enforce-models: configure Hermes or set BM_SKIP_MODEL_CHECK=1 explicitly" >&2
+      exit 2
     }
     missing=()
     for model in "${MODELS[@]}"; do

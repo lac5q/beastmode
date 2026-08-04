@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Mapping
 
 from langgraph.runtime import Runtime
@@ -11,11 +12,13 @@ from beastmode.core.provenance import check_provenance
 from beastmode.core.observability import redact_value, trace_metadata
 
 from .context import BeastmodeContext
+from .limits import MAX_TASKS
 
 
 def _autonomy(runtime: Runtime[BeastmodeContext], state: Mapping[str, Any]) -> str:
     context = runtime.context
-    return getattr(context, "autonomy", None) or str(state.get("autonomy", "medium"))
+    value = getattr(context, "autonomy", None)
+    return value if value in {"low", "medium", "high"} else "medium"
 
 
 def _is_approved(decision: Any) -> bool:
@@ -31,10 +34,30 @@ def _require_approved(decision: Any, gate: str) -> None:
 
 
 def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
-    """Pause for approval below high, then run the canonical provenance gate."""
+    """Strict pipeline provenance gate with preflight/validation prerequisites."""
+    return _run_provenance_gate(state, runtime, require_pipeline_prerequisites=True)
+
+
+def provenance_gate(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
+    """Composable provenance node; trusted target/expected ids live in context."""
+    return _run_provenance_gate(state, runtime, require_pipeline_prerequisites=False)
+
+
+def _run_provenance_gate(
+    state: Mapping[str, Any],
+    runtime: Runtime[BeastmodeContext],
+    *,
+    require_pipeline_prerequisites: bool,
+) -> dict[str, Any]:
+    if require_pipeline_prerequisites:
+        if state.get("preflight_ok") is not True:
+            raise PermissionError("provenance gate requires a successful preflight")
+        validation = state.get("validation_report")
+        if not isinstance(validation, Mapping) or validation.get("passed") is not True:
+            raise PermissionError("provenance gate requires successful mechanical validation")
     decision = interrupt({"gate": "provenance", "phase": state.get("phase", "execute")}) if _autonomy(runtime, state) != "high" else "approved"
     _require_approved(decision, "provenance")
-    target = state.get("run_dir")
+    target = getattr(runtime.context, "run_dir", None)
     if target is None:
         return {
             "provenance_verdict": "unverifiable",
@@ -42,7 +65,25 @@ def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
             "gate_decision": decision,
             "provenance_retry_count": int(state.get("provenance_retry_count", 0)) + 1,
         }
-    result = check_provenance(target, expect=state.get("expected_child_ids"))
+    context_expected = getattr(runtime.context, "expected_child_ids", None)
+    if context_expected is not None:
+        expected = [str(item) for item in context_expected]
+    else:
+        tasks = state.get("tasks")
+        tasks = tasks if isinstance(tasks, list) else []
+        expected = [str(task.get("id")) for task in tasks if isinstance(task, Mapping) and task.get("id")]
+    if (
+        not expected
+        or len(expected) > MAX_TASKS
+        or any(not item or len(item) > 128 for item in expected)
+    ):
+        return {
+            "provenance_verdict": "unverifiable",
+            "provenance_messages": ["trusted expected child ids are missing or out of bounds"],
+            "gate_decision": decision,
+            "provenance_retry_count": int(state.get("provenance_retry_count", 0)) + 1,
+        }
+    result = check_provenance(Path(target).resolve(), expect=expected)
     _stream(runtime, {"event": "provenance_gate", "verdict": result.verdict})
     trace = trace_metadata(
         {
@@ -56,7 +97,7 @@ def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
     )
     return {
         "provenance_verdict": result.verdict,
-        "provenance_messages": list(result.messages),
+        "provenance_messages": [redact_value(message) for message in result.messages],
         "provenance_exit_code": result.exit_code,
         "gate_decision": decision,
         "provenance_retry_count": int(state.get("provenance_retry_count", 0)) + 1,
@@ -66,13 +107,13 @@ def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
 
 def gate_merge(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Pause for merge approval below high; no side effects precede the pause."""
+    report = state.get("review_report")
+    if not isinstance(report, Mapping) or report.get("approved") is not True:
+        raise PermissionError("merge gate requires explicit reviewer approval")
     decision = interrupt({"gate": "merge", "phase": state.get("phase", "review")}) if _autonomy(runtime, state) != "high" else "approved"
     _require_approved(decision, "merge")
     _stream(runtime, {"event": "merge_gate", "decision": decision})
     return {"merge_decision": decision}
-
-
-provenance_gate = gate_provenance
 
 
 def autonomy_gate(node):

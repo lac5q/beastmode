@@ -9,10 +9,12 @@ from langgraph.types import Command
 
 from beastmode.langgraph import BeastmodeContext, BeastmodeState, autonomy_gate, provenance_gate
 from beastmode.langgraph.graphs.pipeline import build_pipeline
+from beastmode.langgraph.nodes import PipelineDependencies
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MATCH_RUN = ROOT / "tests" / "fixtures" / "acn-meta" / "match"
+OK_DEPENDENCIES = PipelineDependencies(executor=lambda state: {"execution_status": "ok"})
 
 
 class ForeignState(TypedDict, total=False):
@@ -44,12 +46,13 @@ def test_foreign_graph_can_drop_in_provenance_and_autonomy_nodes() -> None:
     first = compiled.invoke(
         {"user_note": "untouched", "run_dir": str(MATCH_RUN), "expected_child_ids": ["a"]},
         config=config,
-        context=BeastmodeContext(autonomy="medium"),
+        context=BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN, expected_child_ids=("a",)),
     )
     assert "__interrupt__" in first
-    second = compiled.invoke(Command(resume="approved"), config=config, context=BeastmodeContext(autonomy="medium"))
+    context = BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN, expected_child_ids=("a",))
+    second = compiled.invoke(Command(resume="approved"), config=config, context=context)
     assert "__interrupt__" in second
-    done = compiled.invoke(Command(resume="approved"), config=config, context=BeastmodeContext(autonomy="medium"))
+    done = compiled.invoke(Command(resume="approved"), config=config, context=context)
     assert done["user_note"] == "untouched"
     assert done["user_value"] == "kept"
     assert done["provenance_verdict"] == "ok"
@@ -79,7 +82,11 @@ def test_pipeline_accepts_a_foreign_state_schema() -> None:
         provenance_verdict: str
         task_results: list[dict]
 
-    graph = build_pipeline(state_schema=CombinedState, checkpointer=InMemorySaver())
+    graph = build_pipeline(
+        dependencies=OK_DEPENDENCIES,
+        state_schema=CombinedState,
+        checkpointer=InMemorySaver(),
+    )
     result = graph.invoke(
         {
             "goal": "foreign-state",
@@ -88,14 +95,14 @@ def test_pipeline_accepts_a_foreign_state_schema() -> None:
             "tasks": [{"id": "a", "goal": "foreign-state", "allowed_paths": [], "verify_cmds": []}],
         },
         config={"configurable": {"thread_id": "foreign-state"}},
-        context=BeastmodeContext(autonomy="high"),
+        context=BeastmodeContext(autonomy="high", run_dir=MATCH_RUN),
     )
     assert result["user_note"] == "preserve me"
     assert result["status"] == "merged"
 
 
 def test_pipeline_subgraph_uses_parent_checkpointer_and_preserves_parent_state() -> None:
-    subgraph = build_pipeline(state_schema=ParentState)
+    subgraph = build_pipeline(dependencies=OK_DEPENDENCIES, state_schema=ParentState)
     parent = StateGraph(ParentState, context_schema=BeastmodeContext)
 
     def before(state):
@@ -119,10 +126,24 @@ def test_pipeline_subgraph_uses_parent_checkpointer_and_preserves_parent_state()
         "run_dir": str(MATCH_RUN),
         "tasks": [{"id": "a", "goal": "embedded", "allowed_paths": [], "verify_cmds": []}],
     }
-    paused = compiled.invoke(initial, config=config, context=BeastmodeContext(autonomy="medium"))
+    context = BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN)
+    paused = compiled.invoke(initial, config=config, context=context)
     assert "__interrupt__" in paused
-    paused_again = compiled.invoke(Command(resume="approved"), config=config, context=BeastmodeContext(autonomy="medium"))
+    paused_again = compiled.invoke(Command(resume="approved"), config=config, context=context)
     assert "__interrupt__" in paused_again
-    result = compiled.invoke(Command(resume="approved"), config=config, context=BeastmodeContext(autonomy="medium"))
+    result = compiled.invoke(Command(resume="approved"), config=config, context=context)
     assert result["status"] == "merged"
     assert result["user_note"] == "start|before|after"
+
+
+def test_standalone_provenance_requires_context_bound_expected_ids() -> None:
+    graph = StateGraph(ForeignState, context_schema=BeastmodeContext)
+    graph.add_node("provenance", provenance_gate)
+    graph.add_edge(START, "provenance")
+    graph.add_edge("provenance", END)
+    compiled = graph.compile()
+    result = compiled.invoke(
+        {},
+        context=BeastmodeContext(autonomy="high", run_dir=MATCH_RUN),
+    )
+    assert result["provenance_verdict"] == "unverifiable"

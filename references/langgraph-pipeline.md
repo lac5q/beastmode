@@ -6,16 +6,21 @@ resume replays the gate node from the top, so the same `thread_id` is required.
 
 ```mermaid
 flowchart TD
-    START --> preflight --> contract --> design --> challenge --> dispatch
+    START --> preflight
+    preflight -->|ok| contract --> design --> challenge --> dispatch
+    preflight -->|failed| blocked
     dispatch -->|one Send per task in current lane| execute
+    dispatch -->|no tasks| validate_mechanical
     execute -->|all children join| dispatch_next
     dispatch_next -->|next lane| execute
     dispatch_next -->|all lanes complete| validate_mechanical
-    validate_mechanical --> gate_provenance
+    validate_mechanical -->|passed| gate_provenance
+    validate_mechanical -->|failed| blocked
     gate_provenance -->|ok| review
     gate_provenance -->|drift/unverifiable, retry budget| dispatch
     gate_provenance -->|retry budget exhausted| blocked
-    review --> gate_merge
+    review -->|approved| gate_merge
+    review -->|rejected| blocked
     gate_merge -->|approved| merge --> self_improve --> END
     gate_merge -->|rejected| design
     blocked --> END

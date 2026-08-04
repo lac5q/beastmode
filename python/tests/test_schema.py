@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-from beastmode.core.schema import acn_contract, required_meta_fields, schema_root
+import pytest
+
+from beastmode.core.schema import acn_contract, load_schema, required_meta_fields, schema_root
 
 
 def _load_acn_meta():
@@ -26,3 +28,8 @@ def test_required_meta_fields_match_the_existing_gate() -> None:
     contract_fields = tuple(acn_contract()["meta_json_required_fields"])
     assert expected == contract_fields
     assert expected == _load_acn_meta().required_meta_fields()
+
+
+def test_schema_name_cannot_escape_schema_root() -> None:
+    with pytest.raises(ValueError, match="inside the schema"):
+        load_schema("../scripts/tier-aliases")

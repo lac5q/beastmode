@@ -205,6 +205,44 @@ else
 fi
 rm -f "$TMP/meta.json"
 
+# Metadata discovery and parsing are bounded before any report is built.
+BOUNDS="$TMP/bounds"; mkdir -p "$BOUNDS"
+python3 - "$BOUNDS/meta.json" <<'PY'
+from pathlib import Path
+import sys
+Path(sys.argv[1]).write_text('{"id":"large","padding":"' + ('x' * (300 * 1024)) + '"}')
+PY
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$BOUNDS"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "exceeds"; then
+  pass "oversized child metadata fails closed"
+else
+  fail "oversized meta: expected bounded failure, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+python3 - "$BOUNDS/meta.json" <<'PY'
+from pathlib import Path
+import json, sys
+value = {"id": "deep", "requested_model": "m", "actual_model": "m"}
+for _ in range(12):
+    value = {"nested": value}
+Path(sys.argv[1]).write_text(json.dumps(value))
+PY
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$BOUNDS"
+if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "nesting"; then
+  pass "deeply nested metadata fails closed"
+else
+  fail "deep meta: expected bounded failure, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+SECRET_MODEL="ghp_$(printf 'a%.0s' {1..24})"
+printf '%s\n' "{\"id\":\"secret-child\",\"requested_model\":\"$SECRET_MODEL\",\"actual_model\":\"other\",\"stop_reason\":\"end\",\"usage\":{},\"files_changed\":[],\"commands_run\":[],\"verify\":{}}" > "$BOUNDS/meta.json"
+run_gate "$ROOT/scripts/acn-report" "$BOUNDS"
+if ! echo "$GATE_OUT" | grep -q "$SECRET_MODEL" && echo "$GATE_OUT" | grep -q "REDACTED"; then
+  pass "ACN diagnostics redact child-controlled model values"
+else
+  fail "ACN report exposed a child-controlled secret: $GATE_OUT"
+fi
+
 # A half-written child alongside a good one. The first cut of the gate keyed
 # candidate detection on provenance fields, so a child that died before
 # writing them was not recognised as a child at all — it vanished from the
@@ -217,6 +255,23 @@ if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "lost"; then
   pass "half-written sibling is UNVERIFIABLE despite a valid sibling"
 else
   fail "half-written sibling: expected exit 1 naming 'lost', got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+# Hermes preflight must fail closed when no configuration or auth exists.
+mkdir -p "$TMP/no-hermes-home"
+run_gate env HOME="$TMP/no-hermes-home" "$ROOT/scripts/enforce-models" --harness hermes --model minimax/MiniMax-M3
+if [ "$GATE_RC" = "2" ]; then
+  pass "Hermes preflight rejects missing configuration with exit 2"
+else
+  fail "Hermes missing config: expected exit 2, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
+# The network cache probe must reject resource-amplifying call counts before I/O.
+run_gate "$ROOT/scripts/cache-hitrate" --base-url http://127.0.0.1:1 --calls 11
+if [ "$GATE_RC" = "2" ] && echo "$GATE_OUT" | grep -q "between 1 and 10"; then
+  pass "cache-hitrate bounds --calls"
+else
+  fail "cache-hitrate --calls bound: expected exit 2, got rc=$GATE_RC out=$GATE_OUT"
 fi
 
 # ...and it must still appear as a row in the report, not just in the verdict.

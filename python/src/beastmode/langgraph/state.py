@@ -31,15 +31,18 @@ class BeastmodeState(TypedDict, total=False):
 
     goal: str
     goal_id: str
+    repo: str
     autonomy: str
     batch: dict[str, Any]
     director_model: str
     executor_model: str
     watcher_model: str
+    requested_seats: dict[str, Any]
     concurrency: int
     phase: str
     acceptance_contract: dict[str, Any]
     preflight_report: dict[str, Any]
+    preflight_ok: bool
     challenge_report: dict[str, Any]
     child_meta: Annotated[list[ChildMeta], operator.add]
     trace_records: Annotated[list[dict[str, Any]], operator.add]

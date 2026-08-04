@@ -11,6 +11,11 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from beastmode.core.seats import SeatModel
 
 
+def as_chat_model(seat: SeatModel) -> "SeatChatModel":
+    """Wrap a framework-neutral seat at the optional LangGraph boundary."""
+    return SeatChatModel(seat=seat)
+
+
 class SeatChatModel(BaseChatModel):
     """Expose a :class:`SeatModel` as a normal LangChain chat model.
 

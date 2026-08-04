@@ -78,17 +78,6 @@ class SeatModel:
             child_id=child_id,
         )
 
-    def as_chat_model(self) -> Any:
-        """Return the optional LangChain wrapper around this seat.
-
-        The import stays behind the method boundary so ``beastmode.core``
-        remains usable on machines that intentionally have no LangGraph or
-        LangChain installation.
-        """
-        from beastmode.langgraph.models import SeatChatModel
-
-        return SeatChatModel(seat=self)
-
     def invoke(
         self,
         value: Any,

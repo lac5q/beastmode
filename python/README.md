@@ -16,11 +16,11 @@ python -m pip install -e 'python[langgraph]'
 
 ```python
 from beastmode.core.seats import resolve_alias
-from beastmode.langgraph import provenance_gate
+from beastmode.langgraph import as_chat_model, provenance_gate
 
 seat = resolve_alias("minimax/MiniMax-M3")
 configured = seat.with_chat_model(your_base_chat_model)
-chat_model = configured.as_chat_model()
+chat_model = as_chat_model(configured)
 ```
 
 The complete checkpointed pipeline is `build_pipeline()`. SQLite is the local

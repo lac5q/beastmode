@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import functools
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -52,17 +53,28 @@ OK = "ok"
 DRIFT = "drift"
 UNVERIFIABLE = "unverifiable"
 
+MAX_META_FILES = 1024
+MAX_SCANNED_ENTRIES = 8192
+MAX_SCAN_DEPTH = 8
+MAX_JSON_BYTES = 256 * 1024
+MAX_JSON_DEPTH = 8
+MAX_JSON_ITEMS = 2048
+
 _REPORT_SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"),
     re.compile(r"/(?:home|Users)/[^/\s]+"),
     re.compile(r"\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s]+"),
+    re.compile(
+        r"(?i)\b(?:password|passwd|secret|token|api[-_]?key|authorization|"
+        r"database[-_]?url|access[-_]?token)\b\s*[:=]\s*[^\s,;]+"
+    ),
 )
 
 
 def safe_report_text(value: object, *, limit: int = 256) -> str:
     """Keep report identifiers/reasons bounded and free of obvious secrets/paths."""
-    text = str(value)
+    text = re.sub(r"[\x00-\x1f\x7f]", " ", str(value))
     for pattern in _REPORT_SECRET_PATTERNS:
         text = pattern.sub("[REDACTED]", text)
     if len(text) > limit:
@@ -155,26 +167,84 @@ def is_child_record(body: dict) -> bool:
 
 def find_meta_files(target: Path) -> list[Path]:
     """Every candidate child meta under `target`, recursively, sorted."""
-    found = []
-    for path in sorted(set(target.glob("**/*.json"))):
-        if not path.is_file():
-            continue
-        if path.name == "meta.json":
-            found.append(path)
-            continue
+    found: list[Path] = []
+    scanned = 0
+    target = Path(target)
+    for root, dirs, files in os.walk(target, followlinks=False):
+        root_path = Path(root)
         try:
-            with path.open() as f:
-                body = json.load(f)
-        except json.JSONDecodeError:
-            # Unreadable JSON inside a run dir is itself a finding — a child
-            # that half-wrote its meta must not pass as "no meta here".
-            found.append(path)
-            continue
-        except OSError:
-            continue
-        if is_child_record(body):
-            found.append(path)
-    return found
+            depth = len(root_path.relative_to(target).parts)
+        except ValueError as exc:
+            raise MetadataLimitError("metadata scan escaped its target") from exc
+        if depth > MAX_SCAN_DEPTH:
+            raise MetadataLimitError(f"metadata scan depth exceeds {MAX_SCAN_DEPTH}")
+        dirs[:] = sorted(
+            name for name in dirs if not (root_path / name).is_symlink()
+        )
+        files = sorted(files)
+        scanned += len(dirs) + len(files)
+        if scanned > MAX_SCANNED_ENTRIES:
+            raise MetadataLimitError(
+                f"metadata scan exceeds {MAX_SCANNED_ENTRIES} filesystem entries"
+            )
+        for name in files:
+            path = root_path / name
+            if path.suffix.lower() != ".json" or not path.is_file():
+                continue
+            if len(found) >= MAX_META_FILES:
+                raise MetadataLimitError(
+                    f"metadata scan exceeds {MAX_META_FILES} JSON candidates"
+                )
+            if path.name == "meta.json":
+                found.append(path)
+                continue
+            try:
+                body = _load_json(path)
+            except (OSError, json.JSONDecodeError, RecursionError, MetadataLimitError):
+                # Any unreadable or structurally excessive JSON in a run
+                # directory is fail-closed: it may be a partial child record.
+                found.append(path)
+                continue
+            if is_child_record(body):
+                found.append(path)
+    return sorted(found)
+
+
+class MetadataLimitError(ValueError):
+    """Raised when a run directory or JSON structure exceeds gate bounds."""
+
+
+def _load_json(path: Path):
+    if path.is_symlink() or not path.is_file():
+        raise MetadataLimitError("JSON metadata must be a regular, non-symlink file")
+    size = path.stat().st_size
+    if size > MAX_JSON_BYTES:
+        raise MetadataLimitError(f"JSON file exceeds {MAX_JSON_BYTES} bytes")
+    with path.open(encoding="utf-8") as handle:
+        body = json.load(handle)
+    _validate_json_shape(body)
+    return body
+
+
+def _validate_json_shape(value: object) -> None:
+    items = 0
+
+    def visit(node: object, depth: int) -> None:
+        nonlocal items
+        if depth > MAX_JSON_DEPTH:
+            raise MetadataLimitError(f"JSON nesting exceeds depth {MAX_JSON_DEPTH}")
+        items += 1
+        if items > MAX_JSON_ITEMS:
+            raise MetadataLimitError(f"JSON structure exceeds {MAX_JSON_ITEMS} items")
+        if isinstance(node, dict):
+            for key, child in node.items():
+                visit(key, depth + 1)
+                visit(child, depth + 1)
+        elif isinstance(node, list):
+            for child in node:
+                visit(child, depth + 1)
+
+    visit(value, 0)
 
 
 class Row:
@@ -184,10 +254,14 @@ class Row:
         self.path = path
         self.error = error
         data = data if isinstance(data, dict) else {}
-        self.id = _first(data, "id", "name") or path.stem
-        self.requested = _first(data, "requested_model") or UNAVAILABLE
-        self.actual = _first(data, "actual_model") or UNAVAILABLE
-        self.legacy_model = _first(data, "model") or UNAVAILABLE
+        self.raw_id = _first(data, "id", "name") or path.stem
+        self.id = safe_report_text(self.raw_id)
+        self._requested_raw = _first(data, "requested_model") or UNAVAILABLE
+        self._actual_raw = _first(data, "actual_model") or UNAVAILABLE
+        self._legacy_raw = _first(data, "model") or UNAVAILABLE
+        self.requested = safe_report_text(self._requested_raw)
+        self.actual = safe_report_text(self._actual_raw)
+        self.legacy_model = safe_report_text(self._legacy_raw)
         usage = data.get("usage")
         usage = usage if isinstance(usage, dict) else {}
         self.input_tokens = _stringify(usage.get("input_tokens"))
@@ -198,10 +272,10 @@ class Row:
     def _classify(self) -> tuple[str, str]:
         if self.error:
             return UNVERIFIABLE, f"unreadable meta: {self.error}"
-        has_req = self.requested != UNAVAILABLE
-        has_act = self.actual != UNAVAILABLE
+        has_req = self._requested_raw != UNAVAILABLE
+        has_act = self._actual_raw != UNAVAILABLE
         if has_req and has_act:
-            if self.requested == self.actual:
+            if self._requested_raw == self._actual_raw:
                 return OK, ""
             return DRIFT, f"{self.requested} -> {self.actual}"
         if self.legacy_model != UNAVAILABLE and not (has_req or has_act):
@@ -218,7 +292,7 @@ class Row:
 
     def line(self) -> str:
         label = "MODEL DRIFT" if self.status == DRIFT else "UNVERIFIABLE"
-        return f"{label}: {self.reason} ({self.path})"
+        return safe_report_text(f"{label}: {self.reason} ({self.path})", limit=1024)
 
 
 def _first(data: dict, *keys: str) -> str | None:
@@ -230,17 +304,18 @@ def _first(data: dict, *keys: str) -> str | None:
 
 
 def _stringify(value) -> str:
-    return UNAVAILABLE if value is None else str(value)
+    return UNAVAILABLE if value is None else safe_report_text(value)
 
 
 def load_rows(target: Path) -> list[Row]:
     rows = []
     for path in find_meta_files(target):
         try:
-            with path.open() as f:
-                rows.append(Row(path, json.load(f)))
-        except (OSError, json.JSONDecodeError) as e:
-            rows.append(Row(path, None, error=str(e)))
+            body = _load_json(path)
+            rows.append(Row(path, body if isinstance(body, dict) else None,
+                            error=None if isinstance(body, dict) else "meta must be a JSON object"))
+        except (OSError, json.JSONDecodeError, RecursionError, MetadataLimitError) as e:
+            rows.append(Row(path, None, error=safe_report_text(e)))
     return rows
 
 
@@ -260,31 +335,47 @@ def expected_ids(source: str) -> list[str]:
     """
     path = Path(source)
     if path.is_file():
-        with path.open() as f:
-            batch = json.load(f)
+        batch = _load_json(path)
         tasks = batch.get("tasks") if isinstance(batch, dict) else None
         if not isinstance(tasks, list):
-            raise ValueError(f"{source} has no 'tasks' list to read child ids from")
-        return [str(t.get("id")) for t in tasks if isinstance(t, dict) and t.get("id")]
-    return [part.strip() for part in source.split(",") if part.strip()]
+            raise ValueError(
+                f"{safe_report_text(source)} has no 'tasks' list to read child ids from"
+            )
+        ids = [str(t.get("id")) for t in tasks if isinstance(t, dict) and t.get("id")]
+    else:
+        ids = [part.strip() for part in source.split(",") if part.strip()]
+    if len(ids) > MAX_META_FILES:
+        raise ValueError(f"expected child count cannot exceed {MAX_META_FILES}")
+    return ids
 
 
 def check(target: Path, allow_empty: bool = False, strict: bool = False,
           expect: list[str] | None = None) -> GateResult:
     """Run the provenance gate over a directory of child metas."""
-    if not target.is_dir():
-        return GateResult([], [f"not a directory: {target}"], 2)
+    if target.is_symlink() or not target.is_dir():
+        return GateResult([], [f"not a regular directory: {safe_report_text(target)}"], 2)
 
-    rows = load_rows(target)
+    try:
+        rows = load_rows(target)
+    except (OSError, MetadataLimitError) as exc:
+        return GateResult(
+            [],
+            [f"UNVERIFIABLE: metadata scan rejected: {safe_report_text(exc)}"],
+            1,
+        )
     if not rows and not expect:
         if allow_empty:
-            return GateResult([], [f"no child metas found in {target} (--allow-empty)"], 0)
+            return GateResult(
+                [],
+                [f"no child metas found in {safe_report_text(target)} (--allow-empty)"],
+                0,
+            )
         # Fail closed: a batch that produced no provable child did not
         # produce a validated one either.
         return GateResult(
             [],
             [
-                f"UNVERIFIABLE: no child metas found in {target}; "
+                f"UNVERIFIABLE: no child metas found in {safe_report_text(target)}; "
                 "no child's model can be proven, so nothing here is validated. "
                 "Pass --allow-empty if this batch legitimately had no children."
             ],
@@ -298,17 +389,19 @@ def check(target: Path, allow_empty: bool = False, strict: bool = False,
     # the batch to exit 0. Only the batch's own list of ids can catch that.
     missing_children = []
     if expect:
-        seen = {row.id for row in rows}
+        seen = {row.raw_id for row in rows}
         missing_children = [cid for cid in expect if cid not in seen]
         for cid in missing_children:
             messages.append(
-                f"UNVERIFIABLE: expected child {cid!r} wrote no meta in {target}; "
+                f"UNVERIFIABLE: expected child {safe_report_text(cid)!r} wrote no meta in "
+                f"{safe_report_text(target)}; "
                 "it cannot be shown to have run under the pinned model"
             )
     incomplete = [row for row in rows if row.missing_fields and not row.failed]
     for row in incomplete:
         messages.append(
-            f"INCOMPLETE: {row.id} missing {', '.join(row.missing_fields)} ({row.path})"
+            f"INCOMPLETE: {row.id} missing {', '.join(row.missing_fields)} "
+            f"({safe_report_text(row.path)})"
         )
 
     failed = any(row.failed for row in rows) or bool(missing_children)
@@ -337,7 +430,7 @@ def main(argv: list[str]) -> int:
             try:
                 expect = expected_ids(args.pop(0))
             except (OSError, ValueError, json.JSONDecodeError) as e:
-                print(f"acn_meta: --expect: {e}", file=sys.stderr)
+                print(f"acn_meta: --expect: {safe_report_text(e)}", file=sys.stderr)
                 return 2
         elif arg == "--allow-empty":
             allow_empty = True

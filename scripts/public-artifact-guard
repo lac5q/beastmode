@@ -30,9 +30,9 @@ scan_for_matches() {
   esac
 }
 
-scan_for_matches "Potential credential material" git grep -I -l -E \
+scan_for_matches "Potential credential material" git grep -l -E \
   'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' -- .
-scan_for_matches "Machine-specific absolute paths" git grep -I -l -E \
+scan_for_matches "Machine-specific absolute paths" git grep -l -E \
   '/(home|Users)/[[:alnum:]_.-]+|C:[\\/]+Users[\\/]+[[:alnum:]_.-]+' -- .
 
 tracked_files="$(git ls-files)" || {

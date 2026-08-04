@@ -18,11 +18,16 @@ from .provenance import check_provenance
 
 MAX_PUBLIC_TEXT_CHARS = 16_384
 MAX_TRACE_ITEMS = 128
+MAX_CHILD_META_BYTES = 256 * 1024
 _SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"),
     re.compile(r"/(?:home|Users)/[^/\s]+"),
     re.compile(r"\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s]+"),
+    re.compile(
+        r"(?i)\b(?:password|passwd|secret|token|api[-_]?key|authorization|"
+        r"database[-_]?url|access[-_]?token)\b\s*[:=]\s*[^\s,;]+"
+    ),
 )
 
 
@@ -76,15 +81,15 @@ def trace_metadata(
     return {
         "name": "beastmode.node",
         "kind": "internal",
-        "attributes": {
+        "attributes": redact_value({
             "goal_id": state.get("goal_id") or state.get("thread_id"),
             "phase": state.get("phase"),
             "seat": meta.get("seat") or state.get("seat") or "executor",
             "autonomy": state.get("autonomy"),
             "requested_model": requested,
             "actual_model": actual,
-        },
-        "tags": sorted(tag_set),
+        }),
+        "tags": redact_value(sorted(tag_set)),
     }
 
 
@@ -96,23 +101,27 @@ def child_span_from_meta(
 ) -> dict[str, Any]:
     """Synthesize a child span from one canonical child metadata file."""
     path = Path(meta_path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("child metadata must be a regular, non-symlink file")
+    if path.stat().st_size > MAX_CHILD_META_BYTES:
+        raise ValueError(f"child metadata exceeds {MAX_CHILD_META_BYTES} bytes")
     with path.open(encoding="utf-8") as handle:
         meta = json.load(handle)
     if not isinstance(meta, Mapping):
-        raise ValueError(f"child metadata must be an object: {path}")
-    child_id = str(meta.get("id") or path.parent.name)
+        raise ValueError("child metadata must be a JSON object")
+    child_id = redact_text(meta.get("id") or path.parent.name)
     result = check_provenance(path.parent, expect=[child_id])
     tags = [] if result.verdict == "ok" else [result.verdict]
     return {
         "name": "beastmode.child",
         "kind": "internal",
-        "parent_span_id": parent_span_id,
+        "parent_span_id": redact_text(parent_span_id or ""),
         "attributes": {
             "child_id": child_id,
-            "goal_id": goal_id,
-            "requested_model": meta.get("requested_model"),
-            "actual_model": meta.get("actual_model"),
-            "stop_reason": meta.get("stop_reason"),
+            "goal_id": redact_text(goal_id or ""),
+            "requested_model": redact_text(meta.get("requested_model")),
+            "actual_model": redact_text(meta.get("actual_model")),
+            "stop_reason": redact_text(meta.get("stop_reason")),
             "usage": redact_value(dict(meta.get("usage") or {})),
             "files_changed": redact_value(list(meta.get("files_changed") or [])),
             "commands_run": redact_value(list(meta.get("commands_run") or [])),
@@ -120,7 +129,7 @@ def child_span_from_meta(
         "tags": tags,
         "status": {
             "code": "ok" if result.verdict == "ok" else "error",
-            "description": "; ".join(result.messages),
+            "description": redact_text("; ".join(result.messages)),
         },
     }
 
@@ -130,10 +139,11 @@ def emit_trace(
     callback: Callable[[Mapping[str, Any]], Any] | None = None,
 ) -> Mapping[str, Any]:
     """Best-effort callback hook; tracing failures never affect the caller."""
+    safe_record = redact_value(dict(record))
     if callback is None:
-        return record
+        return safe_record
     try:
-        callback(record)
+        callback(safe_record)
     except Exception:
         pass
-    return record
+    return safe_record

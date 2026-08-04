@@ -17,15 +17,22 @@ def isolated_worktree(repo: Path, path: Path, *, revision: str = "HEAD") -> Iter
     subprocess.run(
         ["git", "-C", str(repo), "worktree", "add", "--detach", str(path), revision],
         check=True,
-        capture_output=True,
-        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=30,
     )
     try:
         yield path
     finally:
-        subprocess.run(
-            ["git", "-C", str(repo), "worktree", "remove", "--force", str(path)],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            subprocess.run(
+                ["git", "-C", str(repo), "worktree", "remove", "--force", str(path)],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            # The original worker outcome remains authoritative; callers can
+            # prune a stale disposable worktree after a timed-out cleanup.
+            pass

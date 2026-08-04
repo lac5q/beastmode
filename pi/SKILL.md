@@ -62,10 +62,10 @@ different lane (or the pi-native tier).
 # Qwen lane
 ~/.local/bin/qwen-agent --dangerously-skip-permissions -p "Reply with exactly: QWEN OK"
 
-# Direct MiniMax API lane (MINIMAX_API_KEY in env; never print the key)
+# Direct MiniMax API lane (the key is fed on stdin, never placed in process argv)
+printf 'Authorization: Bearer %s\nContent-Type: application/json\n' "$MINIMAX_API_KEY" | \
 curl -sS https://api.minimax.io/v1/chat/completions \
-  -H "Authorization: Bearer $MINIMAX_API_KEY" \
-  -H "Content-Type: application/json" \
+  -H @- \
   -d '{"model":"MiniMax-M3","thinking":{"type":"disabled"},"messages":[{"role":"user","content":"Reply with exactly: MINIMAX OK"}],"max_completion_tokens":20,"temperature":0}'
 
 # Droid MiniMax lane

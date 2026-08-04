@@ -21,6 +21,9 @@ p.add_argument("--model", default="claude-sonnet-4-6")
 p.add_argument("--calls", type=int, default=3)
 args = p.parse_args()
 
+if not 1 <= args.calls <= 10:
+    p.error("--calls must be between 1 and 10")
+
 import os
 
 base = (args.base_url or os.environ.get("ANTHROPIC_BASE_URL", "")).rstrip("/")

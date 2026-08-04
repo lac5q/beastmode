@@ -15,7 +15,7 @@ does not by itself prove every phase exit.
 | P4 | Fan out with `Send`, isolate worktrees, and reject silent children | `test_pipeline.py::test_three_children_fan_out_and_rejoin_by_lane`, `test_executor.py` isolation/blocked-git/killed-child cases | Complete |
 | P5 | Provide CLI, persistence, replay, and Mermaid export | `test_runner.py`, `test_runtime.py`; absent system runtime exits 2 with an install hint; real `bm --harness langgraph` smoke reached merged status | Complete |
 | P6 | Support foreign state, embedded subgraphs, primitives, and Studio | `test_composability.py`; `langgraph.json`; Studio discovery smoke reached application startup | Complete |
-| P7 | Document, package, and preserve the existing lane | `./tests/run-all.sh` (6/6; ACN 29 pass), `pytest python/tests` (48 pass), `python -m build`, CI workflow, adapter vocabulary checks | Complete locally |
+| P7 | Document, package, and preserve the existing lane | `./tests/run-all.sh` (7/7; ACN 34 pass), `pytest python/tests` (74 pass), `lint-imports`, `python -m build`, CI workflow, adapter vocabulary checks | Complete locally |
 | Release | Run security gate, publish README and implementation, merge, and clean branches | Local sensitive-artifact checks pass; official Codex Security completion and GitHub publication remain external release gates | Pending |
 
 ## Cross-cutting evidence
@@ -23,8 +23,9 @@ does not by itself prove every phase exit.
 - `beastmode.core` has no framework imports; LangGraph dependencies are
   optional extras in `python/pyproject.toml`.
 - Subprocess children receive a reduced environment, run in disposable Git
-  worktrees, and have normal `git commit`/`git push` blocked by the executor
-  shim.
+  worktrees inside a Linux `bubblewrap` filesystem sandbox, see the shared
+  checkout and Git metadata read-only, and have normal `git commit`/`git push`
+  blocked by the executor shim.
 - Missing or drifted `meta.json` provenance is never synthesized or converted
   into a pass. The canonical checker remains `scripts/lib/acn_meta.py`.
 - Trace records and custom stream events are optional; they do not determine a

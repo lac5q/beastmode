@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage
 
 from beastmode.core.provenance import check_provenance
 from beastmode.core.seats import SeatUnavailable, preflight_seat, resolve_alias
+from beastmode.langgraph.models import as_chat_model
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -82,7 +83,7 @@ def test_preflight_reports_alternatives_and_supports_explicit_bypass(monkeypatch
 def test_seat_can_be_used_as_a_langchain_base_chat_model(tmp_path: Path) -> None:
     seat = resolve_alias("minimax/MiniMax-M3", repo=tmp_path, home=tmp_path / "home")
     seat = seat.with_chat_model(_ChatModel(), run_dir=tmp_path / "child", child_id="wrapped")
-    response = seat.as_chat_model().invoke([HumanMessage(content="hello")])
+    response = as_chat_model(seat).invoke([HumanMessage(content="hello")])
     assert response.content == "hello back"
     meta = json.loads((tmp_path / "child" / "meta.json").read_text())
     assert meta["id"] == "wrapped"

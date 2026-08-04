@@ -25,7 +25,7 @@ install-free and is unchanged for users who do not select this harness.
 | Persistence | `SqliteSaver`, `thread_id` equal to the goal id |
 | Executor | Existing coding-agent subprocess in an isolated worktree |
 | Provenance | `beastmode.core.provenance` delegates to `scripts/lib/acn_meta.py` |
-| Direct model | `SeatModel.as_chat_model()` exposes a configured `BaseChatModel` |
+| Direct model | `beastmode.langgraph.as_chat_model(seat)` exposes a configured `BaseChatModel` |
 | Observability | Custom stream events plus OTel-shaped `trace_metadata` and child spans |
 
 Gates are blocking below high. `MODEL DRIFT` and `unverifiable` are always
@@ -36,19 +36,30 @@ seats and must use the subprocess fallback.
 ## Usage
 
 ```python
-from langgraph.checkpoint.sqlite import SqliteSaver
+from pathlib import Path
 from beastmode.langgraph import BeastmodeContext
 from beastmode.langgraph.graphs.pipeline import build_pipeline
+from beastmode.langgraph.nodes import PipelineDependencies
+from beastmode.langgraph.runtime import sqlite_checkpointer
 
-with SqliteSaver.from_conn_string(".beastmode/langgraph.sqlite") as saver:
-    saver.setup()
-    graph = build_pipeline(checkpointer=saver)
+with sqlite_checkpointer(Path.home() / ".beastmode" / "langgraph.sqlite") as saver:
+    graph = build_pipeline(
+        dependencies=PipelineDependencies(executor=your_executor),
+        checkpointer=saver,
+    )
     result = graph.invoke(
         {"goal": "add a health check"},
         config={"configurable": {"thread_id": "health-check"}},
-        context=BeastmodeContext(autonomy="medium"),
+        context=BeastmodeContext(
+            autonomy="medium",
+            run_dir=Path(".beastmode/runs/health-check"),
+        ),
     )
 ```
+
+The executor and `run_dir` are trusted runtime configuration. Omitting either
+causes the pipeline to block; graph state cannot select its own provenance
+target.
 
 Resume the same thread with `graph.invoke(Command(resume="approved"), ...)`.
 Use `graph.get_graph().draw_mermaid()` for the living topology. Import
@@ -72,4 +83,7 @@ The driver receives `BEASTMODE_META_DIR`, `BEASTMODE_TASK_ID`, and
 `BEASTMODE_REQUESTED_MODEL` (and the goal in `BEASTMODE_TASK_GOAL`). It must
 write `meta.json` there. The subprocess
 environment excludes ambient credentials and a git shim blocks worker
-`commit`/`push`; missing metadata remains an `unverifiable` gate failure.
+`commit`/`push`. The default worktree executor additionally requires Linux
+`bubblewrap`, mounting the shared checkout and Git metadata read-only. Missing
+metadata remains an `unverifiable` gate failure. Other platforms must inject a
+different executor with an equivalent isolation boundary.

@@ -23,6 +23,20 @@ def _provenance_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContex
     return "dispatch" if retries <= limit else "blocked"
 
 
+def _preflight_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
+    return "contract" if state.get("preflight_ok") is True else "blocked"
+
+
+def _validation_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
+    report = state.get("validation_report")
+    return "gate_provenance" if isinstance(report, Mapping) and report.get("passed") is True else "blocked"
+
+
+def _review_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
+    report = state.get("review_report")
+    return "gate_merge" if isinstance(report, Mapping) and report.get("approved") is True else "blocked"
+
+
 def _merge_route(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> str:
     decision = state.get("merge_decision")
     return "merge" if _is_approved(decision) else "design"
@@ -35,13 +49,20 @@ def build_pipeline(
     checkpointer: Any = None,
     state_schema: type = BeastmodeState,
 ):
-    """Compile the pipeline; ``overrides`` replaces non-gate nodes only."""
+    """Compile the pipeline; ``overrides`` cannot replace control-boundary nodes."""
     dependencies = dependencies or PipelineDependencies()
     overrides = dict(overrides or {})
-    protected = {"gate_provenance", "gate_merge"}
+    protected = {
+        "preflight",
+        "dispatch",
+        "validate_mechanical",
+        "gate_provenance",
+        "gate_merge",
+        "blocked",
+    }
     illegal = protected.intersection(overrides)
     if illegal:
-        raise ValueError("load-bearing gate nodes cannot be overridden: " + ", ".join(sorted(illegal)))
+        raise ValueError("load-bearing control nodes cannot be overridden: " + ", ".join(sorted(illegal)))
 
     graph = StateGraph(state_schema, context_schema=BeastmodeContext)
     nodes = {
@@ -87,7 +108,7 @@ def build_pipeline(
         )
 
     graph.add_edge(START, "preflight")
-    graph.add_edge("preflight", "contract")
+    graph.add_conditional_edges("preflight", _preflight_route, {"contract": "contract", "blocked": "blocked"})
     graph.add_edge("contract", "design")
     graph.add_edge("design", "challenge")
     graph.add_edge("challenge", "dispatch")
@@ -102,13 +123,17 @@ def build_pipeline(
         next_lane_sends,
         {"validate_mechanical": "validate_mechanical"},
     )
-    graph.add_edge("validate_mechanical", "gate_provenance")
+    graph.add_conditional_edges(
+        "validate_mechanical",
+        _validation_route,
+        {"gate_provenance": "gate_provenance", "blocked": "blocked"},
+    )
     graph.add_conditional_edges(
         "gate_provenance",
         _provenance_route,
         {"review": "review", "dispatch": "dispatch", "blocked": "blocked"},
     )
-    graph.add_edge("review", "gate_merge")
+    graph.add_conditional_edges("review", _review_route, {"gate_merge": "gate_merge", "blocked": "blocked"})
     graph.add_conditional_edges("gate_merge", _merge_route, {"merge": "merge", "design": "design"})
     graph.add_edge("merge", "self_improve")
     graph.add_edge("self_improve", END)

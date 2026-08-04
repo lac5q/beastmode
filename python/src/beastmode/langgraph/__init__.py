@@ -16,7 +16,7 @@ __all__ = ["BeastmodeContext", "BeastmodeState", "ChildMeta", "CHILD_META_FIELDS
 try:
     from .gates import autonomy_gate, phase_gate, provenance_gate
     from .nodes import PipelineDependencies, challenge
-    from .models import SeatChatModel
+    from .models import SeatChatModel, as_chat_model
     from .nodes import acceptance_contract, judgment_review, mechanical_validation
     from beastmode.core.routing import route_by_verification_cost
     from .runtime import (
@@ -40,6 +40,7 @@ else:
         "PipelineDependencies",
         "challenge",
         "SeatChatModel",
+        "as_chat_model",
         "acceptance_contract",
         "autonomy_gate",
         "phase_gate",

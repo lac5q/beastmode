@@ -8,6 +8,11 @@ from pathlib import Path
 from .schema import schema_root
 
 
+_ALLOWED_PROMPTS = frozenset(
+    {"bm_phase_prompt", "bm_model_failure_prompt", "bm_gate_prompt"}
+)
+
+
 def prompt_library_path(path: Path | None = None) -> Path:
     """Locate scripts/lib/prompts.sh without copying its prompt strings."""
     if path is not None:
@@ -17,7 +22,12 @@ def prompt_library_path(path: Path | None = None) -> Path:
 
 def render_prompt(name: str, *args: str, script: Path | None = None) -> str:
     """Render one canonical prompt-shell function with positional arguments."""
+    if name not in _ALLOWED_PROMPTS:
+        raise ValueError(f"unknown prompt name: {name}")
     script_path = prompt_library_path(script)
+    canonical = (schema_root().parent / "scripts" / "lib" / "prompts.sh").resolve()
+    if script_path != canonical:
+        raise ValueError("prompt script must be the repository canonical library")
     command = 'set -e; source "$1"; shift; "$@"'
     completed = subprocess.run(
         ["bash", "-c", command, "beastmode-prompts", str(script_path), name, *args],

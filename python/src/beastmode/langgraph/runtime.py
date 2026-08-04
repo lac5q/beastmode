@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager, contextmanager
 import os
 from pathlib import Path
+import stat
 from typing import Any, AsyncIterator, Iterator, Mapping
 
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -91,15 +92,13 @@ def run_pipeline(
     resume: Any = None,
 ) -> dict[str, Any]:
     """Run or resume a pipeline with ``thread_id`` equal to the goal id."""
+    payload = _pipeline_payload(initial_state, goal_id=goal_id, run_dir=run_dir, resume=resume)
+    config = _run_config(goal_id, payload)
     with sqlite_checkpointer(database) as saver:
         graph = build_pipeline(dependencies=dependencies, checkpointer=saver)
-        config = _run_config(goal_id, initial_state)
         context = BeastmodeContext(
             autonomy=autonomy, goal_id=goal_id, run_dir=run_dir
         )
-        payload: Mapping[str, Any] | Command = initial_state
-        if resume is not None:
-            payload = Command(resume=resume)
         return graph.invoke(
             payload,
             config=config,
@@ -119,15 +118,13 @@ async def arun_pipeline(
     resume: Any = None,
 ) -> dict[str, Any]:
     """Async-first counterpart to :func:`run_pipeline`."""
+    payload = _pipeline_payload(initial_state, goal_id=goal_id, run_dir=run_dir, resume=resume)
+    config = _run_config(goal_id, payload)
     async with async_sqlite_checkpointer(database) as saver:
         graph = build_pipeline(dependencies=dependencies, checkpointer=saver)
-        config = _run_config(goal_id, initial_state)
         context = BeastmodeContext(
             autonomy=autonomy, goal_id=goal_id, run_dir=run_dir
         )
-        payload: Mapping[str, Any] | Command = initial_state
-        if resume is not None:
-            payload = Command(resume=resume)
         if os.environ.get("BEASTMODE_NATIVE_ASYNC_SQLITE") == "1":
             return await graph.ainvoke(
                 payload,
@@ -213,15 +210,59 @@ def _run_config(goal_id: str, initial_state: Mapping[str, Any] | Command) -> dic
     return config
 
 
+def _pipeline_payload(
+    initial_state: Mapping[str, Any] | Command,
+    *,
+    goal_id: str,
+    run_dir: Path | None,
+    resume: Any,
+) -> Mapping[str, Any] | Command:
+    """Bind trusted runtime identity and reject command-based graph jumps."""
+    if not isinstance(goal_id, str) or not goal_id or len(goal_id) > 256:
+        raise ValueError("goal_id must be a non-empty string no longer than 256 characters")
+    if resume is not None:
+        return Command(resume=resume)
+    if isinstance(initial_state, Command):
+        if initial_state.goto or initial_state.update is not None or initial_state.graph is not None:
+            raise ValueError("initial Command may resume only; goto, update, and graph are forbidden")
+        if initial_state.resume is None:
+            raise ValueError("initial Command must contain a resume value")
+        return initial_state
+    if not isinstance(initial_state, Mapping):
+        raise TypeError("initial_state must be a mapping or a resume-only Command")
+    payload = dict(initial_state)
+    payload["goal_id"] = goal_id
+    if run_dir is not None:
+        payload["run_dir"] = str(Path(run_dir).resolve())
+    return payload
+
+
 def _secure_sqlite_path(path: Path) -> Path:
     """Create checkpoint storage with private directory and file modes."""
-    database = Path(path)
-    if database.is_symlink():
-        raise ValueError("SQLite checkpoint path must not be a symlink")
+    database = Path(path).expanduser().absolute()
+    _reject_symlink_components(database)
     parent_missing = not database.parent.exists()
     database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if parent_missing:
         database.parent.chmod(0o700)
+    parent_mode = stat.S_IMODE(database.parent.stat().st_mode)
+    if parent_mode & 0o077:
+        raise PermissionError("SQLite checkpoint directory must be owner-only (mode 0700)")
+    _reject_symlink_components(database)
+    if database.exists():
+        database_stat = database.stat()
+        if not stat.S_ISREG(database_stat.st_mode):
+            raise ValueError("SQLite checkpoint path must be a regular file")
+        if database_stat.st_nlink != 1:
+            raise ValueError("SQLite checkpoint file must not have hard links")
     database.touch(mode=0o600, exist_ok=True)
     database.chmod(0o600)
     return database
+
+
+def _reject_symlink_components(path: Path) -> None:
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError("SQLite checkpoint path and parents must not be symlinks")

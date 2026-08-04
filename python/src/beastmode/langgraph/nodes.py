@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import subprocess
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from langgraph.runtime import Runtime
 
 from beastmode.core.contract import AcceptanceContract
-from beastmode.core.observability import redact_value
+from beastmode.core.executors import SubprocessExecutor
+from beastmode.core.observability import redact_text, redact_value
 from beastmode.core.schema import concurrency_default, required_batch_fields, required_task_fields
 from beastmode.core.seats import preflight_seat, resolve_alias
 
 from .context import BeastmodeContext
-from .limits import validate_concurrency
+from .gates import _is_approved
+from .limits import MAX_TASKS, validate_concurrency, validate_executor_result, validate_tasks
 
 
 NodeCallable = Callable[[dict[str, Any]], Mapping[str, Any]]
@@ -35,7 +36,13 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
     context = runtime.context
     requested = state.get("requested_seats")
     requested = requested if isinstance(requested, Mapping) else {}
-    batch = dict(state.get("batch") or {})
+    batch_source = state.get("batch")
+    batch_source = batch_source if isinstance(batch_source, Mapping) else {}
+    batch = {
+        field: batch_source[field]
+        for field in required_batch_fields()
+        if field in batch_source
+    }
     batch.setdefault("autonomy", state.get("autonomy") or getattr(context, "autonomy", "medium"))
     batch.setdefault("director_model", state.get("director_model") or requested.get("frontier") or "unconfigured/director")
     batch.setdefault("executor_model", state.get("executor_model") or requested.get("economy") or "unconfigured/executor")
@@ -45,34 +52,40 @@ def preflight(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> d
     batch["concurrency"] = validate_concurrency(batch["concurrency"])
     repo = Path(str(state.get("repo") or Path.cwd()))
     try:
-        git_status = subprocess.run(
-            ["git", "-C", str(repo), "status", "--porcelain"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        status_lines = [line for line in git_status.stdout.splitlines() if line]
-        git_report = {"available": git_status.returncode == 0, "dirty": bool(status_lines), "lines": status_lines}
-    except OSError as exc:
-        git_report = {"available": False, "dirty": None, "lines": [str(exc)]}
+        git_status = SubprocessExecutor(
+            command=("git", "-C", str(repo), "status", "--porcelain=v1"),
+            timeout=5.0,
+        )({"worktree": repo})
+        status_lines = [line for line in str(git_status["executor_stdout"]).splitlines() if line]
+        git_report = {
+            "available": git_status["executor_returncode"] == 0,
+            "dirty": bool(status_lines),
+            "change_count": len(status_lines),
+            "output_truncated": bool(git_status["executor_output_truncated"]),
+        }
+    except (OSError, ValueError) as exc:
+        git_report = {"available": False, "dirty": None, "error": redact_text(exc)}
     seat_report: dict[str, str] = {}
     for seat_name, model in (
         ("director", batch["director_model"]),
         ("executor", batch["executor_model"]),
         ("watcher", batch["watcher_model"]),
     ):
+        if str(model).startswith("unconfigured/"):
+            seat_report[seat_name] = "not_requested"
+            continue
         try:
             preflight_seat(resolve_alias(str(model), repo=repo), available_models=None)
             seat_report[seat_name] = "resolved"
         except Exception as exc:
-            seat_report[seat_name] = f"unavailable: {exc}"
+            seat_report[seat_name] = f"unavailable: {redact_text(exc)}"
     return {
         "phase": "preflight",
         "goal_id": getattr(context, "goal_id", None) or state.get("goal_id"),
         "preflight_ok": bool(
             git_report["available"]
             and seat_report
-            and all(value == "resolved" for value in seat_report.values())
+            and all(value in {"resolved", "not_requested"} for value in seat_report.values())
         ),
         "autonomy": batch["autonomy"],
         "director_model": batch["director_model"],
@@ -107,6 +120,7 @@ def design(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict
                 "verify_cmds": [],
             }
         ]
+    tasks = validate_tasks(tasks)
     return {"phase": "design", "tasks": tasks, "batch": {**dict(batch or {}), "tasks": tasks}}
 
 
@@ -118,13 +132,14 @@ def challenge(
     """Run the optional cross-family design challenge before dispatch."""
     if dependencies.challenger is None:
         return {"phase": "challenge", "challenge_report": {"passed": True, "skipped": True}}
-    return {"phase": "challenge", **dict(dependencies.challenger(dict(state)))}
+    update = redact_value(validate_executor_result(dependencies.challenger(dict(state))))
+    return {"phase": "challenge", **update}
 
 
 def dispatch(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     from .dispatch import group_tasks_by_lane
 
-    tasks = list(state.get("tasks", ()))
+    tasks = validate_tasks(state.get("tasks", ()))
     batch = dict(state.get("batch") or {})
     context = runtime.context
     requested = state.get("requested_seats")
@@ -178,7 +193,7 @@ def execute(
     # Multiple Send branches write in one super-step.  Keep the complete
     # executor record under a reducer-backed list; a last-value field such as
     # phase or execution_status would make LangGraph reject the update.
-    result = redact_value(dict(dependencies.executor(dict(state))))
+    result = redact_value(validate_executor_result(dependencies.executor(dict(state))))
     _stream(runtime, {
         "event": "executor",
         "task_id": task.get("id"),
@@ -188,15 +203,52 @@ def execute(
     })
     child_meta = result.pop("child_meta", [])
     trace_records = result.pop("trace_records", [])
+    if not isinstance(child_meta, list) or not isinstance(trace_records, list):
+        raise ValueError("executor child_meta and trace_records must be lists")
     return {
-        "task_results": [{"id": task.get("id"), **result}],
+        "task_results": [{**result, "id": task.get("id")}],
         "child_meta": list(child_meta),
         "trace_records": list(trace_records),
     }
 
 
 def validate_mechanical(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
-    return {"phase": "validate_mechanical", "validation_report": {"passed": True}}
+    expected = [str(task["id"]) for task in validate_tasks(state.get("tasks", ()))]
+    results = list(state.get("task_results") or ())
+    by_id: dict[str, Mapping[str, Any]] = {}
+    retried: set[str] = set()
+    failures: list[str] = []
+    if len(results) > MAX_TASKS * 3:
+        failures.append("executor result history exceeds the bounded retry allowance")
+    for result in results:
+        if not isinstance(result, Mapping):
+            failures.append("executor returned a non-object result")
+            continue
+        result_id = str(result.get("id") or "")
+        if result_id in by_id:
+            retried.add(result_id)
+        by_id[result_id] = result
+    for task_id in expected:
+        result = by_id.get(task_id)
+        if result is None:
+            failures.append(f"missing result for task {redact_text(task_id)}")
+        elif result.get("execution_status") != "ok":
+            failures.append(
+                f"task {redact_text(task_id)} status is {redact_text(result.get('execution_status'))}"
+            )
+    unexpected = sorted(set(by_id).difference(expected))
+    if unexpected:
+        failures.append("unexpected task results: " + ", ".join(redact_text(item) for item in unexpected))
+    return {
+        "phase": "validate_mechanical",
+        "validation_report": {
+            "passed": not failures,
+            "expected": len(expected),
+            "observed": len(results),
+            "retried": sorted(redact_text(task_id) for task_id in retried),
+            "failures": failures,
+        },
+    }
 
 
 def review(
@@ -206,7 +258,8 @@ def review(
 ) -> dict[str, Any]:
     if dependencies.reviewer is None:
         return {"phase": "review", "review_report": {"approved": True}}
-    return {"phase": "review", **dict(dependencies.reviewer(dict(state)))}
+    update = redact_value(validate_executor_result(dependencies.reviewer(dict(state))))
+    return {"phase": "review", **update}
 
 
 def merge(
@@ -214,9 +267,23 @@ def merge(
     runtime: Runtime[BeastmodeContext],
     dependencies: PipelineDependencies,
 ) -> dict[str, Any]:
+    validation = state.get("validation_report")
+    review_report = state.get("review_report")
+    merge_decision = state.get("merge_decision")
+    if (
+        state.get("preflight_ok") is not True
+        or not isinstance(validation, Mapping)
+        or validation.get("passed") is not True
+        or state.get("provenance_verdict") != "ok"
+        or not isinstance(review_report, Mapping)
+        or review_report.get("approved") is not True
+        or not _is_approved(merge_decision)
+    ):
+        raise PermissionError("merge requires successful preflight, validation, provenance, review, and gate approval")
     if dependencies.merger is None:
         return {"phase": "merge", "status": "merged"}
-    return {"phase": "merge", **dict(dependencies.merger(dict(state)))}
+    update = redact_value(validate_executor_result(dependencies.merger(dict(state))))
+    return {"phase": "merge", **update}
 
 
 def self_improve(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
@@ -237,6 +304,6 @@ def judgment_review(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]
 
 def _stream(runtime: Runtime[BeastmodeContext], event: Mapping[str, Any]) -> None:
     try:
-        runtime.stream_writer(dict(event))
+        runtime.stream_writer(redact_value(dict(event)))
     except Exception:
         pass

@@ -99,5 +99,15 @@ echo "$out" | grep -q "requested model(s) not available" \
   && fail "local check ran during remote dispatch"
 ok "remote dispatch skipped the local check"
 
+# Test 7: a remote target cannot be parsed as an ssh option.
+echo "Test 7: --on rejects ssh option injection"
+set +e
+out="$(PATH="$TMP/bin:$TMP/ssh-bin:$PATH" run_bm "do a thing" --on=-oProxyCommand=bad 2>&1)"
+code=$?
+set -e
+[ "$code" = "2" ] || fail "expected exit 2 for ssh option target, got $code"
+echo "$out" | grep -q "not an ssh option" || fail "did not explain rejected ssh option target"
+ok "ssh option target rejected"
+
 echo ""
 echo "All model-availability tests passed."

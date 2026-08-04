@@ -13,6 +13,7 @@ process restart does not create a second run:
 from pathlib import Path
 
 from beastmode.langgraph import BeastmodeContext
+from beastmode.langgraph.nodes import PipelineDependencies
 from beastmode.langgraph.runtime import run_pipeline
 
 result = run_pipeline(
@@ -31,9 +32,15 @@ result = run_pipeline(
     },
     goal_id="health-check",
     autonomy="medium",
-    database=Path(".beastmode/langgraph.sqlite"),
+    database=Path.home() / ".beastmode" / "langgraph.sqlite",
+    run_dir=Path(".beastmode/runs/health-check"),
+    dependencies=PipelineDependencies(executor=your_executor),
 )
 ```
+
+`run_dir` and the executor are explicit trusted runtime inputs. The graph
+fails closed when either is missing; it never trusts a caller-supplied state
+path as the provenance target.
 
 At medium autonomy, resume the same thread after each interrupt:
 

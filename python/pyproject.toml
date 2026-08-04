@@ -41,3 +41,13 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.importlinter]
+root_package = "beastmode"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Framework-neutral core"
+type = "forbidden"
+source_modules = ["beastmode.core"]
+forbidden_modules = ["langgraph", "langchain", "langchain_core", "crewai"]

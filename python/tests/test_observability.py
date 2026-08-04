@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from beastmode.core.observability import child_span_from_meta, emit_trace, trace_metadata
 
 
@@ -30,3 +32,25 @@ def test_child_span_reconstructs_provenance_from_meta() -> None:
     assert span["attributes"]["goal_id"] == "goal-1"
     assert span["status"]["code"] == "ok"
     assert span["tags"] == []
+
+
+def test_child_span_rejects_oversized_metadata(tmp_path: Path) -> None:
+    meta = tmp_path / "meta.json"
+    meta.write_text(json.dumps({"id": "a", "padding": "x" * (256 * 1024)}))
+    with pytest.raises(ValueError, match="exceeds"):
+        child_span_from_meta(meta)
+
+
+def test_trace_and_child_fields_are_redacted(tmp_path: Path) -> None:
+    token = "ghp_" + "z" * 24
+    record = trace_metadata({"goal_id": token, "phase": "review"})
+    assert token not in json.dumps(record)
+
+
+def test_child_span_rejects_symlinked_metadata(tmp_path: Path) -> None:
+    target = tmp_path / "target.json"
+    target.write_text("{}")
+    link = tmp_path / "meta.json"
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="non-symlink"):
+        child_span_from_meta(link)

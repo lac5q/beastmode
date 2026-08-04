@@ -17,6 +17,7 @@ class BeastmodeContext:
     autonomy: Autonomy = "medium"
     goal_id: str | None = None
     run_dir: Path | None = None
+    expected_child_ids: tuple[str, ...] | None = None
     max_provenance_retries: int = 1
     executor: Any = None
     reviewer: Any = None

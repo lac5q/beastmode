@@ -102,7 +102,9 @@ The driver receives `BEASTMODE_META_DIR`, `BEASTMODE_TASK_ID`, and
 `BEASTMODE_REQUESTED_MODEL` (and the goal in `BEASTMODE_TASK_GOAL`), and must
 write the canonical `meta.json` there.
 Child processes run with a reduced environment, each child uses a disposable
-git worktree, and worker `git commit`/`git push` attempts are blocked. A
+git worktree, and the optional runtime requires a Linux `bubblewrap` filesystem
+sandbox so the shared checkout and Git metadata are read-only to workers.
+Worker `git commit`/`git push` attempts are also rejected by the Git shim. A
 missing or silent metadata file fails the provenance gate; tracing is optional
 and never changes that verdict. See
 [`references/beastmode-on-langgraph.md`](references/beastmode-on-langgraph.md),

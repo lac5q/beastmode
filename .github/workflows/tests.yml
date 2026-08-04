@@ -37,9 +37,8 @@ jobs:
           # fixtures. tests/test-acn-parity.sh used to rewrite them on
           # every run; this check keeps that from coming back.
           if [ -n "$(git status --porcelain)" ]; then
-            echo "tests modified the working tree:"
-            git status --porcelain
-            git diff
+            echo "tests modified the working tree; filenames and diff are suppressed in public logs"
+            echo "changed entry count: $(git status --porcelain | wc -l)"
             exit 1
           fi
 
@@ -54,11 +53,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install the worktree filesystem sandbox
+        run: sudo apt-get update && sudo apt-get install --yes bubblewrap
+
       - name: Install the dependency-free package test lane
         run: PIP_CONSTRAINT="$PWD/python/constraints-ci.txt" python -m pip install -c python/constraints-ci.txt -e "python[dev,langgraph]"
 
       - name: Test framework-neutral core
         run: python -m pytest python/tests
+
+      - name: Enforce the framework-neutral core import boundary
+        run: lint-imports --config python/pyproject.toml
 
       - name: Build the package
         run: PIP_CONSTRAINT="$PWD/python/constraints-ci.txt" python -m build python/

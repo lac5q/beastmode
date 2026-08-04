@@ -24,7 +24,12 @@ Project config overrides global config at `~/.pi/agent/extensions/pi-permission-
       "**/.memroos/*.env": "deny",
       "**/*.pem": "deny",
       "**/*.key": "deny",
+      "**/*.p12": "deny",
+      "**/*.pfx": "deny",
+      "**/*.sqlite": "deny",
+      "**/*.sqlite3": "deny",
       "**/auth.json": "deny",
+      "**/credentials.json": "deny",
       ".env.example": "allow",
       "**/.env.example": "allow"
     },

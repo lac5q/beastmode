@@ -44,7 +44,12 @@ def schema_root(start: Path | None = None) -> Path:
 def load_schema(name: str, root: Path | None = None) -> dict[str, Any]:
     """Load one schema JSON object without duplicating its fields in Python."""
     filename = name if name.endswith(".json") else f"{name}.json"
-    path = schema_root(root) / filename
+    root_path = schema_root(root).resolve()
+    path = (root_path / filename).resolve()
+    try:
+        path.relative_to(root_path)
+    except ValueError as exc:
+        raise ValueError("schema name must remain inside the schema directory") from exc
     try:
         with path.open(encoding="utf-8") as handle:
             value = json.load(handle)

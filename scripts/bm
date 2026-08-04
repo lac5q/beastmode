@@ -206,6 +206,10 @@ if [ "$ON" != "local" ]; then
   if ! command -v ssh >/dev/null 2>&1; then
     echo "bm: --on $ON needs ssh in PATH" >&2; exit 2
   fi
+  if [[ ! "$ON" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "bm: --on must be a host alias or hostname, not an ssh option" >&2
+    exit 2
+  fi
   # ponytail: everything crossing the ssh boundary gets single-quoted with
   # embedded quotes escaped. The old form spliced the raw goal into
   # `bm '$GOAL' ...`, so any apostrophe ("don't drop the index") ended the
@@ -224,7 +228,7 @@ if [ "$ON" != "local" ]; then
   [ "$HARNESS" = "langgraph" ] && REMOTE_CMD="$REMOTE_CMD --graph $(shquote "$LANGGRAPH_GRAPH")"
   [ -n "$EXECUTOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --executor-command $(shquote "$EXECUTOR_COMMAND")"
   [ -n "$WORKTREE_ROOT" ] && REMOTE_CMD="$REMOTE_CMD --worktree-root $(shquote "$WORKTREE_ROOT")"
-  exec ssh "$ON" "$REMOTE_CMD"
+  exec ssh -- "$ON" "$REMOTE_CMD"
 fi
 
 # Harness dispatch. Every harness gets the SAME phase/gate/model-failure
