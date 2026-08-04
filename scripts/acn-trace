@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+"""Post an ACN receipt directory as an optional LangSmith run tree.
+
+The offline provenance gate remains ``scripts/lib/acn_meta.py``. This command
+only projects its rows into LangSmith and never changes that verdict.
+
+Usage:
+    acn-trace <run-dir> [options]
+
+Tracing is skipped successfully when it is disabled or no API key is present.
+Set LANGSMITH_TRACING=true (or LANGCHAIN_TRACING_V2=true) and
+LANGSMITH_API_KEY/LANGCHAIN_API_KEY to send a trace. The implementation uses
+LangSmith's /runs HTTP API and the Python standard library only.
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import sys
+import uuid
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+
+import acn_meta  # noqa: E402  (path is set immediately above)
+
+
+DEFAULT_ENDPOINT = "https://api.smith.langchain.com"
+TRUE_VALUES = frozenset({"1", "true", "yes", "on", "local"})
+FALSE_VALUES = frozenset({"0", "false", "no", "off"})
+MAX_PROJECT_CHARS = 128
+MAX_CHILDREN = 1024
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="acn-trace",
+        description="post ACN meta.json receipts to LangSmith without affecting gates",
+    )
+    parser.add_argument("run_dir", type=Path)
+    parser.add_argument("--expect", help="batch JSON path or comma-separated child ids")
+    parser.add_argument("--allow-empty", action="store_true")
+    parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--project", help="LangSmith project; defaults to LANGSMITH_PROJECT")
+    parser.add_argument("--goal-id", help="goal/thread identifier")
+    parser.add_argument("--phase", default="run")
+    parser.add_argument("--harness", default="unknown")
+    parser.add_argument("--seat", default="executor")
+    parser.add_argument("--autonomy", default="unknown")
+    parser.add_argument("--endpoint", help="LangSmith API endpoint")
+    parser.add_argument("--timeout", type=float, default=10.0)
+    parser.add_argument("--dry-run", action="store_true", help="print sanitized payloads without sending")
+    return parser
+
+
+def _truthy(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in TRUE_VALUES:
+        return True
+    if normalized in FALSE_VALUES:
+        return False
+    return None
+
+
+def _tracing_enabled() -> bool:
+    values = (
+        os.environ.get("LANGSMITH_TRACING"),
+        os.environ.get("LANGCHAIN_TRACING_V2"),
+    )
+    for value in values:
+        parsed = _truthy(value)
+        if parsed is not None:
+            return parsed
+    # Explicit invocation plus a configured key is an opt-in even when the
+    # caller did not set a tracing boolean. An explicit false above wins.
+    return bool(os.environ.get("LANGSMITH_API_KEY") or os.environ.get("LANGCHAIN_API_KEY"))
+
+
+def _safe(value: object, *, limit: int = 256) -> str:
+    if value is None:
+        return ""
+    return acn_meta.safe_report_text(value, limit=limit)
+
+
+def _label(value: object, *, fallback: str = "unknown") -> str:
+    text = _safe(value, limit=MAX_PROJECT_CHARS).strip()
+    return text or fallback
+
+
+def _api_key() -> str:
+    return os.environ.get("LANGSMITH_API_KEY") or os.environ.get("LANGCHAIN_API_KEY") or ""
+
+
+def _endpoint(value: str | None) -> str:
+    return (value or os.environ.get("LANGSMITH_ENDPOINT") or os.environ.get("LANGCHAIN_ENDPOINT") or DEFAULT_ENDPOINT).rstrip("/")
+
+
+def _project(value: str | None) -> str:
+    return _label(value or os.environ.get("LANGSMITH_PROJECT") or os.environ.get("LANGCHAIN_PROJECT"), fallback="beastmode")
+
+
+def _iso(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _row_time(row: acn_meta.Row) -> float | None:
+    try:
+        return row.path.stat().st_mtime
+    except OSError:
+        return None
+
+
+def _raw_meta(row: acn_meta.Row) -> dict:
+    try:
+        body = acn_meta._load_json(row.path)  # one canonical reader, reused by the gate
+    except (OSError, ValueError, json.JSONDecodeError, RecursionError):
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def _count(value: object) -> int:
+    return min(len(value), 128) if isinstance(value, list) else 0
+
+
+def _tokens(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return max(parsed, 0)
+
+
+def _child_payload(
+    row: acn_meta.Row,
+    *,
+    parent_id: str,
+    project: str,
+    goal_id: str,
+    phase: str,
+    harness: str,
+    seat: str,
+    autonomy: str,
+) -> dict:
+    raw = _raw_meta(row)
+    input_tokens = _tokens(row.input_tokens)
+    output_tokens = _tokens(row.output_tokens)
+    status = row.status
+    tags = [
+        "beastmode",
+        f"phase:{_label(phase)}",
+        f"seat:{_label(seat)}",
+        status,
+    ]
+    if status != acn_meta.OK:
+        tags.append(status)
+    metadata = {
+        "goal_id": _label(goal_id),
+        "phase": _label(phase),
+        "seat": _label(seat),
+        "harness": _label(harness),
+        "autonomy": _label(autonomy),
+        "child_id": _label(row.id),
+        "requested_model": _label(row.requested),
+        "actual_model": _label(row.actual),
+    }
+    outputs = {
+        "status": status,
+        "stop_reason": _label(raw.get("stop_reason"), fallback="unavailable"),
+        "usage": {
+            key: value
+            for key, value in (
+                ("input_tokens", input_tokens),
+                ("output_tokens", output_tokens),
+            )
+            if value is not None
+        },
+        "files_changed_count": _count(raw.get("files_changed")),
+        "commands_run_count": _count(raw.get("commands_run")),
+        "verify_present": isinstance(raw.get("verify"), dict),
+    }
+    start = _row_time(row)
+    child = {
+        "id": str(uuid.uuid4()),
+        "name": "beastmode.child",
+        "run_type": "tool",
+        "inputs": {"child_id": _label(row.id)},
+        "outputs": outputs,
+        "session_name": project,
+        "parent_run_id": parent_id,
+        "tags": tags,
+        "extra": {"metadata": metadata},
+    }
+    if start is not None:
+        child["start_time"] = _iso(start)
+        child["end_time"] = _iso(start)
+    if status != acn_meta.OK:
+        child["error"] = _label(row.reason, fallback=status)
+    return child
+
+
+def _parent_payload(
+    rows: list[acn_meta.Row],
+    *,
+    run_id: str,
+    project: str,
+    goal_id: str,
+    phase: str,
+    harness: str,
+    seat: str,
+    autonomy: str,
+) -> dict:
+    counts = {status: sum(row.status == status for row in rows) for status in (acn_meta.OK, acn_meta.DRIFT, acn_meta.UNVERIFIABLE)}
+    input_tokens = sum(_tokens(row.input_tokens) or 0 for row in rows)
+    output_tokens = sum(_tokens(row.output_tokens) or 0 for row in rows)
+    timestamps = [timestamp for row in rows if (timestamp := _row_time(row)) is not None]
+    metadata = {
+        "goal_id": _label(goal_id),
+        "phase": _label(phase),
+        "seat": _label(seat),
+        "harness": _label(harness),
+        "autonomy": _label(autonomy),
+        "child_count": len(rows),
+        "gate_status": "ok" if counts[acn_meta.DRIFT] == 0 and counts[acn_meta.UNVERIFIABLE] == 0 else "failed",
+    }
+    tags = ["beastmode", f"phase:{_label(phase)}", f"harness:{_label(harness)}"]
+    if counts[acn_meta.DRIFT]:
+        tags.append(acn_meta.DRIFT)
+    if counts[acn_meta.UNVERIFIABLE]:
+        tags.append(acn_meta.UNVERIFIABLE)
+    payload = {
+        "id": run_id,
+        "name": "beastmode.run",
+        "run_type": "chain",
+        "inputs": {},
+        "outputs": {
+            "children": len(rows),
+            "status_counts": counts,
+            "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens},
+        },
+        "session_name": project,
+        "tags": tags,
+        "extra": {"metadata": metadata},
+    }
+    if timestamps:
+        payload["start_time"] = _iso(min(timestamps))
+        payload["end_time"] = _iso(max(timestamps))
+    if counts[acn_meta.DRIFT] or counts[acn_meta.UNVERIFIABLE]:
+        payload["error"] = "one or more child provenance records failed the offline gate"
+    return payload
+
+
+def _post(endpoint: str, api_key: str, payload: dict, timeout: float) -> None:
+    request = Request(
+        f"{endpoint}/runs",
+        data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-api-key": api_key,
+        },
+        method="POST",
+    )
+    with urlopen(request, timeout=timeout) as response:
+        if response.status >= 400:
+            raise RuntimeError(f"LangSmith returned HTTP {response.status}")
+
+
+def _load(args: argparse.Namespace) -> tuple[acn_meta.GateResult, list[acn_meta.Row]]:
+    expected = acn_meta.expected_ids(args.expect) if args.expect else None
+    result = acn_meta.check(
+        args.run_dir,
+        allow_empty=args.allow_empty,
+        strict=args.strict,
+        expect=expected,
+    )
+    return result, result.rows
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    if args.timeout <= 0:
+        print("acn-trace: --timeout must be positive", file=sys.stderr)
+        return 2
+    try:
+        result, rows = _load(args)
+    except (OSError, ValueError, json.JSONDecodeError, RecursionError) as exc:
+        print(f"acn-trace: {acn_meta.safe_report_text(exc)}", file=sys.stderr)
+        return 2
+    if result.exit_code == 2:
+        for message in result.messages:
+            print(f"acn-trace: {acn_meta.safe_report_text(message)}", file=sys.stderr)
+        return 2
+    if len(rows) > MAX_CHILDREN:
+        print("acn-trace: child count exceeds trace limit", file=sys.stderr)
+        return 2
+
+    if not args.dry_run and not _tracing_enabled():
+        print("acn-trace: LangSmith tracing is disabled; nothing sent")
+        return 0
+    api_key = _api_key()
+    if not args.dry_run and not api_key:
+        print("acn-trace: no LangSmith API key configured; skipped")
+        return 0
+
+    project = _project(args.project)
+    goal_id = _label(args.goal_id or os.environ.get("BEASTMODE_GOAL_ID") or args.run_dir.name)
+    run_id = str(uuid.uuid4())
+    parent = _parent_payload(
+        rows,
+        run_id=run_id,
+        project=project,
+        goal_id=goal_id,
+        phase=args.phase,
+        harness=args.harness,
+        seat=args.seat,
+        autonomy=args.autonomy,
+    )
+    children = [
+        _child_payload(
+            row,
+            parent_id=run_id,
+            project=project,
+            goal_id=goal_id,
+            phase=args.phase,
+            harness=args.harness,
+            seat=args.seat,
+            autonomy=args.autonomy,
+        )
+        for row in rows
+    ]
+
+    if args.dry_run:
+        print(json.dumps({"parent": parent, "children": children}, indent=2, sort_keys=True))
+        return 0
+
+    endpoint = _endpoint(args.endpoint)
+    try:
+        _post(endpoint, api_key, parent, args.timeout)
+        for child in children:
+            _post(endpoint, api_key, child, args.timeout)
+    except (HTTPError, URLError, OSError, RuntimeError, ValueError) as exc:
+        print(
+            "acn-trace: LangSmith submission failed (gate verdict remains offline): "
+            + acn_meta.safe_report_text(exc),
+            file=sys.stderr,
+        )
+        return 1
+    print(f"acn-trace: submitted {len(children)} child run(s) to {project}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

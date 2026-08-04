@@ -26,5 +26,8 @@ chat_model = as_chat_model(configured)
 The complete checkpointed pipeline is `build_pipeline()`. SQLite is the local
 default; install the `postgres` extra for `PostgresSaver`. Every executor child
 must write the schema-defined `meta.json`; drift and missing provenance fail
-closed. See the repository README and `references/beastmode-on-langgraph.md`
-for CLI and restart examples.
+closed. Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` to trace the
+LangGraph run. After a run, `scripts/acn-trace` can project executor receipts
+as sanitized child runs without changing the offline gate. See the repository README,
+`references/beastmode-on-langgraph.md`, and `references/observability.md` for
+CLI, restart, privacy, and tracing examples.
