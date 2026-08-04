@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Small CLI bridge for ``bm --harness langgraph``.
+
+The existing shell runner remains the default and never imports this module.
+This bridge intentionally fails with an install hint when the optional
+runtime is absent instead of exposing a Python traceback to bash users.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shlex
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "python" / "src"))
+
+
+def _run_dir_component(thread_id: str) -> str:
+    """Use a non-sensitive, traversal-proof component for the default run dir."""
+    digest = hashlib.sha256(thread_id.encode("utf-8")).hexdigest()[:24]
+    return f"goal-{digest}"
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="langgraph-runner")
+    parser.add_argument("goal")
+    parser.add_argument("--repo", default=None, help="repository to isolate child worktrees from (default: cwd)")
+    parser.add_argument("--graph", choices=("pipeline",), default="pipeline")
+    parser.add_argument("--autonomy", choices=("low", "medium", "high"), default="medium")
+    parser.add_argument("--thread-id", default=None)
+    parser.add_argument("--database", default=None)
+    parser.add_argument("--run-dir", default=None)
+    parser.add_argument("--resume", default=None)
+    parser.add_argument("--frontier", default=None)
+    parser.add_argument("--economy", default=None)
+    parser.add_argument("--watcher", default=None)
+    parser.add_argument(
+        "--executor-command",
+        default=None,
+        help="argv string run once per child worktree; child writes $BEASTMODE_META_DIR/meta.json",
+    )
+    parser.add_argument("--worktree-root", default=None)
+    parser.add_argument("--mermaid", action="store_true", help="print the selected graph and exit")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    try:
+        from beastmode.core.executors.subprocess import WorktreeSubprocessExecutor
+        from beastmode.langgraph.nodes import PipelineDependencies
+        from beastmode.langgraph.runtime import run_pipeline
+    except ModuleNotFoundError as exc:
+        if exc.name and exc.name.startswith("langgraph"):
+            print(
+                "bm: --harness langgraph needs the optional runtime; "
+                "install with: python -m pip install 'beastmode[langgraph]'",
+                file=sys.stderr,
+            )
+            return 2
+        raise
+
+    args = _parser().parse_args(argv)
+    project_root = Path(args.repo or Path.cwd()).resolve()
+    if args.mermaid:
+        from beastmode.langgraph.graphs.pipeline import build_pipeline
+
+        print(build_pipeline().get_graph().draw_mermaid())
+        return 0
+    if not args.executor_command:
+        print(
+            "bm: --harness langgraph needs --executor-command for a real goal; "
+            "the child command must write $BEASTMODE_META_DIR/meta.json",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        command = tuple(shlex.split(args.executor_command))
+    except ValueError as exc:
+        print(f"bm: invalid --executor-command: {exc}", file=sys.stderr)
+        return 2
+    if not command:
+        print("bm: --executor-command cannot be empty", file=sys.stderr)
+        return 2
+    thread_id = args.thread_id or args.goal
+    default_db = Path.home() / ".beastmode" / "langgraph.sqlite"
+    database = Path(args.database or os.environ.get("BEASTMODE_LANGGRAPH_DB", default_db))
+    run_dir = Path(args.run_dir or (Path.cwd() / ".beastmode" / "runs" / _run_dir_component(thread_id)))
+    run_dir.mkdir(parents=True, exist_ok=True)
+    executor_model = args.economy or "minimax/MiniMax-M3"
+    dependencies = PipelineDependencies(
+        executor=WorktreeSubprocessExecutor(
+            repo=project_root,
+            command=command,
+            worktree_root=Path(args.worktree_root).resolve()
+            if args.worktree_root
+            else None,
+        )
+    )
+    state = {
+        "goal": args.goal,
+        "autonomy": args.autonomy,
+        "director_model": args.frontier or "unconfigured/director",
+        "executor_model": executor_model,
+        "watcher_model": args.watcher or "unconfigured/watcher",
+        "concurrency": 3,
+        "run_dir": str(run_dir),
+        "tasks": [
+            {
+                "id": "goal",
+                "goal": args.goal,
+                "lane": "economy",
+                "allowed_paths": [],
+                "verify_cmds": [],
+                "requested_model": executor_model,
+            }
+        ],
+        "requested_seats": {
+            "frontier": args.frontier,
+            "economy": args.economy,
+            "watcher": args.watcher,
+        },
+    }
+    result = run_pipeline(
+        state,
+        goal_id=thread_id,
+        autonomy=args.autonomy,
+        database=database,
+        run_dir=run_dir,
+        dependencies=dependencies,
+        resume=args.resume,
+    )
+    print(json.dumps(result, indent=2, default=str))
+    return 0 if result.get("status") == "merged" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

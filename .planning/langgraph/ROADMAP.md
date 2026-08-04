@@ -1,8 +1,10 @@
 # ROADMAP — Beastmode on LangGraph (v2.4.0)
 
-Branch: `claude/beastmode-langgraph-planning-1w3bl8` (planning only — no
-implementation on this branch). Implementation branches per phase, merged to
-`main` behind the existing CI gate.
+Implementation status: the P1–P7 package, adapter, CLI, persistence, and
+documentation work is present in the current `main` worktree. P0.1 produced a
+provider matrix with no direct-call provider promoted; the safe subprocess
+fallback is therefore the release configuration. P0.2 and P0.3 are complete.
+Public push remains behind the repository security-release gate.
 
 Read `REQUIREMENTS.md` first — it holds the concept mapping, the LangGraph API
 facts each phase depends on, and the risk register phases P0–P2 exist to retire.
@@ -24,6 +26,19 @@ below. Q4 and Q6–Q10 remain open but do not block P0.
 > `bm --harness langgraph` is a first-class deliverable. The package is the
 > implementation and the channel for LangGraph users arriving from the other
 > side; when the two audiences conflict, beastmode users win.
+
+### Current implementation status
+
+- **P0.1:** provider provenance matrix recorded; no provider is approved for
+  direct-call judgment seats until a successful live probe proves
+  `actual_model`. The default executor path remains subprocess-based.
+- **P0.2/P0.3:** interrupt replay and lane-grouping spikes are documented with
+  passing evidence.
+- **P1–P7:** implemented locally; the dependency-free bash lane, Python tests,
+  package build, Studio import, CLI smoke run, and acceptance checks pass.
+- **P8/P9:** intentionally deferred as separate efforts.
+- **Release:** not complete until the required security scan finishes and the
+  public artifact is inspected for sensitive data.
 
 ---
 

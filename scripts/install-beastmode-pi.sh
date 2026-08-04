@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# install-beastmode-pi.sh — run on main-mac to bring it to parity with oracle-1.
+# install-beastmode-pi.sh — install the Pi adapter and Beastmode skill on a workstation.
 #
 # Self-contained: installs pi 0.80.x (the version pi-goal requires), the six
 # beastmode-pi companion packages, and drops the skill at the user-global
 # location so pi discovers it in every repo.
 #
-# Usage (from anywhere on main-mac):
+# Usage (from anywhere on the workstation):
 #   curl -fsSL https://raw.githubusercontent.com/lac5q/beastmode/main/scripts/install-beastmode-pi.sh | bash
 # or locally:
 #   bash scripts/install-beastmode-pi.sh
@@ -125,5 +125,5 @@ fi
 bold "Done. Try:"
 echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
 echo "  # or just start pi in any repo — skill auto-discovers"
-echo "  bm '<goal>' --frontier kimi3 --economy minimax --on maeve-u1 --autonomy medium"
+echo "  bm '<goal>' --frontier kimi3 --economy minimax --on <remote-host> --autonomy medium"
 echo "  claude-pro \"<prompt>\"   # Claude Pro lane (claude.ai subscription quota)"

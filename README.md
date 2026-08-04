@@ -51,7 +51,7 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 
 1. Read `SKILL.md` — the full framework
 2. Choose your variant (frontier-led or Codex-led) and map your models to tiers (`references/model-routing.md`)
-3. Choose your harness (Ultraswarm, GSD, delegate_task, Claude Code subagents, manual git, or pi + `pi-dynamic-workflows`)
+3. Choose your harness (Ultraswarm, GSD, delegate_task, Claude Code subagents, LangGraph, manual git, or pi + `pi-dynamic-workflows`)
 4. Follow the beastmode loop: Preflight → Acceptance Contract → Design (frontier) → Delegate (economy) → Validate (economy) → Review (frontier) → Merge → Self-Improve
 5. **(Optional) one-shot runner:**
 
@@ -59,10 +59,12 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>"                                          # prints rough phase ETA, then runs locally (pi harness)
    bm "<goal>" --harness hermes                         # Hermes ACN: async parallel sub-agents via delegate_task
    bm "<goal>" --harness claude|codex                   # Claude Code / Codex adapters
+   bm "<goal>" --harness langgraph                    # optional StateGraph/checkpoint runtime
+   bm "<goal>" --harness langgraph --executor-command '<child command>'
    bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
    bm "<goal>" --frontier kimi3 --economy minimax --watcher grok # cross-family watcher
    bm "<validation goal>" --frontier sol --thinking medium # OAuth-backed Sol validator
-   bm "<goal>" --on maeve-u1                            # dispatch to a fleet node
+   bm "<goal>" --on <remote-host>                       # dispatch to a fleet node
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
@@ -73,9 +75,43 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 
    See `scripts/bm` and `references/autonomy-levels.md`.
 
+## Optional LangGraph runtime
+
+LangGraph support is additive. Existing shell and agent harnesses remain
+usable with no LangGraph installation. Install the optional package in an
+isolated environment:
+
+```bash
+python -m pip install -e 'python[langgraph]'
+```
+
+The package exposes `StateGraph` primitives, `Send` fan-out, checkpointed
+autonomy gates, schema-backed ACN validation, isolated subprocess worktrees,
+custom phase/executor streaming, and fail-closed model provenance. SQLite is
+the local persistence default; PostgreSQL is opt-in with
+`python -m pip install -e 'python[postgres]'`.
+
+For a real CLI goal, provide the child driver explicitly:
+
+```bash
+bm "add a health check" --harness langgraph \
+  --executor-command 'your-child-driver'
+```
+
+The driver receives `BEASTMODE_META_DIR`, `BEASTMODE_TASK_ID`, and
+`BEASTMODE_REQUESTED_MODEL` (and the goal in `BEASTMODE_TASK_GOAL`), and must
+write the canonical `meta.json` there.
+Child processes run with a reduced environment, each child uses a disposable
+git worktree, and worker `git commit`/`git push` attempts are blocked. A
+missing or silent metadata file fails the provenance gate; tracing is optional
+and never changes that verdict. See
+[`references/beastmode-on-langgraph.md`](references/beastmode-on-langgraph.md),
+[`adapters/langgraph/SKILL.md`](adapters/langgraph/SKILL.md), and
+[`references/langgraph-pipeline.md`](references/langgraph-pipeline.md).
+
 ## One Vocabulary (v2.2)
 
-Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
+Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`, `adapters/langgraph`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
 
 The provenance gate is fail-closed in both directions: a child whose model **differs** from the pinned one is `drift`, and a child whose model **cannot be established** — missing meta, unreadable meta, or a single merged `model` field instead of `requested_model` + `actual_model` — is `unverifiable`. Both block `validated`. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`, and it reads the required field list out of `schema/acn-contract.json` rather than hard-coding it.
 
@@ -86,6 +122,8 @@ The provenance gate is fail-closed in both directions: a child whose model **dif
 - `adapters/hermes/SKILL.md` — Hermes ACN adapter (`delegate_task` background/batch)
 - `adapters/claude-code/SKILL.md` — Claude Code adapter (Task, `/batch`, parallel `claude -p`)
 - `adapters/codex/SKILL.md` — Codex adapter (parallel `codex exec`, external worker lanes; supersedes beastmode-cloud / beastmode-qwen-cloud)
+- `adapters/langgraph/SKILL.md` — LangGraph adapter (`StateGraph`, `Send`, checkpointed gates)
+- `python/` — optional installable package (`pip install 'beastmode[langgraph]'`)
 - `references/model-routing.md` — Tier definitions, per-phase routing table, design package template, escalation ladder, provider config sketches
 - `references/autonomy-levels.md` — `low` / `medium` (default) / `high` autonomy levels, mapped to pi/Hermes/Claude/Codex flags and surface rules
 - `references/acn-contract.md` — The ACN fan-out contract (batch shape, child meta.json, shared rules)

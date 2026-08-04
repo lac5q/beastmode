@@ -1,5 +1,5 @@
 {
-  "_comment": "Tier aliases verified against pi --list-models on oracle-1 / maeve-u1. Override per-repo at <repo>/.beastmode/tier-aliases.json (most specific wins). Families are defined in schema/families.json; tiers in schema/tiers.json.",
+  "_comment": "Tier aliases should be verified against pi --list-models on the configured worker host. Override per-repo at <repo>/.beastmode/tier-aliases.json (most specific wins). Families are defined in schema/families.json; tiers in schema/tiers.json.",
   "_resolution": "scripts/bm reads project-local first, then ~/.beastmode/tier-aliases.json, then this file.",
   "kimi3":        { "provider": "kimi-coding", "model": "k3",                  "tier": "frontier", "family": "kimi" },
   "k2":           { "provider": "kimi-coding", "model": "k2p7",               "tier": "frontier", "family": "kimi" },

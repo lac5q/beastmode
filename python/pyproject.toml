@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beastmode"
+version = "2.4.0"
+description = "Mixture-of-Agents orchestration primitives with an optional LangGraph binding"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Luis Calderon"}]
+dependencies = []
+
+[project.optional-dependencies]
+langgraph = [
+  "langgraph>=1.2,<1.3",
+  "langchain-core>=1.5,<2",
+  "langgraph-checkpoint-sqlite>=3.1,<4",
+]
+anthropic = ["langchain-anthropic>=1,<2"]
+openai = ["langchain-openai>=1,<2"]
+minimax = ["langchain-openai>=1,<2"]
+studio = ["langgraph-cli[inmem]>=0.4,<0.5"]
+postgres = [
+  "langgraph-checkpoint-postgres>=3,<4",
+  "psycopg[binary]>=3.2,<4",
+]
+dev = [
+  "build>=1",
+  "import-linter>=2",
+  "pytest>=8",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

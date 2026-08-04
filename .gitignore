@@ -23,3 +23,27 @@ node_modules/
 # Python bytecode from the stdlib helpers in scripts/
 __pycache__/
 *.pyc
+
+# Local LangGraph development environment; never committed.
+.venv/
+.beastmode/
+.langgraph_api/
+
+# Local credentials and key material; keep examples explicit and reviewable.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+auth.json
+*.sqlite
+*.sqlite3
+
+# Python package build/test artifacts.
+python/build/
+python/dist/
+python/.pytest_cache/
+python/src/*.egg-info/

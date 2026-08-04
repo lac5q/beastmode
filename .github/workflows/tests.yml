@@ -15,6 +15,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Public artifact secret and private-path guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          if matches="$(git grep -I -l -E 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' -- .)"; then
+            echo "Potential credential material found in tracked files:"
+            echo "$matches"
+            exit 1
+          fi
+          absolute_path_pattern='/(home|Users)/[[:alnum:]_.-]+|C:[\\\\/]+Users[\\\\/]+[[:alnum:]_.-]+'
+          if matches="$(git grep -I -l -E "$absolute_path_pattern" -- .)"; then
+            echo "Machine-specific absolute paths found in tracked files:"
+            echo "$matches"
+            exit 1
+          fi
+          if matches="$(git ls-files | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$)')"; then
+            echo "Credential-like files are tracked:"
+            echo "$matches"
+            exit 1
+          fi
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -33,3 +54,21 @@ jobs:
             git diff
             exit 1
           fi
+
+  python-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install the dependency-free package test lane
+        run: python -m pip install -e "python[dev,langgraph]"
+
+      - name: Test framework-neutral core
+        run: python -m pytest python/tests
+
+      - name: Build the package
+        run: python -m build python/

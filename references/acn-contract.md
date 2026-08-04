@@ -151,6 +151,7 @@ load-bearing: change the field list there and the gate follows.
 | Pi | `pi-dynamic-workflows` `agent()` / `parallel()` | Lane-grouped, worktree isolation, JSON Schema `schema:` for typed results |
 | Claude Code | `Task` tool + `/batch`; parallel `claude -p` from shell | Director keeps one chat; subagents run in parallel sandboxes |
 | Codex | `codex exec` in parallel + worktrees per lane | Each Codex runs in its own worktree; consolidate via the director |
+| LangGraph | `StateGraph` + `Send` + checkpointed `interrupt()` | Same-lane fan-out, isolated subprocess worktrees, SQLite by default; `PostgresSaver` is opt-in |
 
 The vocabulary is identical across all four: autonomy level, the three
 seats, the batch shape, the meta.json shape, MODEL DRIFT, gates blocking

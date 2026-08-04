@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/hermes/SKILL.
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in the
-canonical `beastmode` skill (v2.3.0) - load it first and follow it. This
+canonical `beastmode` skill (v2.4.0) - load it first and follow it. This
 adapter tells you which Hermes primitives implement which seat and how to
 wire them together.
 
@@ -197,7 +197,7 @@ Universal Beastmode artifacts, written in this order:
 
 ## See also
 
-- `beastmode` (v2.3.0) - the canonical framework this adapter implements
+- `beastmode` (v2.4.0) - the canonical framework this adapter implements
 - `schema/acn-contract.json` - machine source of truth for the batch / task
  / meta.json shapes
 - `references/autonomy-levels.md` - the three-level scale and surfacing rules

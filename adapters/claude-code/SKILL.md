@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/claude-code/S
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in
-the canonical `beastmode` skill (v2.3.0) — load it first and follow it.
+the canonical `beastmode` skill (v2.4.0) — load it first and follow it.
 
 ## Only the harness mechanics
 
@@ -165,6 +165,6 @@ Universal Beastmode artifacts, written in this order:
 
 ## See also
 
-- `beastmode` (v2.3.0) — the canonical framework this adapter implements
+- `beastmode` (v2.4.0) — the canonical framework this adapter implements
 - `schema/acn-contract.json` — batch / task / meta.json shapes
 - `references/autonomy-levels.md` and `references/orchestration-comparison.md`

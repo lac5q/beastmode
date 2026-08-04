@@ -87,7 +87,7 @@ goal_complete or halts on goal_blocked — never silently.
 ```
 bm "ship the new ingest endpoint behind a feature flag" \
    --autonomy medium \
-   --on maeve-u1 \
+   --on <remote-host> \
    --frontier kimi3 \
    --economy minimax
 ```

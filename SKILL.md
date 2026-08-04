@@ -9,7 +9,7 @@ description: >
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
   Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
-version: 2.3.0
+version: 2.4.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
 related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
@@ -110,6 +110,7 @@ Use beastmode for complex tasks that need:
 7. **Model drift always surfaces, and so does not knowing.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier. A task whose serving model cannot be established at all is **unverifiable** and is treated the same way — never let a silent "unavailable" read as a pass.
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
 9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses MiniMax-M3. Codex, GPT, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
+10. **Public GitHub release is security-gated.** Before every public push, merge, or deployment, run the repository security scan and inspect its completed coverage/findings artifacts. Never publish credentials, tokens, private keys, local auth files, or sensitive environment values. An unresolved security blocker stops the release.
 
 ## The ACN Layer (Async Parallel Sub-agents)
 
@@ -121,6 +122,7 @@ Beastmode's execution fan-out is **ACN**: async parallel sub-agents. Every suppo
 | **Pi** | `pi-dynamic-workflows` `agent()` / `parallel()` / worktrees | `pi/SKILL.md` |
 | **Claude Code** | Task subagents, `/batch` worktrees, parallel `claude -p` | `adapters/claude-code/SKILL.md` |
 | **Codex** | parallel `codex exec` + worktrees, external cheap lanes | `adapters/codex/SKILL.md` |
+| **LangGraph** | `StateGraph` + `Send` fan-out, checkpointed `interrupt()` gates, subprocess executors | `adapters/langgraph/SKILL.md` |
 
 The shared rules (all harnesses):
 
@@ -139,7 +141,7 @@ Beastmode works with any orchestration harness. Choose based on your environment
 ### Runner CLI (`bm`)
 
 For one-shot goals without writing a full plan: `bm "<goal>"` from any repo.
-Parses `--harness hermes|pi|claude|codex` (default `pi`), `--gsd`,
+Parses `--harness hermes|pi|claude|codex|langgraph` (default `pi`), `--gsd`,
 `--frontier <alias>`, `--economy <alias>`, `--watcher <alias>`,
 `--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
 aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
@@ -594,9 +596,9 @@ and monitoring.
 
 - **Schema (source of truth):** `schema/families.json`, `schema/tiers.json`, `schema/seats.json`, `schema/autonomy-levels.json`, `schema/acn-contract.json` — one machine-readable vocabulary for families, tiers, seats, autonomy, and the ACN contract.
 - **Families / tiers / seats:** See `references/families-tiers-seats.md` for the human view of the schema and how to add a family or alias.
-- **ACN contract:** See `references/acn-contract.md` for async parallel sub-agent fan-out — batch shape, per-child meta.json, the six shared rules, and the harness primitive map. Adapters: `adapters/hermes/`, `adapters/claude-code/`, `adapters/codex/`, plus the Pi adapter in `pi/`.
+- **ACN contract:** See `references/acn-contract.md` for async parallel sub-agent fan-out — batch shape, per-child meta.json, the six shared rules, and the harness primitive map. Adapters: `adapters/hermes/`, `adapters/claude-code/`, `adapters/codex/`, `adapters/langgraph/`, plus the Pi adapter in `pi/`.
 - **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
-- **Tier aliases:** See `references/tier-aliases.md` (and `scripts/tier-aliases.json`) for the friendly-name → `provider/model` (+ family, tier) map consumed by `scripts/bm`. Verified against `pi --list-models` on oracle-1 / maeve-u1.
+- **Tier aliases:** See `references/tier-aliases.md` (and `scripts/tier-aliases.json`) for the friendly-name → `provider/model` (+ family, tier) map consumed by `scripts/bm`. Verify them against `pi --list-models` on the configured worker host.
 - **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and the per-harness enforcement map.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
 - **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.x.

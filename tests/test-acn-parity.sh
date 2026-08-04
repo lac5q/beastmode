@@ -97,17 +97,48 @@ fi
 echo "check (d): enforce-models preflight rejects unknown model"
 if [ ! -f "$ROOT/scripts/enforce-models" ]; then
   fail "scripts/enforce-models missing"
-elif ! command -v pi >/dev/null 2>&1; then
-  skip "pi not in PATH"
 else
+  cat > "$TMP/bin/pi" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = "--list-models" ]; then
+  cat <<TABLE
+provider      model                                      context  max-out  thinking  images
+anthropic     claude-opus-4-7                            1M       128K     yes       yes
+TABLE
+  exit 0
+fi
+exit 0
+EOF
+  chmod +x "$TMP/bin/pi"
   set +e
-  out="$("$ROOT/scripts/enforce-models" --harness pi --model definitely-not-a-provider/nope 2>&1)"
+  out="$(PATH="$TMP/bin:$PATH" "$ROOT/scripts/enforce-models" --harness pi --model definitely-not-a-provider/nope 2>&1)"
   rc=$?
   set -e
   if [ "$rc" = "2" ]; then
     pass "enforce-models --harness pi rejects unknown model with exit 2"
   else
     fail "enforce-models pi preflight expected exit 2, got $rc; output: $out"
+  fi
+
+  # A broken model-list probe must still surface the documented preflight
+  # code, rather than leaking the probe's status through pipefail.
+  mkdir -p "$TMP/failing-pi"
+  cat > "$TMP/failing-pi/pi" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = "--list-models" ]; then
+  exit 7
+fi
+exit 0
+EOF
+  chmod +x "$TMP/failing-pi/pi"
+  set +e
+  out="$(PATH="$TMP/failing-pi:$PATH" "$ROOT/scripts/enforce-models" --harness pi --model definitely-not-a-provider/nope 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" = "2" ]; then
+    pass "enforce-models preserves exit 2 when pi model listing fails"
+  else
+    fail "enforce-models leaked pi listing status, expected exit 2, got $rc; output: $out"
   fi
 fi
 
@@ -286,6 +317,22 @@ if documented != declared:
     sys.exit(1)
 PY
 
+# ---- (e6) Python ChildMeta derives the schema field list ----
+echo "check (e6): Python ChildMeta fields match schema"
+PYTHONPATH="$ROOT/python/src" python3 - "$ROOT" <<'PY' && pass "Python ChildMeta fields match schema" || fail "Python ChildMeta fields drifted from schema/acn-contract.json"
+import json, sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+from beastmode.langgraph.state import ChildMeta
+
+schema_fields = set(json.loads((root / "schema" / "acn-contract.json").read_text())["meta_json_required_fields"])
+if set(ChildMeta.__required_keys__) != schema_fields:
+    print("schema:", sorted(schema_fields), file=sys.stderr)
+    print("python:", sorted(ChildMeta.__required_keys__), file=sys.stderr)
+    raise SystemExit(1)
+PY
+
 # ---- (e5) no spec still prescribes the pre-v2.3 merged-model meta shape ----
 # Scoped to the surfaces that *specify* the contract. .learnings/ and
 # .planning/ are records of what happened, and a record of this defect has to
@@ -305,7 +352,7 @@ fi
 # ---- (f) adapter SKILL.md vocabulary ----
 echo "check (f): adapters/*/SKILL.md vocabulary"
 ANY_ADAPTER=0
-for adapter in hermes claude-code codex; do
+for adapter in hermes claude-code codex langgraph; do
   f="$ROOT/adapters/$adapter/SKILL.md"
   if [ ! -f "$f" ]; then
     skip "adapters/$adapter/SKILL.md missing (phase 003/004 not shipped yet)"

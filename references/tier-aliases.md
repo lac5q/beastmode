@@ -17,7 +17,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 3. `scripts/tier-aliases.json` (shipped next to `bm` — fresh installs work)
 4. Fallback: pass `--frontier <alias>` through to `pi --model` unchanged
 
-## Defaults (verified against `pi --list-models` on oracle-1 / maeve-u1)
+## Defaults (verify against `pi --list-models` on the configured worker host)
 
 | Alias | Provider | Model | Tier | Family | Notes |
 |---|---|---|---|---|---|

@@ -85,7 +85,7 @@ echo "$out" | grep -q "requested model(s) not available" \
 ok "no-model invocation skipped the check"
 
 # Test 6: --on remote skips the local check (remote host owns availability).
-echo "Test 6: --on maeve-u1 skips the local check"
+echo "Test 6: --on remote-host skips the local check"
 # Point ssh at a no-op so dispatch returns immediately without a real SSH.
 mkdir -p "$TMP/ssh-bin"
 cat > "$TMP/ssh-bin/ssh" <<'EOF'
@@ -94,7 +94,7 @@ echo "fake-ssh: $*"
 exit 0
 EOF
 chmod +x "$TMP/ssh-bin/ssh"
-out="$(PATH="$TMP/bin:$TMP/ssh-bin:$PATH" run_bm "do a thing" --frontier fable --on maeve-u1 2>&1)"
+out="$(PATH="$TMP/bin:$TMP/ssh-bin:$PATH" run_bm "do a thing" --frontier fable --on remote-host 2>&1)"
 echo "$out" | grep -q "requested model(s) not available" \
   && fail "local check ran during remote dispatch"
 ok "remote dispatch skipped the local check"

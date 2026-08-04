@@ -23,7 +23,7 @@ When publishing beastmode or similar skills publicly, sanitize these items:
 
 ## Publishing Workflow
 
-1. **Audit**: Read full SKILL.md, grep for `~`, `/Users/`, project names
+1. **Audit**: Read full SKILL.md, grep for home-directory paths and project names
 2. **Sanitize**: Remove or generalize local references
 3. **Create repo**: Public GitHub repo with clean skill files
 4. **Share**: Use the repo URL in social posts, docs, etc.

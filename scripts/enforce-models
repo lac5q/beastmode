@@ -2,7 +2,7 @@
 # enforce-models — preflight + postflight model check for beastmode.
 #
 # Preflight (one --harness per invocation):
-#   enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
+#   enforce-models --harness pi|hermes|claude|codex|langgraph --model provider/model [...]
 #
 # Postflight (scans a directory of meta.json files):
 #   enforce-models --check-meta <dir> [--expect <batch.json|id,...>]
@@ -26,9 +26,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+python_runtime() {
+  if [ -n "${BEASTMODE_PYTHON:-}" ]; then
+    printf '%s\n' "$BEASTMODE_PYTHON"
+  elif [ -x "$SCRIPT_DIR/../.venv/bin/python" ]; then
+    printf '%s\n' "$SCRIPT_DIR/../.venv/bin/python"
+  else
+    printf '%s\n' python3
+  fi
+}
+
 usage() {
   cat >&2 <<'USAGE'
-usage: enforce-models --harness pi|hermes|claude|codex --model provider/model [...]
+usage: enforce-models --harness pi|hermes|claude|codex|langgraph --model provider/model [...]
        enforce-models --check-meta <dir> [--expect <batch.json|id,...>]
                                          [--allow-empty] [--strict]
 USAGE
@@ -84,17 +94,34 @@ if [ "${BM_SKIP_MODEL_CHECK:-0}" = "1" ]; then
 fi
 
 case "$HARNESS" in
+  langgraph)
+    PYTHON_BIN="$(python_runtime)"
+    if ! "$PYTHON_BIN" -c 'import beastmode, langgraph; from langgraph.checkpoint.sqlite import SqliteSaver; c=SqliteSaver.from_conn_string(":memory:"); s=c.__enter__(); s.setup(); c.__exit__(None,None,None)' >/dev/null 2>&1; then
+      echo "enforce-models: langgraph runtime not installed; install with:" >&2
+      echo "  $PYTHON_BIN -m pip install -e 'python[langgraph]'" >&2
+      exit 2
+    fi
+    # Model listing is provider-specific.  The graph remains fail-closed via
+    # SeatModel metadata and does not pretend a package import proves a seat.
+    ;;
   pi)
     if ! command -v pi >/dev/null 2>&1; then
       echo "enforce-models: pi not in PATH; install pi or set BM_SKIP_MODEL_CHECK=1" >&2
       exit 2
+    fi
+    # Probe once and retain the result. A failed `pi --list-models` is still
+    # a preflight failure, not a reason for this script to leak the probe's
+    # exit status (especially under `set -euo pipefail`).
+    available_models=""
+    if ! available_models="$(pi --list-models 2>/dev/null)"; then
+      available_models=""
     fi
     missing=()
     for model in "${MODELS[@]}"; do
       [[ "$model" == *"/"* ]] || { missing+=("$model"); continue; }
       provider="${model%%/*}"
       model_id="${model#*/}"
-      if ! pi --list-models 2>/dev/null \
+      if ! printf '%s\n' "$available_models" \
            | awk -v p="$provider" -v m="$model_id" \
                  'NR>1 && $1==p && $2==m {found=1} END{exit !found}'; then
         missing+=("$model")
@@ -107,7 +134,8 @@ case "$HARNESS" in
       done
       echo >&2
       echo "enforce-models: available models (run 'pi --list-models' for full list):" >&2
-      pi --list-models 2>/dev/null | awk 'NR>1 {printf "  %s/%s\n", $1, $2}' >&2
+      printf '%s\n' "$available_models" \
+        | awk 'NR>1 {printf "  %s/%s\n", $1, $2}' >&2 || true
       echo >&2
       echo "enforce-models: pick a different --frontier/--economy/--watcher, override the alias in" >&2
       echo "    \$HOME/.beastmode/tier-aliases.json or \$PWD/.beastmode/tier-aliases.json," >&2
@@ -195,7 +223,7 @@ case "$HARNESS" in
     ;;
 
   *)
-    echo "enforce-models: unknown --harness: $HARNESS (expected pi|hermes|claude|codex)" >&2
+    echo "enforce-models: unknown --harness: $HARNESS (expected pi|hermes|claude|codex|langgraph)" >&2
     exit 2
     ;;
 esac

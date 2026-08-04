@@ -1,5 +1,41 @@
 # Beastmode learnings
 
+## BM-20260803 LangGraph runtime implementation — P1–P7 mechanical pass
+
+- Director/Lead: current Codex session; Watcher/Reviewer: unavailable; Executor: current session; Harness: manual/GSD with local `.venv`.
+- Acceptance checks: P1 framework-neutral core, P2 canonical provenance parity, P3 interrupt/replay graph, P4 `Send` lane fan-out, P5 SQLite resume, P6 foreign-graph/subgraph composition, P7 package/Studio/docs surfaces.
+- Result: implementation mechanically green through the shipped pipeline surface; not a final `validated` release because the mandatory cross-family watcher was unavailable and P0.1/P0.3 provider evidence remains incomplete.
+- What worked: `beastmode[langgraph]` installs LangGraph 1.2.10, LangChain Core 1.5.3, SQLite checkpointing 3.1.1, and the OpenAI-compatible adapter 1.4.1. The optional `studio` extra provides `langgraph dev`. The shell lane stays install-free.
+- What failed / drifted: the first Studio config pointed at a four-argument builder; LangGraph CLI requires a 0–2 argument factory. A zero-argument `studio_pipeline()` entrypoint fixed the load failure. The isolated package build also needed local `wheel` because the sandbox could not reach package indexes.
+- Routing rule to change: none. Keep direct-call judgment seats fail-closed until P0.1 proves a provider's resolved serving model; use subprocess executors otherwise. Keep same-lane grouping because P0.3's live token measurement is still unavailable.
+- Skill/config update needed: no; promoted the runtime, adapter, parity, pipeline, template, and observability surfaces into the repository.
+- Promoted to: `python/`, `scripts/langgraph-runner`, `langgraph.json`, `adapters/langgraph/SKILL.md`, `references/langgraph-pipeline.md`, `references/langgraph-templates.md`, and `references/observability.md`.
+
+## BM-20260803 P0 LangGraph spikes
+
+- Director/Lead: current Codex session; Watcher/Reviewer: unavailable; Executor: current session; Harness: manual/GSD.
+- Acceptance checks: isolated LangGraph 1.2.10 replay spike; sanitized Minimax provenance probe; install-free bash lane not changed.
+- Result: partial — P0.2 passed; P0.1 live provider matrix is blocked by missing provider access and Minimax HTTP 402; P0.3 lacks live usage metadata.
+- What worked: the replay spike reproduced the duplicate-side-effect hazard and confirmed `interrupt()`-first ordering fixes it. The local `.venv` keeps LangGraph optional and leaves the bash lane dependency-free.
+- What failed / drifted: provider provenance and cache-token measurement cannot be inferred from missing or failed calls; the matrix records those rows as unmeasured/unverifiable instead of promoting them to direct-call viable.
+- Routing rule to change: none. Keep direct-call seats fail-closed and preserve lane grouping until live provider evidence exists.
+- Skill/config update needed: no.
+- Promoted to: `references/langgraph-provider-provenance.md`, `references/langgraph-interrupt-replay.md`, `references/langgraph-lane-grouping.md`.
+
+## BM-20260803 roadmap completion — preflight probe failures
+
+- Acceptance checks: `bash tests/run-all.sh` — 6/6 steps green; ACN parity 27 PASS / 0 FAIL / 0 SKIP.
+- Result: PASS. The GSD roadmap surfaces were already present; completion required hardening the `pi` model-list preflight and its regression coverage.
+
+## What failed / drifted
+
+- A failed `pi --list-models` probe leaked exit 1 through `set -euo pipefail` while `enforce-models` was printing alternatives, violating the documented exit-2 preflight contract. The preflight now captures the probe once, treats a failed listing as no available models, and reaches the explicit exit 2.
+- The parity test depended on the host's installed `pi`, which made it sensitive to sandbox/auth filesystem failures. It now uses temporary fake `pi` binaries and covers both a normal unavailable-model response and a failed listing probe.
+
+## Routing rule to change
+
+- None. The verifier-first route held; the change was a deterministic preflight/test hardening pass.
+
 ## BM-20260726-2300 architecture review (v2.3.0)
 
 - Reviewer: claude-opus-5, single session, no fan-out (review scope, not an ACN run).
@@ -34,7 +70,7 @@
 
 ## Skill/config updates needed
 
-- The `opus5` alias in `scripts/tier-aliases.json` resolves to `claude-opus-4-8` and `sonnet` to `claude-sonnet-4-6`. Left alone — the file states it was verified against `pi --list-models` on oracle-1 / maeve-u1, so those may be what those hosts actually serve. Worth re-checking: if newer Opus/Sonnet are available, the alias names are misleading as written.
+- The `opus5` alias in `scripts/tier-aliases.json` resolves to `claude-opus-4-8` and `sonnet` to `claude-sonnet-4-6`. Left alone — the file states it was verified against `pi --list-models` on a configured worker host, so the alias names are worth re-checking whenever that host's catalog changes.
 - `bm`'s documented exit-code contract ("0 = goal_complete, 1 = goal_blocked") is not implemented — `bm` `exec`s the harness, so callers get the harness's exit code with no mapping. Either implement the mapping or drop the claim from the header.
 - Autonomy → harness flag mapping is only symmetric at `high`. `low` maps to `--approve` on pi and to nothing on hermes/claude/codex, so "autonomy semantics are identical across harnesses by construction" currently holds for the prompt strings only, not the enforcement flags.
 - `bm --watcher <alias>` resolves and preflights the watcher seat but never passes it to any harness — it reaches the run as prompt text only.

@@ -4,12 +4,13 @@
 # Usage:
 #   bm "<goal>"                              # default: local, pi harness, medium autonomy, auto models
 #   bm "<goal>" --harness hermes             # Hermes ACN (async parallel sub-agents)
-#   bm "<goal>" --harness claude|codex       # Claude Code / Codex adapters
+#   bm "<goal>" --harness claude|codex|langgraph # adapters / optional graph runtime
 #   bm "<goal>" --gsd                        # force GSD phase gating
-#   bm "<goal>" --on maeve-u1                # dispatch to remote machine
+#   bm "<goal>" --on <remote-host>           # dispatch to a remote machine
 #   bm "<goal>" --frontier sol --thinking medium
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
+#   bm "<goal>" --harness langgraph --executor-command '<child argv>'
 #
 # The goal can appear anywhere on the command line; flags are parsed first
 # and the remaining args are joined into the goal string.
@@ -32,6 +33,9 @@ ECONOMY=""
 WATCHER=""
 AUTONOMY="medium"
 THINKING="high"
+LANGGRAPH_GRAPH="pipeline"
+EXECUTOR_COMMAND=""
+WORKTREE_ROOT=""
 GOAL_PARTS=()
 PRINT_HELP=0
 
@@ -89,6 +93,12 @@ while [ $# -gt 0 ]; do
     --economy=*)       ECONOMY="${1#*=}"; shift ;;
     --watcher)         WATCHER="${2:-}"; shift 2 ;;
     --watcher=*)       WATCHER="${1#*=}"; shift ;;
+    --graph)           LANGGRAPH_GRAPH="${2:-pipeline}"; shift 2 ;;
+    --graph=*)         LANGGRAPH_GRAPH="${1#*=}"; shift ;;
+    --executor-command) EXECUTOR_COMMAND="${2:-}"; shift 2 ;;
+    --executor-command=*) EXECUTOR_COMMAND="${1#*=}"; shift ;;
+    --worktree-root)   WORKTREE_ROOT="${2:-}"; shift 2 ;;
+    --worktree-root=*) WORKTREE_ROOT="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
     --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
     --thinking)        THINKING="${2:-high}"; shift 2 ;;
@@ -110,9 +120,14 @@ case "$AUTONOMY" in
 esac
 
 case "$HARNESS" in
-  pi|hermes|claude|codex) ;;
-  *) echo "bm: --harness must be pi|hermes|claude|codex (got: $HARNESS)" >&2; exit 2 ;;
+  pi|hermes|claude|codex|langgraph) ;;
+  *) echo "bm: --harness must be pi|hermes|claude|codex|langgraph (got: $HARNESS)" >&2; exit 2 ;;
 esac
+
+if [ "$HARNESS" = "langgraph" ] && [ "$LANGGRAPH_GRAPH" != "pipeline" ]; then
+  echo "bm: --graph must be pipeline for the LangGraph harness" >&2
+  exit 2
+fi
 
 case "$THINKING" in
   none|minimal|low|medium|high|xhigh) ;;
@@ -184,7 +199,7 @@ done
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
 [ "$AUTONOMY" = "high" ] && PI_ARGS+=(--no-builtin-tools)
 
-# Remote dispatch: hand the goal to maeve-u1 over SSH and tail the goal log.
+# Remote dispatch: hand the goal to the selected remote host over SSH and tail the goal log.
 # ponytail: foreground SSH so the user sees the live goal stream. If they want
 # fire-and-forget, run `bm --on $ON ... &` themselves or use --autonomy high.
 if [ "$ON" != "local" ]; then
@@ -206,6 +221,9 @@ if [ "$ON" != "local" ]; then
   [ -n "$WATCHER" ]  && REMOTE_CMD="$REMOTE_CMD --watcher $(shquote "$WATCHER")"
   REMOTE_CMD="$REMOTE_CMD --autonomy $(shquote "$AUTONOMY")"
   REMOTE_CMD="$REMOTE_CMD --thinking $(shquote "$THINKING")"
+  [ "$HARNESS" = "langgraph" ] && REMOTE_CMD="$REMOTE_CMD --graph $(shquote "$LANGGRAPH_GRAPH")"
+  [ -n "$EXECUTOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --executor-command $(shquote "$EXECUTOR_COMMAND")"
+  [ -n "$WORKTREE_ROOT" ] && REMOTE_CMD="$REMOTE_CMD --worktree-root $(shquote "$WORKTREE_ROOT")"
   exec ssh "$ON" "$REMOTE_CMD"
 fi
 
@@ -223,6 +241,24 @@ $SEAT_PROMPT
 GOAL: $GOAL"
 
 case "$HARNESS" in
+  langgraph)
+    # The optional bridge owns its dependency check and emits an install hint.
+    # Keep this branch isolated so every existing harness remains Python-free.
+    LANGGRAPH_PYTHON="${BEASTMODE_PYTHON:-}"
+    if [ -z "$LANGGRAPH_PYTHON" ] && [ -x "$SCRIPT_DIR/../.venv/bin/python" ]; then
+      LANGGRAPH_PYTHON="$SCRIPT_DIR/../.venv/bin/python"
+    fi
+    LANGGRAPH_PYTHON="${LANGGRAPH_PYTHON:-python3}"
+    LG_ARGS=("$SCRIPT_DIR/langgraph-runner" "$GOAL" \
+      --autonomy "$AUTONOMY" \
+      --graph "$LANGGRAPH_GRAPH" \
+      --frontier "$FRONTIER" \
+      --economy "$ECONOMY" \
+      --watcher "$WATCHER")
+    [ -n "$EXECUTOR_COMMAND" ] && LG_ARGS+=(--executor-command "$EXECUTOR_COMMAND")
+    [ -n "$WORKTREE_ROOT" ] && LG_ARGS+=(--worktree-root "$WORKTREE_ROOT")
+    exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
+    ;;
   pi)
     exec pi "${PI_ARGS[@]}" "$GOAL"
     ;;
