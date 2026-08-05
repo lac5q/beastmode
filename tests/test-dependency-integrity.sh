@@ -32,6 +32,12 @@ rg -Fq 'pip install --require-hashes -r python/requirements-ci.lock' "$WORKFLOW"
   || fail "CI does not enforce the Python hash lock"
 rg -Fq 'python -m build --no-isolation python/' "$WORKFLOW" \
   || fail "CI build isolation could download unverified build requirements"
+rg -Fq 'sudo apt-get install --yes ripgrep' "$WORKFLOW" \
+  || fail "CI does not install the shell gate's ripgrep dependency"
+rg -Fq 'kernel.apparmor_restrict_unprivileged_userns=0' "$WORKFLOW" \
+  || fail "CI does not enable the Bubblewrap user namespace on restricted runners"
+rg -Fq 'bwrap --ro-bind / / true' "$WORKFLOW" \
+  || fail "CI does not verify Bubblewrap works before sandbox tests"
 if rg -q 'pip install .*constraints-ci|PIP_CONSTRAINT=' "$WORKFLOW"; then
   fail "CI still has an unhashed constraints-only install path"
 fi

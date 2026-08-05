@@ -552,6 +552,7 @@ but do not satisfy the final release scan.
 | S-26 | low | Commit-subject log injection | Omit subjects or render bounded escaped diagnostics | Control bytes never reach public CI logs |
 | S-27 | high | Repo-local credential files readable by Pi workers | Preserve ordinary repository reads while denying high-signal package, VCS, container, cloud, and cluster credential filenames at the cross-cutting path surface | `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, and representative cloud/container auth files are denied by the canonical enforced policy |
 | S-28 | high | Package credentials bypass public release guard | Extend Git-history and archive path/token vocabularies for package registries and adjacent credential families | A real `.npmrc`/`npm_` history fixture and generated archive fixtures fail closed while clean artifacts pass |
+| S-29 | CI parity | Hosted runner lacks declared shell/sandbox prerequisites | Install ripgrep explicitly and enable/probe Bubblewrap's user namespace only on the ephemeral least-privilege CI runner | The shell gate finds `rg`; the Bubblewrap probe passes before executor tests; runtime sandbox policy remains fail closed |
 
 ### P7S.4 — Resolve the deferred provider bound
 
@@ -575,17 +576,17 @@ therefore resolved as a tested resource-exhaustion case.
   Claude policy, literal Hermes parsing, authenticated run/result attestations
 - [x] S-15–S-18: worker quotas, bounded metadata walking/guard output, complete
   Studio process-group cleanup
-- [x] S-19–S-28: raw history and distribution scanning, packaging containment,
+- [x] S-19–S-29: raw history and distribution scanning, packaging containment,
   redaction, immutable installer bootstrap, Python/npm artifact integrity, and
   terminal-safe diagnostics, plus repo-local credential isolation and package
-  credential release scanning
+  credential release scanning, and hosted-runner sandbox/tool parity
 - [x] P7S.4 deferred provider metadata bound
 - [ ] Release gate: clean exact-commit security scan, public push, remote CI,
   and branch cleanup
 
 ### P7S release exit (deterministic)
 
-- S-01 through S-28 have regression tests. Critical/high rows are closed; any
+- S-01 through S-29 have regression tests. Critical/high rows are closed; any
   remaining medium/low risk has an explicit owner, rationale, and expiry.
 - S-19 through S-23 are merge-blocking regardless of accepted severity because
   the operator requirement is **never publish sensitive material**.

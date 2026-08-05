@@ -29,6 +29,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install shell test dependencies
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
+
       - name: Run the beastmode gate
         run: ./tests/run-all.sh
 
@@ -54,8 +57,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install the worktree filesystem sandbox
-        run: sudo apt-get update && sudo apt-get install --yes bubblewrap
+      - name: Install and enable the worktree filesystem sandbox
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+          if sysctl -N kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          bwrap --ro-bind / / true
 
       - name: Install hash-locked test dependencies
         run: |
