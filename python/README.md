@@ -37,3 +37,8 @@ drift, validation, or review fails closed.
 See `references/langgraph-templates.md` for four executable patterns and
 `references/beastmode-on-langgraph.md` for the trusted helper contract, CLI,
 and restart example.
+
+Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` to trace the LangGraph
+run. After a run, `scripts/acn-trace` can project executor receipts as
+sanitized child runs without changing the offline gate. See
+`references/observability.md` for privacy and tracing examples.

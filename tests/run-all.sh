@@ -68,6 +68,7 @@ run_step "bm thinking passthrough" ./tests/test-bm-thinking.sh
 run_step "shell security regressions" ./tests/test-shell-security.sh
 run_step "installer integrity" ./tests/test-installer-integrity.sh
 run_step "dependency integrity" ./tests/test-dependency-integrity.sh
+run_step "ACN trace security" ./tests/test-acn-trace.sh
 run_step "public artifact guard" ./tests/test-public-artifact-guard.sh
 run_step "Pi security regressions" ./tests/test-pi-security.sh
 

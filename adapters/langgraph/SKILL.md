@@ -28,6 +28,13 @@ install-free and is unchanged for users who do not select this harness.
 | Direct model | `beastmode.langgraph.as_chat_model(seat)` exposes a configured `BaseChatModel` |
 | Observability | Custom stream events plus OTel-shaped `trace_metadata` and child spans |
 
+Set `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, and optionally
+`LANGSMITH_PROJECT` to enable LangGraph/LangSmith tracing. LangGraph provides
+its in-process node trace tree; run `scripts/acn-trace` after a completed run
+to project canonical child receipts as sanitized `beastmode.child` runs.
+Tracing is best-effort and never participates in a gate decision; see
+`references/observability.md` for privacy and the receipt projection path.
+
 Gates are blocking below high. `MODEL DRIFT` and `unverifiable` are always
 surfaced and never count as validated. No watcher, no validated. A provider
 that does not prove `actual_model` is unsupported for direct-call judgment
