@@ -1,15 +1,15 @@
 # ROADMAP — Beastmode on LangGraph (v2.4.0)
 
-Implementation status: the P1–P7 package, adapter, CLI, persistence, and
-documentation work is present in the current `main` worktree. P0.1 produced a
-provider matrix with no direct-call provider promoted; the safe subprocess
-fallback is therefore the release configuration. P0.2 and P0.3 are complete.
-Public push remains behind the repository security-release gate. The completed
-Standard scan `4846cd52-de67-4f97-b6a2-c84933241ac9` is mapped into **P7S**
-below: one critical, thirteen high, nine medium, two low, and one deferred
-candidate. Its snapshot changed while the scan was running, so its findings are
-planning input; a clean-snapshot verification scan is still required before
-release.
+Implementation status: **P0–P7S shipped on public `main` at
+`703ce2a4f7335147b8f6cd1b0a4d0ed7470dca38`.** P0.1 produced a provider
+matrix with no direct-call provider promoted; the safe subprocess fallback is
+therefore the release configuration. P0.2/P0.3 and the P1–P7 package, adapter,
+CLI, persistence, composability, and documentation work are complete. P7S
+closed the earlier critical/high findings without removing worker capability.
+The final exact-commit Standard scan
+`e434d0a1-766d-4a84-8d05-692f156c248d` reported zero findings, generated
+wheel/sdist scans passed, GitHub Actions run `30983232189` completed green, and
+merged implementation branches/worktrees were cleaned.
 
 Read `REQUIREMENTS.md` first — it holds the concept mapping, the LangGraph API
 facts each phase depends on, and the risk register phases P0–P2 exist to retire.
@@ -39,14 +39,13 @@ below. Q4 and Q6–Q10 remain open but do not block P0.
   `actual_model`. The default executor path remains subprocess-based.
 - **P0.2/P0.3:** interrupt replay and lane-grouping spikes are documented with
   passing evidence.
-- **P1–P7:** implemented locally; the dependency-free bash lane, Python tests,
+- **P1–P7:** shipped; the dependency-free bash lane, Python tests,
   package build, Studio import, CLI smoke run, and acceptance checks pass.
-- **P7S:** required security hardening is planned below; it preserves worker
-  capability by moving it behind explicit sandbox grants rather than disabling
-  tools globally.
+- **P7S:** complete; security hardening preserves worker capability by moving
+  it behind explicit sandbox grants rather than disabling tools globally.
 - **P8/P9:** intentionally deferred as separate efforts and gated on P7S.
-- **Release:** not complete until P7S is green, generated distributions are
-  inspected for sensitive data, and a final clean-snapshot scan passes.
+- **Release:** complete on public `main`; generated distributions, the final
+  clean-snapshot scan, and remote CI passed.
 
 ---
 
@@ -581,8 +580,14 @@ therefore resolved as a tested resource-exhaustion case.
   terminal-safe diagnostics, plus repo-local credential isolation and package
   credential release scanning, and hosted-runner sandbox/tool parity
 - [x] P7S.4 deferred provider metadata bound
-- [ ] Release gate: clean exact-commit security scan, public push, remote CI,
+- [x] Release gate: clean exact-commit security scan, public push, remote CI,
   and branch cleanup
+
+Release evidence: public commit
+`703ce2a4f7335147b8f6cd1b0a4d0ed7470dca38`; zero-finding Standard scan
+`e434d0a1-766d-4a84-8d05-692f156c248d`; GitHub Actions run `30983232189`
+(`gate` and `python-core` green); merged local worktree/branch
+`feat/beastmode-langsmith` and remote planning branch removed.
 
 ### P7S release exit (deterministic)
 

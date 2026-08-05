@@ -3,7 +3,7 @@
 | Effort | Status | Docs |
 |---|---|---|
 | ACN Unification (v2.2.0) | **shipped** — see below; hardened in v2.3.0 | this file, `ACCEPTANCE.md` |
-| Beastmode on LangGraph (v2.4.0) | **implemented locally; P7S security hardening blocks public release** — P0.1 matrix recorded with the safe subprocess fallback; P0.2/P0.3 and P1–P7 are green; the 2026-08-04 Standard scan is sealed and mapped into P7S | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
+| Beastmode on LangGraph (v2.4.0) | **shipped on public `main`** — P0–P7S complete; optional LangGraph/LangSmith runtime, capability-preserving hardening, exact-commit security scan, generated-artifact checks, and remote CI are green | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
 | Run visibility (`acn-trace`) | **planned** — independent of LangGraph, works on every harness today | `observability/ROADMAP.md` |
 | CrewAI binding | **deferred** — gated on the LangGraph effort's evolver phase | `langgraph/ROADMAP.md` §P9 |
 
