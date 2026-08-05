@@ -17,6 +17,8 @@ MAX_TOTAL_BYTES = 256 * 1024 * 1024
 CREDENTIAL = re.compile(
     rb"AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"
     rb"gh[pousr]_[A-Za-z0-9_]{20,}|github_[p]at_[A-Za-z0-9_]{20,}|"
+    rb"n[p]m_[A-Za-z0-9]{20,}|pyp[i]-[A-Za-z0-9_-]{20,}|"
+    rb"glpa[t]-[A-Za-z0-9_-]{20,}|h[f]_[A-Za-z0-9]{20,}|"
     rb"sk-[A-Za-z0-9]{20,}|sk-[p]roj-[A-Za-z0-9_-]{16,}|"
     rb"sk-[a]nt-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{20,}|"
     rb"pass(?:word|wd)\s*[:=]\s*[^\s\"]{8,}"
@@ -25,7 +27,11 @@ PRIVATE_PATH = re.compile(
     rb"/(?:h[o]me|U[s]ers)/[A-Za-z0-9_.-]+|C:[\\/]+U[s]ers[\\/]+[A-Za-z0-9_.-]+"
 )
 BLOCKED_PATH = re.compile(
-    r"(?:^|/)(?:\.env(?:$|\.)|.*\.(?:pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$)"
+    r"(?:^|/)(?:\.env(?:$|\.)|\.npmrc$|\.pypirc$|\.netrc$|\.git-credentials$|"
+    r".*\.(?:pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$|"
+    r"application_default_credentials\.json$|\.docker/config\.json$|"
+    r"\.config/gh/hosts\.yml$|\.aws/(?:credentials|config)$|\.kube/config$|"
+    r"[^/]*kubeconfig[^/]*$)"
 )
 
 

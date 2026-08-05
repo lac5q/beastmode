@@ -52,6 +52,17 @@ skipped.
       "**/*.sqlite3": "deny",
       "**/auth.json": "deny",
       "**/credentials.json": "deny",
+      "**/.npmrc": "deny",
+      "**/.pypirc": "deny",
+      "**/.netrc": "deny",
+      "**/.git-credentials": "deny",
+      "**/.docker/config.json": "deny",
+      "**/.config/gh/hosts.yml": "deny",
+      "**/.aws/credentials": "deny",
+      "**/.aws/config": "deny",
+      "**/.kube/config": "deny",
+      "**/*kubeconfig*": "deny",
+      "**/application_default_credentials.json": "deny",
       ".env.example": "allow",
       "**/.env.example": "allow"
     },
@@ -91,6 +102,11 @@ first and specific overrides after. The universal and bash fallbacks are
 `ask`, so alternate spellings and indirection never become silently allowed.
 A `path` deny cannot be overridden by a per-tool allow — that is what makes
 it the right place to protect secrets from every tool at once.
+
+The credential-filename denies are intentionally narrow. Ordinary source,
+configuration, package manifests, and worker commands remain available; only
+files conventionally used to hold package, VCS, container, cloud, and cluster
+credentials are inaccessible to workers.
 
 The `path` surface matches both the path as referenced and its canonical
 (symlink-resolved) form, so symlink aliases cannot evade a deny.

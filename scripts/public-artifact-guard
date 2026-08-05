@@ -74,9 +74,9 @@ TARGET="$("$GIT_BIN" rev-parse --verify "${TREEISH}^{commit}" 2>/dev/null)" || {
 }
 
 # Character-class splits keep this source from matching its own signatures.
-CREDENTIAL_PATTERN='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|github_[p]at_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|sk-[p]roj-[A-Za-z0-9_-]{16,}|sk-[a]nt-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{20,}|pass(word|wd)[[:space:]]*[:=][[:space:]]*[^[:space:]\"]{8,}'
+CREDENTIAL_PATTERN='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|github_[p]at_[A-Za-z0-9_]{20,}|n[p]m_[A-Za-z0-9]{20,}|pyp[i]-[A-Za-z0-9_-]{20,}|glpa[t]-[A-Za-z0-9_-]{20,}|h[f]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|sk-[p]roj-[A-Za-z0-9_-]{16,}|sk-[a]nt-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{20,}|pass(word|wd)[[:space:]]*[:=][[:space:]]*[^[:space:]\"]{8,}'
 PRIVATE_PATH_PATTERN='/(h[o]me|U[s]ers)/[[:alnum:]_.-]+|C:[\\/]+U[s]ers[\\/]+[[:alnum:]_.-]+'
-BLOCKED_PATH_PATTERN='(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$)'
+BLOCKED_PATH_PATTERN='(^|/)(\.env($|\.)|\.npmrc$|\.pypirc$|\.netrc$|\.git-credentials$|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$|application_default_credentials\.json$|\.docker/config\.json$|\.config/gh/hosts\.yml$|\.aws/(credentials|config)$|\.kube/config$|[^/]*kubeconfig[^/]*$)'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

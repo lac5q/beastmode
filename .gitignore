@@ -45,6 +45,16 @@ __pycache__/
 *.pfx
 credentials.json
 auth.json
+.npmrc
+.pypirc
+.netrc
+.git-credentials
+.docker/config.json
+.config/gh/hosts.yml
+.aws/
+.kube/
+*kubeconfig*
+application_default_credentials.json
 *.sqlite
 *.sqlite3
 

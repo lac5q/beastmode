@@ -129,6 +129,27 @@ if [ "$rc" -ne 1 ]; then
 fi
 echo "public-artifact-guard scans raw binary history"
 
+NPM_REPO="$TMP/npm-repo"
+mkdir -p "$NPM_REPO/scripts"
+cp "$ROOT/scripts/public-artifact-guard" "$NPM_REPO/scripts/public-artifact-guard"
+chmod +x "$NPM_REPO/scripts/public-artifact-guard"
+git -C "$NPM_REPO" init -q
+git -C "$NPM_REPO" config user.name "Beastmode Test"
+git -C "$NPM_REPO" config user.email "beastmode-test@example.invalid"
+npm_material="$(printf 'n%sm_%032d' p 0)"
+printf '//registry.npmjs.org/:_authToken=%s\n' "$npm_material" > "$NPM_REPO/.npmrc"
+git -C "$NPM_REPO" add .npmrc scripts/public-artifact-guard
+git -C "$NPM_REPO" commit -qm "npm credential fixture"
+set +e
+"$NPM_REPO/scripts/public-artifact-guard" --history >/dev/null 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 1 ]; then
+  echo "public-artifact-guard missed npm credentials in full history (got $rc)" >&2
+  exit 1
+fi
+echo "public-artifact-guard rejects npm credentials in full history"
+
 blocked_name=".env"$'\n'"encoded"
 printf '%s\n' safe > "$BINARY_REPO/$blocked_name"
 git -C "$BINARY_REPO" add -- "$blocked_name"
@@ -160,3 +181,39 @@ if [ "$rc" -ne 1 ]; then
   exit 1
 fi
 echo "public-artifact-guard scans generated distribution bytes"
+
+NPM_ARCHIVE="$TMP/npm-credential.whl"
+python3 - "$NPM_ARCHIVE" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w") as archive:
+    archive.writestr("package/.npmrc", "registry=https://registry.npmjs.org/")
+PY
+set +e
+"$ROOT/scripts/public-artifact-guard" --artifact "$NPM_ARCHIVE" >/dev/null 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 1 ]; then
+  echo "public-artifact-guard missed a credential filename in an archive (got $rc)" >&2
+  exit 1
+fi
+echo "public-artifact-guard rejects credential filenames in distributions"
+
+NPM_TOKEN_ARCHIVE="$TMP/npm-token.whl"
+python3 - "$NPM_TOKEN_ARCHIVE" "$npm_material" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w") as archive:
+    archive.writestr("package/config.txt", sys.argv[2])
+PY
+set +e
+"$ROOT/scripts/public-artifact-guard" --artifact "$NPM_TOKEN_ARCHIVE" >/dev/null 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 1 ]; then
+  echo "public-artifact-guard missed npm token bytes in an archive (got $rc)" >&2
+  exit 1
+fi
+echo "public-artifact-guard rejects npm token bytes in distributions"

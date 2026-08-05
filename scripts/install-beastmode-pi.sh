@@ -126,7 +126,7 @@ POLICY_DIR="${SKILL_DIR}/config"
 mkdir -p "$POLICY_DIR"
 POLICY_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/config/pi-permission-system.json"
 POLICY_DEST="${POLICY_DIR}/pi-permission-system.json"
-fetch_pinned "$POLICY_URL" "$POLICY_DEST" "4faf8a7ef9082296ac1072e5ba43fd241c6c79bcf19c04e40b0b25027c75bb98" \
+fetch_pinned "$POLICY_URL" "$POLICY_DEST" "4d0951fc415e0fad55d6807671d5b41803c58776a11198820b1714b7b72a276b" \
   && chmod 600 "$POLICY_DEST" \
   && ok "permission policy template fetched and verified" \
   || { err "could not fetch or verify $POLICY_URL"; exit 1; }
@@ -156,7 +156,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy; d
     tier-aliases.json) HASH="f731437e1a6917ae8f21302c3e8d54cb2c82a9e937623993b031e935e12356b4" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
-    check-pi-agent-policy) HASH="369f65b5dfcb73fe5abcf94b65654c64c8de2491d052fec846b4b8df7efb7626" ;;
+    check-pi-agent-policy) HASH="865d7e81c6e447e35ce37142e68952d431641ea5f5a71da04ecbc4a056d03c5f" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
     chmod +x "$DEST" 2>/dev/null || true

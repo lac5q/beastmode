@@ -12,7 +12,7 @@ from pathlib import Path
 
 MAX_AGENT_FILES = 256
 MAX_AGENT_BYTES = 256 * 1024
-EXPECTED_POLICY_SHA256 = "4faf8a7ef9082296ac1072e5ba43fd241c6c79bcf19c04e40b0b25027c75bb98"
+EXPECTED_POLICY_SHA256 = "4d0951fc415e0fad55d6807671d5b41803c58776a11198820b1714b7b72a276b"
 PROJECT_POLICY = Path(".pi/extensions/pi-permission-system/config.json")
 FORBIDDEN_KEYS = {"permission", "yoloMode"}
 YAML_ALIAS = re.compile(r"(?:^|[\s:,\[\]{}])[*&][A-Za-z0-9_-]+")

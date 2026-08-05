@@ -31,6 +31,8 @@ assert_jq '[.permission.bash["git push *"], .permission.bash["git commit *"], .p
   "publish, commit, privilege, and destructive commands are denied"
 assert_jq '[.permission.path["*.env"], .permission.path["**/.ssh/*"], .permission.path["**/*.pem"], .permission.path["**/credentials.json"]] | all(. == "deny")' \
   "representative secret paths are denied"
+assert_jq '[.permission.path["**/.npmrc"], .permission.path["**/.pypirc"], .permission.path["**/.netrc"], .permission.path["**/.git-credentials"], .permission.path["**/.docker/config.json"], .permission.path["**/.config/gh/hosts.yml"], .permission.path["**/.aws/credentials"], .permission.path["**/.kube/config"]] | all(. == "deny")' \
+  "package, VCS, container, and cloud credential paths are denied"
 
 if rg -n --glob '*.md' -- 'dangerously-skip-permissions|bypassPermissions' "$ROOT/pi" >/dev/null; then
   fail "Pi documentation contains a permission-bypass instruction"
