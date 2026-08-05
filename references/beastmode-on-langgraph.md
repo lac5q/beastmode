@@ -6,54 +6,88 @@ Install the optional runtime in an isolated environment:
 python -m pip install -e 'python[langgraph]'
 ```
 
-Build a checkpointed goal. The goal id is the LangGraph `thread_id`, so a
-process restart does not create a second run:
+Build a checkpointed goal over your own state schema. The goal id is the
+LangGraph `thread_id`, so a process restart does not create a second run and
+project-owned PRD and priority-list fields remain in the same durable state:
 
 ```python
 from pathlib import Path
 
-from beastmode.langgraph import BeastmodeContext
-from beastmode.langgraph.nodes import PipelineDependencies
-from beastmode.langgraph.runtime import run_pipeline
-
-result = run_pipeline(
-    {
-        "goal": "add a health check",
-        "run_dir": ".beastmode/runs/health-check",
-        "tasks": [
-            {
-                "id": "health-check",
-                "goal": "add a health check",
-                "lane": "economy",
-                "allowed_paths": ["src/"],
-                "verify_cmds": ["pytest"],
-            }
-        ],
-    },
-    goal_id="health-check",
-    autonomy="medium",
-    database=Path.home() / ".beastmode" / "langgraph.sqlite",
-    run_dir=Path(".beastmode/runs/health-check"),
-    attestations=Path(".beastmode/health-check.attestations"),
-    dependencies=PipelineDependencies(
-        executor=your_executor,
-        validator=your_mechanical_validator,
-        reviewer=your_cross_family_reviewer,
-    ),
-)
-```
-
-`run_dir`, the external attestation path, and dependencies are explicit trusted
-runtime inputs kept out of graph state. The attestation path must be outside
-the worker-writable run tree. A production dependency set includes an
-executor, mechanical validator, and reviewer; omission fails closed.
-
-At medium autonomy, resume the same thread after each interrupt:
-
-```python
 from langgraph.types import Command
 
-graph.invoke(Command(resume="approved"), config={"configurable": {"thread_id": "health-check"}})
+from beastmode.langgraph import BeastmodeContext, BeastmodeState
+from beastmode.langgraph.graphs.pipeline import build_pipeline
+from beastmode.langgraph.nodes import PipelineDependencies
+from beastmode.langgraph.runtime import sqlite_checkpointer
+
+
+class ProjectState(BeastmodeState, total=False):
+    prd: str
+    priority_list: list[str]
+
+
+database = Path.home() / ".beastmode" / "langgraph.sqlite"
+run_dir = Path(".beastmode/runs/health-check")
+config = {"configurable": {"thread_id": "health-check"}}
+context = BeastmodeContext(autonomy="medium", run_dir=run_dir)
+dependencies = PipelineDependencies(
+    executor=your_executor,
+    validator=your_mechanical_validator,
+    reviewer=your_cross_family_reviewer,
+)
+initial = {
+    "goal": "add a health check",
+    "prd": "GET /health reports dependency status.",
+    "priority_list": ["contract", "implementation", "verification"],
+    "run_dir": str(run_dir),
+    "tasks": [
+        {
+            "id": "health-check",
+            "goal": "add a health check",
+            "lane": "economy",
+            "allowed_paths": ["src/"],
+            "verify_cmds": ["pytest"],
+        }
+    ],
+}
+
+with sqlite_checkpointer(database) as saver:
+    graph = build_pipeline(
+        dependencies=dependencies,
+        checkpointer=saver,
+        state_schema=ProjectState,
+    )
+    paused = graph.invoke(initial, config=config, context=context)
+assert "__interrupt__" in paused
+```
+
+`run_dir`, the external attestation path, parent-held attestation key, run ID,
+and dependencies are explicit trusted runtime inputs kept out of graph state.
+The attestation path must be outside the worker-writable run tree. The key and
+run ID authenticate each child/result binding and block file substitution or
+cross-run replay. A production dependency set includes an
+executor, mechanical validator, and reviewer; omission fails closed.
+
+After a process restart, rebuild the graph over the same database and resume
+the same thread after each medium-autonomy interrupt:
+
+```python
+with sqlite_checkpointer(database) as saver:
+    graph = build_pipeline(
+        dependencies=dependencies,
+        checkpointer=saver,
+        state_schema=ProjectState,
+    )
+    paused_again = graph.invoke(
+        Command(resume="approved"), config=config, context=context
+    )
+    completed = graph.invoke(
+        Command(resume="approved"), config=config, context=context
+    )
+
+assert "__interrupt__" in paused_again
+assert completed["prd"] == initial["prd"]
+assert completed["priority_list"] == initial["priority_list"]
 ```
 
 For an end-to-end subprocess run, use `bm --harness langgraph` with four

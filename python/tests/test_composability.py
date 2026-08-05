@@ -9,7 +9,13 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
-from beastmode.langgraph import BeastmodeContext, BeastmodeState, autonomy_gate, provenance_gate
+from beastmode.langgraph import (
+    BeastmodeContext,
+    BeastmodeState,
+    autonomy_gate,
+    build_fanout,
+    provenance_gate,
+)
 import beastmode.langgraph.gates as gates_module
 from beastmode.langgraph.graphs.pipeline import build_pipeline
 from beastmode.langgraph.nodes import PipelineDependencies
@@ -30,7 +36,7 @@ def _trusted_provenance_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         gates_module,
         "check_provenance",
-        lambda target, expect, attestations=None: SimpleNamespace(
+        lambda target, expect, attestations=None, **_kwargs: SimpleNamespace(
             verdict="ok", messages=(), exit_code=0
         ),
     )
@@ -77,6 +83,44 @@ def test_foreign_graph_can_drop_in_provenance_and_autonomy_nodes() -> None:
     assert done["provenance_verdict"] == "ok"
 
 
+def test_composable_provenance_ignores_state_selected_expected_children() -> None:
+    runtime = SimpleNamespace(
+        context=BeastmodeContext(autonomy="high", run_dir=MATCH_RUN),
+        stream_writer=lambda event: None,
+    )
+    result = provenance_gate(
+        {
+            "tasks": [{"id": "attacker-selected"}],
+            "expected_child_ids": ["attacker-selected"],
+        },
+        runtime,
+    )
+    assert result["provenance_verdict"] == "unverifiable"
+    assert "trusted expected child ids" in result["provenance_messages"][0]
+
+
+def test_fanout_worker_success_never_self_validates() -> None:
+    graph = build_fanout(lambda state: {"execution_status": "ok"})
+    result = graph.invoke(
+        {
+            "goal": "untrusted completion",
+            "tasks": [
+                {
+                    "id": "a",
+                    "goal": "run",
+                    "lane": "economy",
+                    "allowed_paths": [],
+                    "verify_cmds": [],
+                }
+            ],
+        }
+    )
+    assert result["status"] == "executed"
+    assert result["execution_report"]["complete"] is True
+    assert result["execution_report"]["trusted"] is False
+    assert "validation_report" not in result
+
+
 def test_pipeline_accepts_a_foreign_state_schema() -> None:
     # A user's unrelated key stays in the state when the pipeline is built
     # over their schema instead of forcing a replacement state object.
@@ -114,7 +158,9 @@ def test_pipeline_accepts_a_foreign_state_schema() -> None:
             "tasks": [{"id": "a", "goal": "foreign-state", "allowed_paths": [], "verify_cmds": []}],
         },
         config={"configurable": {"thread_id": "foreign-state"}},
-        context=BeastmodeContext(autonomy="high", run_dir=MATCH_RUN),
+        context=BeastmodeContext(
+            autonomy="high", run_dir=MATCH_RUN, expected_child_ids=("a",)
+        ),
     )
     assert result["user_note"] == "preserve me"
     assert result["status"] == "ready_to_merge"
@@ -145,7 +191,9 @@ def test_pipeline_subgraph_uses_parent_checkpointer_and_preserves_parent_state()
         "run_dir": str(MATCH_RUN),
         "tasks": [{"id": "a", "goal": "embedded", "allowed_paths": [], "verify_cmds": []}],
     }
-    context = BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN)
+    context = BeastmodeContext(
+        autonomy="medium", run_dir=MATCH_RUN, expected_child_ids=("a",)
+    )
     paused = compiled.invoke(initial, config=config, context=context)
     assert "__interrupt__" in paused
     paused_again = compiled.invoke(Command(resume="approved"), config=config, context=context)

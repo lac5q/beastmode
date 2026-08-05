@@ -25,7 +25,12 @@ MAX_TRACE_ITEMS = 128
 MAX_CHILD_META_BYTES = 256 * 1024
 _SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
-    re.compile(r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"),
+    re.compile(
+        r"\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|"
+        r"github_[p]at_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|"
+        r"sk-[p]roj-[A-Za-z0-9_-]{16,}|sk-[a]nt-[A-Za-z0-9_-]{16,}|"
+        r"xox[baprs]-[A-Za-z0-9-]{20,})\b"
+    ),
     re.compile(r"/(?:home|Users)/[^/\s]+"),
     re.compile(r"\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s]+"),
     re.compile(
@@ -130,6 +135,8 @@ def child_span_from_meta(
     meta_path: Path,
     *,
     attestations: Path | None = None,
+    attestation_key: bytes | None = None,
+    attestation_run_id: str | None = None,
     parent_span_id: str | None = None,
     goal_id: str | None = None,
 ) -> dict[str, Any]:
@@ -153,7 +160,11 @@ def child_span_from_meta(
         safe_path = Path(check_root) / "meta.json"
         safe_path.write_bytes(payload)
         result = check_provenance(
-            Path(check_root), expect=[child_id], attestations=attestations
+            Path(check_root),
+            expect=[child_id],
+            attestations=attestations,
+            attestation_key=attestation_key,
+            attestation_run_id=attestation_run_id,
         )
     tags = [] if result.verdict == "ok" else [result.verdict]
     return {

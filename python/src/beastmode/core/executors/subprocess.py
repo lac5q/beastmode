@@ -3,31 +3,45 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import json
 import re
 import shlex
 import shutil
 import subprocess
 import selectors
+import secrets
 import signal
 import stat
 import sys
 import tempfile
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable, Mapping
 
-from ..worktree import isolated_worktree
+from ..worktree import (
+    isolated_worktree,
+    parent_git_command,
+    parent_git_environment,
+    trusted_git_path,
+)
 from ..observability import MAX_PUBLIC_TEXT_CHARS, child_span_from_meta, redact_text
+from ..provenance import sign_attestation
 
 
 DEFAULT_EXECUTOR_TIMEOUT = 300.0
 DEFAULT_MAX_WORKER_DISK_BYTES = 2 * 1024 * 1024 * 1024
 DEFAULT_MAX_WORKER_FILES = 100_000
+DEFAULT_MAX_WORKER_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
+DEFAULT_MAX_WORKER_PROCESSES = 256
+DEFAULT_MAX_WORKER_CPU_SECONDS = 300
+DEFAULT_MAX_AGGREGATE_WORKERS = 4
 _RESOURCE_POLL_SECONDS = 0.05
 _TERMINATION_GRACE_SECONDS = 1.0
+_WORKER_SLOTS = threading.BoundedSemaphore(DEFAULT_MAX_AGGREGATE_WORKERS)
 
 
 @dataclass(frozen=True)
@@ -84,10 +98,17 @@ class WorktreeSubprocessExecutor:
     allow_network: bool = False
     max_disk_bytes: int = DEFAULT_MAX_WORKER_DISK_BYTES
     max_files: int = DEFAULT_MAX_WORKER_FILES
+    max_memory_bytes: int = DEFAULT_MAX_WORKER_MEMORY_BYTES
+    max_processes: int = DEFAULT_MAX_WORKER_PROCESSES
+    max_cpu_seconds: int = DEFAULT_MAX_WORKER_CPU_SECONDS
     model_attestor: (
         Callable[[Mapping[str, object]], Mapping[str, object] | None] | None
     ) = None
     attestation_dir: Path | None = None
+    attestation_key: bytes = field(
+        default_factory=lambda: secrets.token_bytes(32), repr=False, compare=False
+    )
+    attestation_run_id: str = field(default_factory=lambda: secrets.token_hex(16))
 
     def __post_init__(self) -> None:
         if not _filesystem_sandbox_available():
@@ -95,8 +116,19 @@ class WorktreeSubprocessExecutor:
                 "worktree executor requires bubblewrap on Linux; install bwrap "
                 "or provide a different trusted executor implementation"
             )
-        if self.max_disk_bytes <= 0 or self.max_files <= 0:
-            raise ValueError("worker disk and file limits must be positive")
+        if any(
+            limit <= 0
+            for limit in (
+                self.max_disk_bytes,
+                self.max_files,
+                self.max_memory_bytes,
+                self.max_processes,
+                self.max_cpu_seconds,
+            )
+        ):
+            raise ValueError("worker resource limits must be positive")
+        if shutil.which("prlimit", path=_safe_system_path()) is None:
+            raise RuntimeError("worktree executor requires prlimit resource enforcement")
 
     def attestation_directory_for(self, run_dir: Path) -> Path:
         """Return the parent-owned path callers pass to runtime attestations."""
@@ -111,8 +143,7 @@ class WorktreeSubprocessExecutor:
         run_dir_value = state.get("run_dir")
         if not isinstance(run_dir_value, (str, Path)):
             raise ValueError("worktree subprocess executor needs a run_dir")
-        run_dir = Path(run_dir_value).resolve()
-        run_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        run_dir = _trusted_parent_directory(Path(run_dir_value), label="run_dir")
         child_run_dir = _reset_disposable_directory(run_dir, task_id)
         attestation_dir = self.attestation_directory_for(run_dir)
         attestation_path = attestation_dir / f"{task_id}.json"
@@ -121,8 +152,10 @@ class WorktreeSubprocessExecutor:
         scratch.mkdir(mode=0o700)
         child_home = child_run_dir / "home"
         child_home.mkdir(mode=0o700)
-        worktree_root = Path(self.worktree_root or run_dir.parent / ".worktrees").resolve()
-        worktree_root.mkdir(parents=True, exist_ok=True)
+        worktree_root = _trusted_parent_directory(
+            Path(self.worktree_root or run_dir.parent / ".worktrees"),
+            label="worktree_root",
+        )
         worktree = worktree_root / f"{task_id}-{uuid.uuid4().hex[:10]}"
         events_path = run_dir / "executor-events.log"
         _prepare_regular_file(events_path)
@@ -131,10 +164,11 @@ class WorktreeSubprocessExecutor:
             or state.get("executor_model")
             or "unconfigured/executor"
         )
-        real_git = shutil.which("git")
-        if real_git is None:
-            raise RuntimeError("worktree subprocess executor requires git in PATH")
+        real_git = trusted_git_path()
 
+        slot_timeout = self.timeout if self.timeout is not None else DEFAULT_EXECUTOR_TIMEOUT
+        if not _WORKER_SLOTS.acquire(timeout=max(float(slot_timeout), 0.0)):
+            raise RuntimeError("aggregate worker concurrency budget is exhausted")
         try:
             with isolated_worktree(Path(self.repo), worktree):
                 with tempfile.TemporaryDirectory(prefix="beastmode-git-shim-") as shim_root:
@@ -151,7 +185,7 @@ class WorktreeSubprocessExecutor:
                         "      ;;\n"
                         "  esac\n"
                         "done\n"
-                        f"exec {shlex.quote(real_git)} \"$@\"\n",
+                        f"exec {shlex.quote(str(real_git))} \"$@\"\n",
                         encoding="utf-8",
                     )
                     shim.chmod(0o755)
@@ -188,13 +222,23 @@ class WorktreeSubprocessExecutor:
                         (worktree, run_dir), self.max_disk_bytes
                     )
                     completed = _run_bounded(
-                        _with_file_size_limit(child_command, effective_disk_budget),
+                        _with_resource_limits(
+                            child_command,
+                            max_file_bytes=effective_disk_budget,
+                            max_memory_bytes=self.max_memory_bytes,
+                            max_processes=self.max_processes,
+                            max_cpu_seconds=self.max_cpu_seconds,
+                        ),
                         cwd=worktree,
                         env=env,
                         timeout=self.timeout,
                         disk_roots=(worktree, run_dir),
                         max_disk_bytes=effective_disk_budget,
                         max_files=self.max_files,
+                    )
+                    changed_paths = _worktree_changed_paths(worktree)
+                    unauthorized_paths = _unauthorized_paths(
+                        changed_paths, task.get("allowed_paths", ())
                     )
                     stdout = _redact_explicit_env(completed.stdout, self.extra_env or {})
                     stderr = _redact_explicit_env(completed.stderr, self.extra_env or {})
@@ -216,6 +260,13 @@ class WorktreeSubprocessExecutor:
                                 child_id=task_id,
                                 requested_model=requested_model,
                             )
+                            record["run_id"] = self.attestation_run_id
+                            record["result_digest"] = _result_digest(
+                                child_run_dir / "meta.json"
+                            )
+                            record["signature"] = sign_attestation(
+                                record, self.attestation_key
+                            )
                             _write_parent_attestation(attestation_path, record)
                             attestation_status = "ok"
                         except Exception as exc:
@@ -229,18 +280,30 @@ class WorktreeSubprocessExecutor:
                             if completed.returncode == 0
                             and not completed.timed_out
                             and not completed.resource_exhausted
+                            and not unauthorized_paths
                             and attestation_status != "failed"
                             else "failed"
                         ),
                         "executor_returncode": (
                             125
                             if completed.resource_exhausted
-                            else 124 if completed.timed_out else completed.returncode
+                            else 124
+                            if completed.timed_out
+                            else 126
+                            if unauthorized_paths
+                            else completed.returncode
                         ),
                         "executor_stdout": stdout,
                         "executor_stderr": stderr,
                         "executor_output_truncated": completed.truncated,
                         "executor_resource_exhausted": completed.resource_exhausted,
+                        "files_changed": list(changed_paths),
+                        "unauthorized_paths": list(unauthorized_paths),
+                        "path_authorization_error": (
+                            "worker changed paths outside task.allowed_paths"
+                            if unauthorized_paths
+                            else ""
+                        ),
                         "executor_worktree": str(worktree),
                         "child_run_dir": str(child_run_dir),
                         "model_attestation_status": attestation_status,
@@ -249,6 +312,7 @@ class WorktreeSubprocessExecutor:
                             str(attestation_path) if attestation_status == "ok" else None
                         ),
                         "model_attestation_dir": str(attestation_dir),
+                        "model_attestation_run_id": self.attestation_run_id,
                         "commands_run": [_safe_command_label(self.command)],
                         "trace_records": [],
                     }
@@ -266,6 +330,8 @@ class WorktreeSubprocessExecutor:
                                             if attestation_status == "ok"
                                             else None
                                         ),
+                                        attestation_key=self.attestation_key,
+                                        attestation_run_id=self.attestation_run_id,
                                         goal_id=str(
                                             state.get("goal_id") or state.get("thread_id") or ""
                                         )
@@ -277,6 +343,7 @@ class WorktreeSubprocessExecutor:
                     return result
         finally:
             _remove_disposable_path(worktree, worktree_root)
+            _WORKER_SLOTS.release()
 
 
 @dataclass(frozen=True)
@@ -287,6 +354,7 @@ class _BoundedCompleted:
     truncated: bool
     timed_out: bool
     resource_exhausted: bool
+    output_exhausted: bool
 
 
 def _run_bounded(
@@ -298,16 +366,34 @@ def _run_bounded(
     disk_roots: Iterable[Path] = (),
     max_disk_bytes: int | None = None,
     max_files: int | None = None,
+    input_data: bytes | None = None,
+    max_stdout_bytes: int = MAX_PUBLIC_TEXT_CHARS,
+    max_stderr_bytes: int = MAX_PUBLIC_TEXT_CHARS,
+    terminate_on_output_limit: bool = False,
+    pass_fds: Iterable[int] = (),
 ) -> _BoundedCompleted:
     """Run argv with bounded pipes, timeout, and process-group cleanup."""
-    process = subprocess.Popen(
-        list(command),
-        cwd=cwd,
-        env=dict(env),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=os.name == "posix",
-    )
+    if max_stdout_bytes <= 0 or max_stderr_bytes <= 0:
+        raise ValueError("subprocess output limits must be positive")
+    input_file = None
+    try:
+        if input_data is not None:
+            input_file = tempfile.TemporaryFile()
+            input_file.write(input_data)
+            input_file.seek(0)
+        process = subprocess.Popen(
+            list(command),
+            cwd=cwd,
+            env=dict(env),
+            stdin=input_file,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=os.name == "posix",
+            pass_fds=tuple(pass_fds) if os.name == "posix" else (),
+        )
+    finally:
+        if input_file is not None:
+            input_file.close()
     assert process.stdout is not None and process.stderr is not None
     selector = selectors.DefaultSelector()
     selector.register(process.stdout, selectors.EVENT_READ, "stdout")
@@ -317,6 +403,7 @@ def _run_bounded(
     deadline = None if timeout is None else time.monotonic() + max(timeout, 0.0)
     timed_out = False
     resource_exhausted = False
+    output_exhausted = False
     termination_deadline: float | None = None
     known_descendants: dict[int, int] = {}
     while selector.get_map() or process.poll() is None:
@@ -351,11 +438,16 @@ def _run_bounded(
                 key.fileobj.close()
                 continue
             name = key.data
-            available = MAX_PUBLIC_TEXT_CHARS - len(buffers[name])
+            limit = max_stdout_bytes if name == "stdout" else max_stderr_bytes
+            available = limit - len(buffers[name])
             if available > 0:
                 buffers[name].extend(chunk[:available])
             if len(chunk) > max(available, 0):
                 truncated[name] = True
+                output_exhausted = True
+                if terminate_on_output_limit and termination_deadline is None:
+                    _terminate_process_tree(process, known_descendants)
+                    termination_deadline = time.monotonic() + _TERMINATION_GRACE_SECONDS
     _close_selector(selector)
     try:
         returncode = process.wait(timeout=_TERMINATION_GRACE_SECONDS)
@@ -370,8 +462,12 @@ def _run_bounded(
         returncode = 124
     elif resource_exhausted:
         returncode = 125
-    stdout = redact_text(bytes(buffers["stdout"]).decode(errors="replace"))
-    stderr = redact_text(bytes(buffers["stderr"]).decode(errors="replace"))
+    stdout = redact_text(
+        bytes(buffers["stdout"]).decode(errors="replace"), limit=max_stdout_bytes
+    )
+    stderr = redact_text(
+        bytes(buffers["stderr"]).decode(errors="replace"), limit=max_stderr_bytes
+    )
     return _BoundedCompleted(
         returncode=returncode,
         stdout=stdout,
@@ -379,6 +475,7 @@ def _run_bounded(
         truncated=truncated["stdout"] or truncated["stderr"],
         timed_out=timed_out,
         resource_exhausted=resource_exhausted,
+        output_exhausted=output_exhausted,
     )
 
 
@@ -536,10 +633,11 @@ def _filesystem_sandbox_command(
         raise RuntimeError("required Linux bubblewrap filesystem sandbox is unavailable")
     command_parts, runtime_paths = _sandbox_runtime_paths(command, worktree)
     common = subprocess.run(
-        ["git", "-C", str(repo), "rev-parse", "--git-common-dir"],
+        parent_git_command(repo, "rev-parse", "--git-common-dir"),
         check=True,
         capture_output=True,
         text=True,
+        env=parent_git_environment(),
         timeout=5,
     ).stdout.strip()
     common_dir = Path(common)
@@ -570,6 +668,15 @@ def _filesystem_sandbox_command(
     for source in _unique_paths(readonly_paths):
         _append_bind(args, source, source, readonly=True, created_dirs=created_dirs)
     _append_bind(args, worktree, worktree, readonly=False, created_dirs=created_dirs)
+    git_pointer = worktree / ".git"
+    if git_pointer.exists() or git_pointer.is_symlink():
+        _append_bind(
+            args,
+            git_pointer,
+            git_pointer,
+            readonly=True,
+            created_dirs=created_dirs,
+        )
     _append_bind(
         args,
         child_run_dir,
@@ -741,6 +848,32 @@ def _reset_disposable_directory(parent: Path, name: str) -> Path:
     return destination
 
 
+def _trusted_parent_directory(path: Path, *, label: str) -> Path:
+    """Create an owner-only parent directory without following symlink components."""
+    candidate = Path(path).expanduser().absolute()
+    current = Path(candidate.anchor)
+    for part in candidate.parts[1:]:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"{label} must not contain symlink components")
+    candidate.mkdir(parents=True, exist_ok=True, mode=0o700)
+    current = Path(candidate.anchor)
+    for part in candidate.parts[1:]:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"{label} must not contain symlink components")
+    if not candidate.is_dir():
+        raise ValueError(f"{label} must be a directory")
+    metadata = candidate.stat()
+    if metadata.st_uid not in {0, os.geteuid()}:
+        raise ValueError(f"{label} must be owned by root or the current user")
+    if stat.S_IMODE(metadata.st_mode) & 0o077:
+        candidate.chmod(0o700)
+        if stat.S_IMODE(candidate.stat().st_mode) & 0o077:
+            raise ValueError(f"{label} must be owner-only")
+    return candidate.resolve(strict=True)
+
+
 def _trusted_attestation_directory(
     run_dir: Path, *, configured: Path | None
 ) -> Path:
@@ -757,7 +890,66 @@ def _trusted_attestation_directory(
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not directory.is_dir() or directory.is_symlink():
         raise ValueError("attestation_dir must be a regular directory")
+    metadata = directory.stat()
+    if metadata.st_uid not in {0, os.geteuid()}:
+        raise ValueError("attestation_dir must be owned by root or the current user")
+    if stat.S_IMODE(metadata.st_mode) & 0o077:
+        try:
+            directory.chmod(0o700)
+        except OSError as exc:
+            raise ValueError("attestation_dir must be owner-only") from exc
+        if stat.S_IMODE(directory.stat().st_mode) & 0o077:
+            raise ValueError("attestation_dir must be owner-only")
     return directory.resolve()
+
+
+def _worktree_changed_paths(worktree: Path) -> tuple[str, ...]:
+    """Return parent-observed tracked and untracked changes without renames."""
+    commands = (
+        ("diff", "--no-ext-diff", "--no-renames", "--name-only", "-z", "HEAD", "--"),
+        ("ls-files", "--others", "--exclude-standard", "-z", "--"),
+        ("ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--"),
+    )
+    changed: set[str] = set()
+    for args in commands:
+        output = subprocess.run(
+            parent_git_command(worktree, *args),
+            check=True,
+            capture_output=True,
+            env=parent_git_environment(),
+            timeout=10,
+        ).stdout
+        for raw in output.split(b"\0"):
+            if raw:
+                changed.add(raw.decode("utf-8", errors="surrogateescape"))
+    return tuple(sorted(changed))
+
+
+def _unauthorized_paths(
+    changed_paths: Iterable[str], allowed_paths: object
+) -> tuple[str, ...]:
+    """Fail closed when a worker writes outside its task path contract."""
+    if not isinstance(allowed_paths, (list, tuple)):
+        allowed: tuple[str, ...] = ()
+    else:
+        normalized: list[str] = []
+        for raw in allowed_paths:
+            if not isinstance(raw, str) or not raw or "\x00" in raw:
+                raise ValueError("task allowed_paths contains an invalid path")
+            path = raw.replace("\\", "/").rstrip("/") or "."
+            parts = tuple(part for part in path.split("/") if part not in ("", "."))
+            if path.startswith("/") or ".." in parts:
+                raise ValueError("task allowed_paths must stay inside the worktree")
+            normalized.append("/".join(parts) or ".")
+        allowed = tuple(dict.fromkeys(normalized))
+    denied = []
+    for path in changed_paths:
+        if not any(
+            prefix == "." or path == prefix or path.startswith(prefix + "/")
+            for prefix in allowed
+        ):
+            denied.append(path)
+    return tuple(sorted(denied))
 
 
 def _validate_parent_attestation(
@@ -785,6 +977,14 @@ def _attestation_text(value: object, field: str) -> str:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]*", value):
         raise ValueError(f"model attestation {field} contains unsafe characters")
     return value
+
+
+def _result_digest(path: Path) -> str:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("model attestation requires regular child metadata")
+    if path.stat().st_size > 256 * 1024:
+        raise ValueError("model attestation child metadata exceeds 262144 bytes")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _write_parent_attestation(path: Path, record: Mapping[str, str]) -> None:
@@ -897,15 +1097,28 @@ def _effective_disk_budget(roots: Iterable[Path], configured: int) -> int:
     return max(1, min(configured, min(free_space) // 10))
 
 
-def _with_file_size_limit(command: Iterable[str], max_bytes: int) -> tuple[str, ...]:
-    """Apply a kernel-enforced per-file ceiling in addition to tree polling."""
+def _with_resource_limits(
+    command: Iterable[str],
+    *,
+    max_file_bytes: int,
+    max_memory_bytes: int,
+    max_processes: int,
+    max_cpu_seconds: int,
+) -> tuple[str, ...]:
+    """Apply mandatory kernel resource ceilings before entering Bubblewrap."""
     parts = tuple(str(part) for part in command)
-    if not sys.platform.startswith("linux"):
-        return parts
     prlimit = shutil.which("prlimit", path=_safe_system_path())
     if prlimit is None:
-        return parts
-    return (prlimit, f"--fsize={max_bytes}:{max_bytes}", "--", *parts)
+        raise RuntimeError("required prlimit resource enforcement is unavailable")
+    return (
+        prlimit,
+        f"--fsize={max_file_bytes}:{max_file_bytes}",
+        f"--as={max_memory_bytes}:{max_memory_bytes}",
+        f"--nproc={max_processes}:{max_processes}",
+        f"--cpu={max_cpu_seconds}:{max_cpu_seconds}",
+        "--",
+        *parts,
+    )
 
 
 def _text_output(value: object) -> str:

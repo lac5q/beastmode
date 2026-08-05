@@ -14,6 +14,7 @@ __all__ = ["BeastmodeContext", "BeastmodeState", "ChildMeta", "CHILD_META_FIELDS
 # opted into LangGraph.  Keep the runtime binding lazy so the base wheel and
 # the install-free bash lane do not acquire an accidental import dependency.
 try:
+    from .graphs.fanout import FanoutState, build_fanout
     from .gates import autonomy_gate, phase_gate, provenance_gate
     from .nodes import PipelineDependencies, challenge
     from .models import SeatChatModel, as_chat_model
@@ -37,10 +38,12 @@ except ModuleNotFoundError as exc:
         raise
 else:
     __all__ += [
+        "FanoutState",
         "PipelineDependencies",
         "challenge",
         "SeatChatModel",
         "as_chat_model",
+        "build_fanout",
         "acceptance_contract",
         "autonomy_gate",
         "phase_gate",

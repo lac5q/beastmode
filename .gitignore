@@ -1,7 +1,12 @@
 # Beastmode repo gitignore
 
 # Pi package install state (user-level, never committed)
-.pi/
+.pi/*
+!.pi/extensions/
+.pi/extensions/*
+!.pi/extensions/pi-permission-system/
+.pi/extensions/pi-permission-system/*
+!.pi/extensions/pi-permission-system/config.json
 .pnpm-store/
 
 # Local skill discovery copy (alternative location; the canonical home is pi/)

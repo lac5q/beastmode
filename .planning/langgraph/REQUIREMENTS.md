@@ -1,8 +1,8 @@
 # Requirements — Beastmode as a first-class LangGraph layer
 
-Status: **draft for review**. Nothing here is committed to implementation until
-the open questions in `OPEN-QUESTIONS.md` are answered — three of them change
-the phase order in `ROADMAP.md`.
+Status: **implemented for P0–P7; release verification pending**. The phase-order,
+package, provider-fallback, observability, and canonical-resource decisions are
+recorded in `OPEN-QUESTIONS.md`. P8 and P9 remain separately gated efforts.
 
 Target: beastmode **v2.4.0**, shipping a Python distribution alongside the
 existing skill. LangGraph pinned at **1.2.x** (latest 1.2.10, 2026-07-28).

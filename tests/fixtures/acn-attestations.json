@@ -4,19 +4,28 @@
       "id": "a",
       "requested_model": "anthropic/claude-opus-4-7",
       "actual_model": "anthropic/claude-opus-4-7",
-      "source": "test-harness-journal"
+      "source": "test-harness-journal",
+      "run_id": "fixture-run",
+      "result_digest": "b221e1285d62b003420ad53f468cf77391b166eea292c0733d15e8021e406221",
+      "signature": "60884c4bce568f55771dce2c91ce7792b36f2bebc2c51466d0847e3f39ef7f17"
     },
     {
       "id": "b",
       "requested_model": "anthropic/claude-opus-4-7",
       "actual_model": "kimi-coding/k2",
-      "source": "test-harness-journal"
+      "source": "test-harness-journal",
+      "run_id": "fixture-run",
+      "result_digest": "6c9f0161bfb63ea4313b1ffdfae66d29cb06f8ab8c2ff9a15a98e9f09f91db0f",
+      "signature": "58d7d8b8a304febf78e904dea77f5138b326e08de6347a72c041f5fd0c77316c"
     },
     {
       "id": "c",
       "requested_model": "minimax/MiniMax-M3",
       "actual_model": "minimax/MiniMax-M3",
-      "source": "test-harness-journal"
+      "source": "test-harness-journal",
+      "run_id": "fixture-run",
+      "result_digest": "771348013ca1f14cd7d123d28b8f73581f27e4c8a4248d39a986a7dab493eb82",
+      "signature": "5186938f8129dd7d3ffdcfd82598b0fb0e7672d22bd8e25600c918a1a2235649"
     }
   ]
 }

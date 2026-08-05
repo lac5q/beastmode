@@ -109,11 +109,12 @@ close-out when a human decision would have been required; that is the correct
 behavior (no watcher, no validated merge — per the universal skill).
 
 **Per-agent overrides.** Pi agent frontmatter has higher precedence than the
-project config. Shipped Beastmode worker agents must not declare `permission`
-or `yoloMode` overrides. The non-callable Claude marker deliberately declares
-`permission: {"*": "deny"}` and `yoloMode: false` so accidentally selecting
-it cannot create a tool-capable lane. Review any consumer-defined agent file
-before use; a policy override is a security-sensitive code change.
+project config. `bm` therefore fails preflight when a repository agent under
+`.pi/agents/` or `.pi/agent/agents/` declares `permission` or `yoloMode`.
+Shipped callable workers must not declare either field. The separately
+installed, non-callable Claude marker is deny-only, but repository agents may
+not rely on exceptions: review them and keep permission solely in the
+canonical project policy.
 
 ## What this does NOT cover
 

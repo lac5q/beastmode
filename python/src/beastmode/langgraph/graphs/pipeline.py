@@ -49,15 +49,21 @@ def build_pipeline(
     checkpointer: Any = None,
     state_schema: type = BeastmodeState,
 ):
-    """Compile the pipeline; ``overrides`` cannot replace control-boundary nodes."""
+    """Compile the pipeline with trusted build-time composition hooks.
+
+    ``contract``, ``design``, ``challenge``, ``execute``, ``review``, and
+    ``self_improve`` may be replaced.  ``before_merge`` inserts a node after
+    the merge gate and immediately before the protected merge node.  State
+    cannot select these hooks, and load-bearing control nodes remain fixed.
+    """
     dependencies = dependencies or PipelineDependencies()
     overrides = dict(overrides or {})
     protected = {
         "preflight",
         "dispatch",
+        "dispatch_next",
         "validate_mechanical",
         "gate_provenance",
-        "review",
         "gate_merge",
         "merge",
         "blocked",
@@ -65,6 +71,12 @@ def build_pipeline(
     illegal = protected.intersection(overrides)
     if illegal:
         raise ValueError("load-bearing control nodes cannot be overridden: " + ", ".join(sorted(illegal)))
+    replaceable = {"contract", "design", "challenge", "execute", "review", "self_improve"}
+    supported = replaceable | {"before_merge"}
+    unknown = set(overrides).difference(supported)
+    if unknown:
+        raise ValueError("unknown pipeline override: " + ", ".join(sorted(unknown)))
+    before_merge = overrides.pop("before_merge", None)
 
     graph = StateGraph(state_schema, context_schema=BeastmodeContext)
     nodes = {
@@ -83,7 +95,9 @@ def build_pipeline(
         "self_improve": self_improve,
         "blocked": blocked,
     }
-    nodes.update({name: value for name, value in overrides.items() if name not in protected})
+    nodes.update(overrides)
+    if before_merge is not None:
+        nodes["before_merge"] = before_merge
     graph.set_node_defaults(retry_policy=RetryPolicy(max_attempts=2, jitter=False))
     phase_nodes = {
         "preflight",
@@ -97,6 +111,8 @@ def build_pipeline(
         "merge",
         "self_improve",
     }
+    if before_merge is not None:
+        phase_nodes.add("before_merge")
     for name, action in nodes.items():
         if name in phase_nodes:
             action = phase_gate(action, phase=name)
@@ -136,7 +152,10 @@ def build_pipeline(
         {"review": "review", "dispatch": "dispatch", "blocked": "blocked"},
     )
     graph.add_conditional_edges("review", _review_route, {"gate_merge": "gate_merge", "blocked": "blocked"})
-    graph.add_conditional_edges("gate_merge", _merge_route, {"merge": "merge", "design": "design"})
+    merge_target = "before_merge" if before_merge is not None else "merge"
+    graph.add_conditional_edges("gate_merge", _merge_route, {"merge": merge_target, "design": "design"})
+    if before_merge is not None:
+        graph.add_edge("before_merge", "merge")
     graph.add_edge("merge", "self_improve")
     graph.add_edge("self_improve", END)
     graph.add_edge("blocked", END)

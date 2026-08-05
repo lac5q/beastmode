@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fail-closed guard for credentials, private paths, and credential-like files.
+# Fail-closed guard for credentials, private paths, and release artifacts.
 
 set -euo pipefail
 
@@ -8,6 +8,11 @@ cd "$ROOT"
 
 TREEISH="HEAD"
 HISTORY=0
+ARTIFACTS=()
+MAX_RECORD_BYTES=$((64 * 1024 * 1024))
+MAX_OBJECTS=200000
+MAX_BLOB_BYTES=$((32 * 1024 * 1024))
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --history) HISTORY=1; shift ;;
@@ -17,8 +22,14 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --treeish=*) TREEISH="${1#*=}"; shift ;;
+    --artifact)
+      [ $# -ge 2 ] || { printf '%s\n' "public-artifact-guard: --artifact requires a path" >&2; exit 2; }
+      ARTIFACTS+=("$2")
+      shift 2
+      ;;
+    --artifact=*) ARTIFACTS+=("${1#*=}"); shift ;;
     -h|--help)
-      printf '%s\n' "usage: public-artifact-guard [--treeish REV] [--history]"
+      printf '%s\n' "usage: public-artifact-guard [--treeish REV] [--history] [--artifact PATH ...]"
       exit 0
       ;;
     *) printf 'public-artifact-guard: unknown argument: %s\n' "$1" >&2; exit 2 ;;
@@ -29,65 +40,144 @@ if [[ -z "$TREEISH" || "$TREEISH" == -* ]]; then
   printf '%s\n' "public-artifact-guard: invalid treeish" >&2
   exit 2
 fi
-TARGET="$(git rev-parse --verify "${TREEISH}^{commit}" 2>/dev/null)" || {
+
+GIT_CANDIDATE="$(command -v git 2>/dev/null || true)"
+if [ -z "$GIT_CANDIDATE" ] || [[ "$GIT_CANDIDATE" != /* ]]; then
+  printf '%s\n' "public-artifact-guard: trusted Git executable is unavailable" >&2
+  exit 2
+fi
+GIT_BIN="$(readlink -f -- "$GIT_CANDIDATE" 2>/dev/null || true)"
+if [ ! -x "$GIT_BIN" ] || [ ! -f "$GIT_BIN" ]; then
+  printf '%s\n' "public-artifact-guard: Git must resolve to an executable regular file" >&2
+  exit 2
+fi
+case "$GIT_BIN" in
+  "$ROOT"|"$ROOT"/*)
+    printf '%s\n' "public-artifact-guard: repository-local Git is not trusted" >&2
+    exit 2
+    ;;
+esac
+ancestor="$GIT_BIN"
+while [ "$ancestor" != "/" ]; do
+  mode="$(stat -Lc '%a' -- "$ancestor" 2>/dev/null || true)"
+  [ -n "$mode" ] || { printf '%s\n' "public-artifact-guard: cannot verify Git path" >&2; exit 2; }
+  if (( (8#$mode & 0022) != 0 )); then
+    printf '%s\n' "public-artifact-guard: Git path has group/world-writable components" >&2
+    exit 2
+  fi
+  ancestor="$(dirname -- "$ancestor")"
+done
+
+TARGET="$("$GIT_BIN" rev-parse --verify "${TREEISH}^{commit}" 2>/dev/null)" || {
   printf 'public-artifact-guard: could not resolve treeish: %s\n' "$TREEISH" >&2
   exit 2
 }
 
-scan_for_matches() {
-  local label="$1"
+# Character-class splits keep this source from matching its own signatures.
+CREDENTIAL_PATTERN='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|github_[p]at_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|sk-[p]roj-[A-Za-z0-9_-]{16,}|sk-[a]nt-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{20,}|pass(word|wd)[[:space:]]*[:=][[:space:]]*[^[:space:]\"]{8,}'
+PRIVATE_PATH_PATTERN='/(h[o]me|U[s]ers)/[[:alnum:]_.-]+|C:[\\/]+U[s]ers[\\/]+[[:alnum:]_.-]+'
+BLOCKED_PATH_PATTERN='(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$)'
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+git_to_file() {
+  local output="$1"
   shift
-  local matches rc
   set +e
-  matches="$("$@" 2>&1)"
-  rc=$?
+  (ulimit -f $((MAX_RECORD_BYTES / 512)); exec "$GIT_BIN" "$@") > "$output" 2>/dev/null
+  local rc=$?
   set -e
-  case "$rc" in
-    0)
-      printf '%s\n' "${label} found in tracked files:" >&2
-      printf '%s\n' "$matches" >&2
-      return 1
-      ;;
-    1)
-      return 0
-      ;;
-    *)
-      printf '%s scanner failed with exit %s:\n%s\n' "$label" "$rc" "$matches" >&2
-      return 2
-      ;;
-  esac
-}
-
-scan_for_matches "Potential credential material" git grep -l -E \
-  'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}' "$TARGET" -- .
-scan_for_matches "Machine-specific absolute paths" git grep -l -E \
-  '/(home|Users)/[[:alnum:]_.-]+|C:[\\/]+Users[\\/]+[[:alnum:]_.-]+' "$TARGET" -- .
-
-tracked_files="$(git ls-tree -r --name-only "$TARGET")" || {
-  printf '%s\n' "tracked-file scanner failed" >&2
-  exit 2
-}
-blocked_files=()
-while IFS= read -r path; do
-  if [[ "$path" =~ (^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$) ]]; then
-    blocked_files+=("$path")
+  if [ "$rc" -ne 0 ]; then
+    printf '%s\n' "public-artifact-guard: Git enumeration failed or exceeded its bound" >&2
+    exit 2
   fi
-done <<< "$tracked_files"
-if ((${#blocked_files[@]})); then
-  printf '%s\n' "Credential-like files are tracked:" >&2
-  printf '  %s\n' "${blocked_files[@]}" >&2
-  exit 1
-fi
+}
+
+scan_paths() {
+  local input="$1" path count=0
+  while IFS= read -r -d '' path; do
+    count=$((count + 1))
+    if [ "$count" -gt "$MAX_OBJECTS" ]; then
+      printf '%s\n' "public-artifact-guard: path count exceeds safety bound" >&2
+      exit 2
+    fi
+    if [[ "$path" =~ [[:cntrl:]] ]] || [[ "$path" =~ $BLOCKED_PATH_PATTERN ]]; then
+      printf '%s\n' "public-artifact-guard: credential-like filename found" >&2
+      return 1
+    fi
+  done < "$input"
+}
+
+scan_blob_ids() {
+  local input="$1" hash type size count=0 grep_rc
+  declare -A seen=()
+  while IFS= read -r hash; do
+    [ -n "$hash" ] || continue
+    [[ "$hash" =~ ^[0-9a-fA-F]{40,64}$ ]] || {
+      printf '%s\n' "public-artifact-guard: invalid object id from Git" >&2
+      exit 2
+    }
+    [ -z "${seen[$hash]+x}" ] || continue
+    seen[$hash]=1
+    count=$((count + 1))
+    if [ "$count" -gt "$MAX_OBJECTS" ]; then
+      printf '%s\n' "public-artifact-guard: object count exceeds safety bound" >&2
+      exit 2
+    fi
+    type="$("$GIT_BIN" cat-file -t "$hash" 2>/dev/null || true)"
+    [ "$type" = "blob" ] || continue
+    size="$("$GIT_BIN" cat-file -s "$hash" 2>/dev/null || true)"
+    [[ "$size" =~ ^[0-9]+$ ]] || { printf '%s\n' "public-artifact-guard: cannot size blob" >&2; exit 2; }
+    if [ "$size" -gt "$MAX_BLOB_BYTES" ]; then
+      printf '%s\n' "public-artifact-guard: blob exceeds safety bound" >&2
+      exit 2
+    fi
+    "$GIT_BIN" cat-file blob "$hash" > "$TMP/blob" 2>/dev/null || {
+      printf '%s\n' "public-artifact-guard: cannot read blob" >&2
+      exit 2
+    }
+    set +e
+    LC_ALL=C grep -aEq "$CREDENTIAL_PATTERN|$PRIVATE_PATH_PATTERN" "$TMP/blob"
+    grep_rc=$?
+    set -e
+    case "$grep_rc" in
+      0) printf '%s\n' "public-artifact-guard: sensitive material found in repository blob" >&2; return 1 ;;
+      1) ;;
+      *) printf '%s\n' "public-artifact-guard: blob scanner failed" >&2; exit 2 ;;
+    esac
+  done < "$input"
+}
+
+git_to_file "$TMP/paths" ls-tree -r -z --name-only "$TARGET"
+scan_paths "$TMP/paths"
+git_to_file "$TMP/objects" ls-tree -r --format='%(objectname)' "$TARGET"
+scan_blob_ids "$TMP/objects"
 
 if [ "$HISTORY" = "1" ]; then
-  history_matches="$(git log "$TARGET" -E -G 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|/(home|Users)/[[:alnum:]_.-]+' --format='%H %s' -- .)" || {
-    printf '%s\n' "history scanner failed" >&2
+  shallow="$("$GIT_BIN" rev-parse --is-shallow-repository 2>/dev/null)" || {
+    printf '%s\n' "public-artifact-guard: cannot determine history completeness" >&2
     exit 2
   }
-  if [ -n "$history_matches" ]; then
-    printf '%s\n%s\n' "Sensitive-looking history changes found:" "$history_matches" >&2
-    exit 1
+  if [ "$shallow" != "false" ]; then
+    printf '%s\n' "public-artifact-guard: history scan refuses a shallow repository" >&2
+    exit 2
   fi
+  git_to_file "$TMP/history-paths" log --all --format= --name-only -z --no-renames -- .
+  scan_paths "$TMP/history-paths"
+  git_to_file "$TMP/history-objects" rev-list --objects --all --no-object-names
+  scan_blob_ids "$TMP/history-objects"
 fi
 
-printf 'public artifact guard: clean (%s)\n' "$TARGET"
+if ((${#ARTIFACTS[@]})); then
+  PYTHON_BIN="$(command -v python3 2>/dev/null || true)"
+  if [ -z "$PYTHON_BIN" ]; then
+    printf '%s\n' "public-artifact-guard: python3 is required to scan distribution archives" >&2
+    exit 2
+  fi
+  for artifact in "${ARTIFACTS[@]}"; do
+    "$PYTHON_BIN" "$ROOT/scripts/lib/scan-public-archive.py" "$artifact" || exit $?
+  done
+fi
+
+printf 'public artifact guard: clean (%s; artifacts=%s)\n' "$TARGET" "${#ARTIFACTS[@]}"

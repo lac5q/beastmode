@@ -30,6 +30,7 @@ dev = [
   "build>=1",
   "import-linter>=2",
   "pytest>=8",
+  "wheel>=0.45",
 ]
 
 [tool.setuptools]

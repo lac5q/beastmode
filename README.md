@@ -16,6 +16,7 @@ Beastmode:
 - **Improves quality** through mandatory acceptance contracts, adversarial review, and merge gates
 - **Gets better over time** via a self-improvement loop that records lessons and promotes repeated patterns into skills/config
 - **Works anywhere** — harness-agnostic, compatible with Ultraswarm, GSD, `delegate_task`, Claude Code subagents, manual git workflows, or `pi-coding-agent` (see `pi/SKILL.md`)
+- **Runs as a real graph** — optional LangGraph primitives and checkpointed pipelines remain strictly additive to the install-free shell lane
 
 ## Core Principle
 
@@ -59,7 +60,7 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>"                                          # prints rough phase ETA, then runs locally (pi harness)
    bm "<goal>" --harness hermes                         # Hermes ACN: async parallel sub-agents via delegate_task
    bm "<goal>" --harness claude|codex                   # Claude Code / Codex adapters
-   bm "<goal>" --harness langgraph                    # optional StateGraph/checkpoint runtime
+   bm "<goal>" --harness langgraph                      # optional StateGraph/checkpoint runtime
    bm "<goal>" --harness langgraph --executor-command '<child command>'
    bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
    bm "<goal>" --frontier kimi3 --economy minimax --watcher grok # cross-family watcher
@@ -68,9 +69,11 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces
    scripts/phase-estimate "<goal>"                      # print the ETA without starting a run
    scripts/enforce-models --harness pi --model kimi-coding/k3   # preflight a seat model
-   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json>  # postflight gate
-   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect <batch.json>
-   scripts/acn-report <dir-of-meta.json> --attestations <trusted.json>  # usage + MODEL DRIFT
+   export BEASTMODE_ATTESTATION_KEY="$(openssl rand -hex 32)"
+   export BEASTMODE_ATTESTATION_RUN_ID="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --trust-attestations  # authenticated postflight gate
+   scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --trust-attestations --expect <batch.json>
+   scripts/acn-report <dir-of-meta.json> --attestations <trusted.json> --trust-attestations  # usage + MODEL DRIFT
    ```
 
    See `scripts/bm` and `references/autonomy-levels.md`.
@@ -90,6 +93,18 @@ autonomy gates, schema-backed ACN validation, isolated subprocess worktrees,
 custom phase/executor streaming, and fail-closed model provenance. SQLite is
 the local persistence default; PostgreSQL is opt-in with
 `python -m pip install -e 'python[postgres]'`.
+
+The smallest integrations are importable directly:
+
+```python
+from beastmode.langgraph import autonomy_gate, build_fanout, provenance_gate
+from beastmode.langgraph.graphs.pipeline import build_pipeline
+```
+
+Use `provenance_gate` in an existing graph, `build_fanout()` for lane-grouped
+ACN execution without the full loop, or `build_pipeline()` for the complete
+checkpointed workflow. All four executable patterns are in
+[`references/langgraph-templates.md`](references/langgraph-templates.md).
 
 For a real CLI goal, provide the child driver and trusted parent-side evidence,
 validation, and review helpers explicitly:
@@ -116,13 +131,15 @@ missing or silent metadata file fails the provenance gate; tracing is optional
 and never changes that verdict. See
 [`references/beastmode-on-langgraph.md`](references/beastmode-on-langgraph.md),
 [`adapters/langgraph/SKILL.md`](adapters/langgraph/SKILL.md), and
-[`references/langgraph-pipeline.md`](references/langgraph-pipeline.md).
+[`references/langgraph-pipeline.md`](references/langgraph-pipeline.md). Optional
+LangSmith/OTel setup, masking, sampling, and fail-open regressions are covered
+in [`references/observability.md`](references/observability.md).
 
-## One Vocabulary (v2.2)
+## One Vocabulary (v2.4)
 
 Families, tiers, seats, autonomy levels, and the ACN fan-out contract are defined once in `schema/` (machine-readable) and rendered for humans in `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, and `references/tier-aliases.md`. Harness adapters (`adapters/hermes`, `pi/`, `adapters/claude-code`, `adapters/codex`, `adapters/langgraph`) implement the same rules: pinned executor models, per-child `meta.json` (requested vs actual), MODEL DRIFT always surfaces and blocks `validated`, and gates are blocking below `high` autonomy.
 
-The provenance gate is fail-closed in both directions: a child whose independently attested serving model **differs** from the pin is `drift`, while missing/unreadable metadata, a legacy merged `model` field, or a worker-authored `actual_model` without parent/provider evidence is `unverifiable`. Both block `validated`. Pass a parent-owned harness journal or provider-response export through `--attestations`; it must live outside the worker-writable run directory. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`.
+The provenance gate is fail-closed in both directions: a child whose independently attested serving model **differs** from the pin is `drift`, while missing/unreadable metadata, a legacy merged `model` field, or a worker-authored `actual_model` without parent/provider evidence is `unverifiable`. Both block `validated`. Parent/provider attestations are authenticated with a parent-held key and bind the run ID plus the exact child-result digest; replacement, result tampering, and cross-run replay fail closed. The LangGraph runtime manages this key in memory. Standalone tools receive it through `BEASTMODE_ATTESTATION_KEY` and `BEASTMODE_ATTESTATION_RUN_ID` and additionally require current-user/root-owned, non-group/world-writable evidence outside the worker-writable run directory. One implementation (`scripts/lib/acn_meta.py`) backs both `enforce-models --check-meta` and `acn-report`.
 
 ## Files
 
@@ -173,6 +190,7 @@ Works with:
 - **OpenClaw** (Codex-led with delegate_task)
 - **Codex CLI** (Codex-led with subagents)
 - **Pi** (`pi-coding-agent` ≥ 0.80.6 + 6 companion packages — see `pi/SKILL.md`)
+- **LangGraph 1.2.x** (optional `beastmode[langgraph]` runtime and Studio manifest)
 - **Any agent environment** with git and model access
 
 ## License

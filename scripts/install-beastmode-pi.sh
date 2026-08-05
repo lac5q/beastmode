@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # install-beastmode-pi.sh — install the Pi adapter and Beastmode skill on a workstation.
 #
-# Self-contained: installs pi 0.80.x (the version pi-goal requires), the six
+# Self-contained: installs a pinned Pi release, the six
 # beastmode-pi companion packages, and drops the skill at the user-global
 # location so pi discovers it in every repo.
 #
-# Usage (from anywhere on the workstation):
-#   curl -fsSL https://raw.githubusercontent.com/lac5q/beastmode/main/scripts/install-beastmode-pi.sh | bash
+# Usage (from anywhere on the workstation): download the installer and its
+# SHA-256 file from the same immutable GitHub release, verify, then execute:
+#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.0/install-beastmode-pi.sh
+#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.0/install-beastmode-pi.sh.sha256
+#   sha256sum --check install-beastmode-pi.sh.sha256
+#   bash install-beastmode-pi.sh
 # or locally:
 #   bash scripts/install-beastmode-pi.sh
 #
@@ -28,10 +32,36 @@ COMPANION_PACKAGES=(
   'npm:@juicesharp/rpiv-todo@2.4.0'
   'npm:@llblab/pi-telegram@0.27.0'
 )
+declare -Ar NPM_INTEGRITIES=(
+  ['@earendil-works/pi-coding-agent@0.83.0']='sha512-uYhF+FsZxogoSX/AxBcUdiY+ZklubwaXyAoEGA2eQwsHcyEAhUYIKh/WLXe/a8+k8eTCmxb+ZN2Zo9mzQtzbWw=='
+  ['@narumitw/pi-goal@0.48.0']='sha512-IOvGEPvqCwuHCNN+hAAGG1B4IzlC8QUj/clPq3E3G5iRHdNip6nsqWnTFCBnLHEiNrMFJkJw0L14n4ugjSft1Q=='
+  ['@quintinshaw/pi-dynamic-workflows@3.5.0']='sha512-B/uq11yAxDECfEVL4D/bmO84+Hf/+RrdNEB2z6bnpzkh5yF2zTZiIhuHtZ/Dh2a7EO95xBrjeCPsm220NnFnXg=='
+  ['pi-loop-police@1.14.0']='sha512-ZJS39Kmt98pcQhCvG7lAGIBC1VrFAJOPCvtgq+f1O4ZJZ/GudQkAe671TEUuzXBzxoTD8qbAUfGJI17vYagVTQ=='
+  ['@gotgenes/pi-permission-system@24.0.0']='sha512-4WncumJPPDDs8Ulrjk7qvU3kHjQSjGyZnpLx1Nu9EkxWQZQi+qvVOpGpPGbHwlXt6rg8AjvI8zSl2Aj2bo5lfA=='
+  ['@juicesharp/rpiv-todo@2.4.0']='sha512-MJOsfwkLyNk33SStM/q6wOey+tDGEvc3pc/oQ+/MlZbj3Pc8MJeJa7hVrVX1RGCp62M9xr03rWcvhvZicuSf1Q=='
+  ['@llblab/pi-telegram@0.27.0']='sha512-xIr5XiCOo0rHKAQWc9h+qreP7JjIvMz+4ewr5h7tbNwdip3okc1zj8m79VwHSXDnJiqi72ojqxtNIggB83n6CA=='
+)
+NPM_REGISTRY='https://registry.npmjs.org/'
+export npm_config_registry="$NPM_REGISTRY"
+export npm_config_ignore_scripts=true
+export npm_config_audit=false
+export npm_config_fund=false
 
 # The default is a release tag, not a moving branch.  BEASTMODE_PI_REF may
 # only be changed when the caller also accepts the integrity hashes below.
 REF="${BEASTMODE_PI_REF:-v2.4.0}"
+[[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+  || { err "BEASTMODE_PI_REF must be an immutable semantic-version release tag"; exit 2; }
+
+verify_npm_package() {
+  local spec="$1" expected actual
+  expected="${NPM_INTEGRITIES[$spec]:-}"
+  [ -n "$expected" ] || { err "no reviewed npm integrity for $spec"; return 1; }
+  actual="$(npm view "$spec" dist.integrity --registry "$NPM_REGISTRY" 2>/dev/null)" \
+    || { err "could not retrieve npm integrity for $spec"; return 1; }
+  [ "$actual" = "$expected" ] \
+    || { err "npm integrity mismatch for $spec"; return 1; }
+}
 
 fetch_pinned() {
   local url="$1" dest="$2" expected="$3" tmp actual
@@ -55,23 +85,25 @@ fetch_pinned() {
 
 # 1. pi itself
 bold "Install pi 0.80.x (requires >=0.80.6 for pi-goal)"
+verify_npm_package "$PI_PACKAGE" || exit 1
 if command -v pi >/dev/null 2>&1; then
   v="$(pi --version 2>/dev/null || echo 0)"
   if [ "$v" != "$(printf '%s\n%s' "$v" 0.80.6 | sort -V | tail -n1)" ]; then
     warn "pi $v is too old; upgrading to $PI_PACKAGE"
-    npm i -g "$PI_PACKAGE" --force >/dev/null 2>&1
+    npm i -g "$PI_PACKAGE" --force --ignore-scripts --registry "$NPM_REGISTRY" >/dev/null 2>&1
     ok "pi upgraded"
   else
     ok "pi $v already satisfies >=0.80.6"
   fi
 else
-  npm i -g "$PI_PACKAGE" --force >/dev/null 2>&1
+  npm i -g "$PI_PACKAGE" --force --ignore-scripts --registry "$NPM_REGISTRY" >/dev/null 2>&1
   ok "pi installed: $(pi --version)"
 fi
 
 # 2. six companion packages
 bold "Install beastmode-pi companion packages"
 for p in "${COMPANION_PACKAGES[@]}"; do
+  verify_npm_package "${p#npm:}" || exit 1
   pi install "$p" >/dev/null 2>&1
   ok "installed $p"
 done
@@ -84,11 +116,22 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "24178afe3b90d38ac5369be321d64804e6c53cac5b89a8d3426af12fef9f512d" \
+fetch_pinned "$URL" "$DEST" "f347bc723743e4d6cfeef88b15b94879516410e7c19313226e9f673f820ab7b3" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
-# 4. verify
+# 4. canonical project policy template
+bold "Install fail-closed Pi permission policy template"
+POLICY_DIR="${SKILL_DIR}/config"
+mkdir -p "$POLICY_DIR"
+POLICY_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/config/pi-permission-system.json"
+POLICY_DEST="${POLICY_DIR}/pi-permission-system.json"
+fetch_pinned "$POLICY_URL" "$POLICY_DEST" "4faf8a7ef9082296ac1072e5ba43fd241c6c79bcf19c04e40b0b25027c75bb98" \
+  && chmod 600 "$POLICY_DEST" \
+  && ok "permission policy template fetched and verified" \
+  || { err "could not fetch or verify $POLICY_URL"; exit 1; }
+
+# 5. verify
 bold "Verify"
 pi -p "Do you have a skill called beastmode-pi available? Reply SKILL-OK or MISSING." 2>&1 | tail -1 | grep -q 'SKILL-OK' \
   && ok "skill discoverable" \
@@ -101,18 +144,19 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
   fi
 }
 
-# 5. runner CLI + its support files (next to bm so it can find both)
+# 6. runner CLI + its support files (next to bm so it can find both)
 bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json phase-estimate claude-pro; do
+for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   case "$f" in
-    bm) HASH="86f0bbc3ac7e7274cbf00358db1bea4ce409861f566bad7ff9a95548e68753b8" ;;
+    bm) HASH="e9dadce4343f0a9f007a7a6037122eec599bbe62d58ef884d7dc6b40a382cb40" ;;
     tier-aliases.json) HASH="f731437e1a6917ae8f21302c3e8d54cb2c82a9e937623993b031e935e12356b4" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
-    claude-pro) HASH="de550548e30f0634c275a4d6f78acebddceb838a80b33cf5c369e0323c85bbda" ;;
+    claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
+    check-pi-agent-policy) HASH="369f65b5dfcb73fe5abcf94b65654c64c8de2491d052fec846b4b8df7efb7626" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
     chmod +x "$DEST" 2>/dev/null || true
@@ -123,7 +167,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro; do
   fi
 done
 
-# 6. agentType marker for the Claude Pro lane (pi workflow subagent registry)
+# 7. agentType marker for the Claude Pro lane (pi workflow subagent registry)
 # Workflow scripts may write `agentType: "claude-cli"` to flag a slot as
 # "Claude Pro work goes here, director invokes the lane directly." See
 # pi/agents/claude-cli.md and pi/SKILL.md "Claude routing rule (hard rule)".
@@ -132,12 +176,14 @@ AGENT_DIR="${HOME}/.pi/agent/agents"
 mkdir -p "$AGENT_DIR"
 AGENT_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/agents/claude-cli.md"
 AGENT_DEST="${AGENT_DIR}/claude-cli.md"
-fetch_pinned "$AGENT_URL" "$AGENT_DEST" "2f606e5b21bdc7907ac9e4c47d58e6612897b8fc5a55cebd5bb1ef4b4d1d5537" \
+fetch_pinned "$AGENT_URL" "$AGENT_DEST" "77a2f36eba09242090bca70c53bcc3cf1db455ca757f7fc4c2da89a2ae9d68bd" \
   && ok "fetched and verified claude-cli.md agentType marker" \
   || { err "could not fetch or verify $AGENT_URL"; exit 1; }
 
 bold "Done. Try:"
 echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
 echo "  # or just start pi in any repo — skill auto-discovers"
+echo "  install -Dm600 $POLICY_DEST .pi/extensions/pi-permission-system/config.json"
+echo "  check-pi-agent-policy \"\$PWD\""
 echo "  bm '<goal>' --frontier kimi3 --economy minimax --on <remote-host> --autonomy medium"
 echo "  claude-pro \"<prompt>\"   # Claude Pro lane (claude.ai subscription quota)"

@@ -7,11 +7,13 @@ model in `response_metadata` or `usage_metadata`.
 
 ## Verdict
 
-**P0.1 is blocked, not passed.** No provider is approved for a direct-call
-judgment seat from this run. A provider that was not observed returning a
+**The spike decision is complete: no provider is approved for a direct-call
+judgment seat from this run.** A provider that was not observed returning a
 resolved serving model is treated as **unverifiable** until a live probe proves
-otherwise. The safe implementation fallback is Q2 option B: keep every seat
-behind an existing subprocess harness until the matrix is completed.
+otherwise. The safe Q2 fallback is active: keep every seat behind an existing
+subprocess harness until a matrix row is promoted by live evidence. This closes
+the implementation decision without pretending the unavailable provider probes
+succeeded.
 
 The configured provider probe failed before a completion was produced. That is
 an unavailable-completion result, not evidence about whether a provider reports

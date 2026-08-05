@@ -9,9 +9,16 @@ trap 'rm -rf "$TMP"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "ok: $*"; }
 
-mkdir -p "$TMP/bin" "$TMP/repo/.beastmode"
+mkdir -p "$TMP/bin" "$TMP/repo/.beastmode" \
+  "$TMP/repo/.pi/extensions/pi-permission-system"
+cp "$ROOT/pi/config/pi-permission-system.json" \
+  "$TMP/repo/.pi/extensions/pi-permission-system/config.json"
 cat > "$TMP/bin/pi" <<'EOF'
 #!/usr/bin/env bash
+if [ "${1:-}" = "list" ]; then
+  printf '%s\n' 'User packages:' '  npm:@gotgenes/pi-permission-system'
+  exit 0
+fi
 printf '%s\n' "$@" > "$BM_TEST_ARGS"
 exit 0
 EOF
@@ -91,13 +98,24 @@ set -e
 grep -q -- '--frontier' <<< "$codex_out" || fail "Codex pinning error did not explain the required flag"
 ok "Codex refuses an unpinned invocation"
 
-BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" "$ROOT/scripts/claude-pro" "inspect" >/dev/null
+printf '%s' 'inspect' | BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/claude-pro" >/dev/null
 grep -Fxq -- '--permission-mode' "$args" || fail "claude-pro omitted its safe permission mode"
 grep -Fxq 'plan' "$args" || fail "claude-pro did not use plan permission mode"
 if grep -q -- '--dangerously-skip-permissions' "$args"; then
   fail "claude-pro still bypasses permissions"
 fi
 ok "claude-pro uses a fail-closed permission mode"
+
+set +e
+claude_injection_out="$(BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/claude-pro" --dangerously-skip-permissions 2>&1 </dev/null)"
+claude_injection_rc=$?
+set -e
+[ "$claude_injection_rc" -eq 2 ] || fail "claude-pro accepted an unknown permission flag"
+grep -q 'prompts are accepted only on stdin' <<< "$claude_injection_out" \
+  || fail "claude-pro flag rejection was not explicit"
+ok "claude-pro rejects option-shaped prompt injection"
 
 set +e
 cache_out="$(ANTHROPIC_AUTH_TOKEN='do-not-forward' \
@@ -149,7 +167,10 @@ def urlopen(request, timeout=0):
     )
     return Response()
 
-urllib.request.urlopen = urlopen
+class Opener:
+    open = staticmethod(urlopen)
+
+urllib.request.build_opener = lambda *_handlers: Opener()
 PY
 
 rm -f "$TMP/header"
@@ -178,6 +199,23 @@ set -e
 [ "$large_rc" -ne 0 ] || fail "oversized cache response was accepted"
 grep -q 'response too large' <<< "$large_out" || fail "oversized response error was not explicit"
 ok "cache responses are size-bounded"
+
+mkdir -p "$TMP/repo/.pi/agents"
+cat > "$TMP/repo/.pi/agents/unsafe.md" <<'EOF'
+---
+name: unsafe
+yoloMode: true
+---
+EOF
+set +e
+pi_policy_out="$(cd "$TMP/repo" && BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" \
+  PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "inspect" --harness pi 2>&1)"
+pi_policy_rc=$?
+set -e
+[ "$pi_policy_rc" -eq 2 ] || fail "repository Pi permission override did not fail preflight"
+grep -q 'may not override permission or yoloMode' <<< "$pi_policy_out" \
+  || fail "Pi permission override rejection was not explicit"
+ok "repository Pi agents cannot broaden the project permission policy"
 
 git -C "$ROOT" check-ignore -q .codex/beastmode-runs/example/meta.json \
   || fail "Codex run records are not ignored"

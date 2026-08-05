@@ -112,7 +112,7 @@ Unverifiable child model = **UNVERIFIED DRAFT** lane. A child whose meta is
 missing, unreadable, or carries a single merged `model` instead of both
 model fields cannot be compared, and an impossible comparison is not a
 pass. Output may be used as input but is never `validated` until re-checked
-under a pinned model. `scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json>` is the
+under a pinned model. `scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json> --trust-attestations` is the
 gate; exit 1 means drift or unverifiable.
 
 ## Operating loop
@@ -152,6 +152,31 @@ Universal Beastmode artifacts, written in this order:
    evidence, run-record path(s), self-improvement entry path, next
    action.
 
+## Child liveness in this harness (catching hung agents)
+
+Every codex/`claude -p` child dispatched from Claude Code follows the universal
+liveness contract (`beastmode` `references/child-liveness.md`). Harness specifics:
+
+- **Short inline prompt, instructions in a file.** Dispatch as
+  `codex exec ... "Read the file <path>/NNN-task.txt and follow it exactly."`
+  Observed 2026-08-04: three consecutive long-inline-prompt codex dispatches hung
+  at startup (zero CPU, no rollout, empty stdout) while every short/file-pointer
+  dispatch succeeded. The instruction file also carries the `BM-RUN: <id>` marker.
+- **Startup probe armed with the dispatch, in the same turn:** a background
+  iteration-capped loop grepping `~/.codex/sessions/YYYY/MM/DD/` for the marker
+  (≈18 × 10s), emitting `STARTUP-CONFIRMED` or `STARTUP-HUNG` explicitly.
+- **Progress check before any kill:** `ps -o time -p <pid>` (CPU accruing?),
+  rollout file growing?, out-file growing? All flat = hung; any advancing =
+  working — and killing a working child requires operator approval.
+- **On hung:** kill the codex process AND every watcher/wrapper matching the
+  dispatch string (`pkill -f`), then smoke the lane (`Reply with exactly: <LANE>
+  OK`, low effort, 90s timeout) — smoke AFTER killing, because hung codex
+  processes wedge subsequent dispatches on the same lane. Retry once; second
+  hang → stop and surface options to the operator.
+- **Background-task hygiene:** Claude Code background Bash tasks outlive their
+  timeouts once backgrounded — a dead watcher stays on the user's task list.
+  Cap every loop; `TaskStop` watchers whenever their child dies.
+
 ## Hard rules
 
 - The director (the Claude Code session, always frontier) reviews and
@@ -161,6 +186,8 @@ Universal Beastmode artifacts, written in this order:
 - No watcher, no validated: evidence-only close-out, goal stays active.
 - MODEL DRIFT always surfaces and blocks `validated` at every level.
 - Gates are blocking below high.
+- Every child proves liveness (startup probe + progress signals); wall-clock
+  never decides a kill.
 
 ## See also
 

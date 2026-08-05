@@ -279,7 +279,15 @@ def validate_mechanical(
             "failures": ["trusted mechanical validator is not configured"],
         }
     else:
-        update = redact_value(validate_executor_result(dependencies.validator(dict(state))))
+        validator_payload = {
+            "schema": "beastmode.mechanical-validation.v1",
+            "goal_id": str(state.get("goal_id") or "")[:128],
+            "expected_child_ids": expected,
+            "results": [_executor_facts(result) for result in results if isinstance(result, Mapping)],
+        }
+        update = redact_value(
+            validate_executor_result(dependencies.validator(validator_payload))
+        )
         supplied = update.get("validation_report")
         if not isinstance(supplied, Mapping):
             raise ValueError("trusted mechanical validator must return validation_report")
@@ -314,7 +322,48 @@ def review(
                 "reason": "explicit trusted reviewer is not configured",
             },
         }
-    update = redact_value(validate_executor_result(dependencies.reviewer(dict(state))))
+    validation = state.get("validation_report")
+    if (
+        not isinstance(validation, Mapping)
+        or validation.get("passed") is not True
+        or state.get("provenance_verdict") != "ok"
+    ):
+        return {
+            "phase": "review",
+            "review_report": {
+                "approved": False,
+                "reason": "review requires successful validation and provenance",
+            },
+        }
+    results = [
+        result
+        for result in (state.get("task_results") or ())
+        if isinstance(result, Mapping)
+    ]
+    reviewer_payload = {
+        "schema": "beastmode.judgment-review.v1",
+        "goal_id": str(state.get("goal_id") or "")[:128],
+        "acceptance": {
+            "present": isinstance(state.get("acceptance_contract"), Mapping),
+        },
+        "validation": {
+            "passed": True,
+            "failure_count": len(validation.get("failures") or ()),
+        },
+        "provenance": {"verdict": "ok"},
+        "execution": {
+            "result_count": len(results),
+            "changed_file_count": sum(
+                len(result.get("files_changed") or ()) for result in results
+            ),
+            "unauthorized_path_count": sum(
+                len(result.get("unauthorized_paths") or ()) for result in results
+            ),
+        },
+    }
+    update = redact_value(
+        validate_executor_result(dependencies.reviewer(reviewer_payload))
+    )
     report = update.get("review_report")
     if not isinstance(report, Mapping) or report.get("approved") is not True:
         return {
@@ -324,7 +373,33 @@ def review(
                 "reason": "trusted reviewer returned no review_report",
             },
         }
-    return {"phase": "review", **update}
+    normalized = {"approved": True}
+    for key in ("reason", "source"):
+        value = report.get(key)
+        if isinstance(value, str):
+            normalized[key] = redact_text(value, limit=512)
+    return {"phase": "review", "review_report": normalized}
+
+
+def _executor_facts(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Project worker output to bounded measured facts for trusted controls."""
+    return {
+        "id": str(result.get("id") or "")[:128],
+        "execution_status": (
+            result.get("execution_status")
+            if result.get("execution_status") in {"ok", "failed"}
+            else "failed"
+        ),
+        "returncode": (
+            int(result.get("executor_returncode"))
+            if isinstance(result.get("executor_returncode"), int)
+            else None
+        ),
+        "timed_out": bool(result.get("executor_timed_out", False)),
+        "resource_exhausted": bool(result.get("executor_resource_exhausted", False)),
+        "changed_file_count": len(result.get("files_changed") or ()),
+        "unauthorized_path_count": len(result.get("unauthorized_paths") or ()),
+    }
 
 
 def merge(

@@ -14,8 +14,8 @@ import json
 import os
 import shlex
 import stat
-import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -27,6 +27,13 @@ def _run_dir_component(thread_id: str) -> str:
     """Use a non-sensitive, traversal-proof component for the default run dir."""
     digest = hashlib.sha256(thread_id.encode("utf-8")).hexdigest()[:24]
     return f"goal-{digest}"
+
+
+def _state_base() -> Path:
+    """Keep parent-owned runtime state outside the target repository."""
+    configured = os.environ.get("XDG_STATE_HOME")
+    root = Path(configured).expanduser() if configured else Path.home() / ".local" / "state"
+    return root / "beastmode"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -72,7 +79,13 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _trusted_helper(raw: str | None, *, repo: Path, label: str) -> tuple[str, ...]:
+@dataclass(frozen=True)
+class _TrustedHelper:
+    path: Path
+    fd: int
+
+
+def _trusted_helper(raw: str | None, *, repo: Path, label: str) -> _TrustedHelper:
     if not raw:
         raise ValueError(f"--{label}-command is required")
     try:
@@ -96,11 +109,28 @@ def _trusted_helper(raw: str | None, *, repo: Path, label: str) -> tuple[str, ..
         )
     if not os.access(resolved, os.X_OK):
         raise ValueError(f"--{label}-command is not executable")
-    return (str(resolved),)
+    parent = resolved.parent
+    parent_metadata = parent.stat()
+    if (
+        parent_metadata.st_uid not in {0, os.geteuid()}
+        or stat.S_IMODE(parent_metadata.st_mode) & 0o022
+    ):
+        raise ValueError(
+            f"--{label}-command parent directory must not be group/world writable"
+        )
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(resolved, flags)
+    opened = os.fstat(descriptor)
+    if (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
+        os.close(descriptor)
+        raise ValueError(f"--{label}-command changed while it was being verified")
+    return _TrustedHelper(path=resolved, fd=descriptor)
 
 
-def _json_callback(command: tuple[str, ...], *, required_key: str | None):
+def _json_callback(command: _TrustedHelper, *, required_key: str | None):
     def invoke(payload):
+        from beastmode.core.executors.subprocess import _run_bounded
+
         encoded = json.dumps(payload, separators=(",", ":"), default=str).encode()
         if len(encoded) > 1024 * 1024:
             raise ValueError("trusted helper input exceeds 1 MiB")
@@ -121,24 +151,26 @@ def _json_callback(command: tuple[str, ...], *, required_key: str | None):
             )
             if Path(path).is_dir()
         )
-        completed = subprocess.run(
-            command,
-            input=encoded,
-            cwd="/",
+        completed = _run_bounded(
+            (f"/proc/self/fd/{command.fd}",),
+            input_data=encoded,
+            cwd=Path("/"),
             env=env,
-            check=False,
-            capture_output=True,
             timeout=30.0,
+            max_stdout_bytes=1024 * 1024,
+            max_stderr_bytes=64 * 1024,
+            terminate_on_output_limit=True,
+            pass_fds=(command.fd,),
         )
+        if completed.output_exhausted:
+            raise ValueError("trusted helper output exceeds its bound")
         if completed.returncode != 0:
             raise RuntimeError(
                 f"trusted helper failed with exit {completed.returncode}"
             )
-        if len(completed.stdout) > 1024 * 1024 or len(completed.stderr) > 64 * 1024:
-            raise ValueError("trusted helper output exceeds its bound")
         try:
             value = json.loads(completed.stdout)
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except json.JSONDecodeError as exc:
             raise ValueError("trusted helper did not return one JSON object") from exc
         if not isinstance(value, dict):
             raise ValueError("trusted helper result must be a JSON object")
@@ -200,10 +232,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"bm: {exc}", file=sys.stderr)
         return 2
     thread_id = args.thread_id or args.goal
-    default_db = Path.home() / ".beastmode" / "langgraph.sqlite"
+    state_base = _state_base()
+    default_db = state_base / "langgraph.sqlite"
     database = Path(args.database or os.environ.get("BEASTMODE_LANGGRAPH_DB", default_db))
-    run_dir = Path(args.run_dir or (Path.cwd() / ".beastmode" / "runs" / _run_dir_component(thread_id)))
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(
+        args.run_dir
+        or (state_base / "runs" / _run_dir_component(thread_id))
+    )
     executor_model = args.economy or "minimax/MiniMax-M3"
     executor = WorktreeSubprocessExecutor(
         repo=project_root,
@@ -250,6 +285,8 @@ def main(argv: list[str] | None = None) -> int:
         database=database,
         run_dir=run_dir,
         attestations=executor.attestation_directory_for(run_dir),
+        attestation_key=executor.attestation_key,
+        attestation_run_id=executor.attestation_run_id,
         dependencies=dependencies,
         resume=args.resume,
     )

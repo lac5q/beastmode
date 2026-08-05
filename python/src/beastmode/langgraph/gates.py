@@ -35,18 +35,33 @@ def _require_approved(decision: Any, gate: str) -> None:
 
 def gate_provenance(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Strict pipeline provenance gate with preflight/validation prerequisites."""
-    return _run_provenance_gate(state, runtime, require_pipeline_prerequisites=True)
+    decision = interrupt({"gate": "provenance", "phase": state.get("phase", "execute")}) if _autonomy(runtime, state) != "high" else "approved"
+    _require_approved(decision, "provenance")
+    return _run_provenance_gate(
+        state,
+        runtime,
+        decision=decision,
+        require_pipeline_prerequisites=True,
+    )
 
 
 def provenance_gate(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Composable provenance node; trusted target/expected ids live in context."""
-    return _run_provenance_gate(state, runtime, require_pipeline_prerequisites=False)
+    decision = interrupt({"gate": "provenance", "phase": state.get("phase", "execute")}) if _autonomy(runtime, state) != "high" else "approved"
+    _require_approved(decision, "provenance")
+    return _run_provenance_gate(
+        state,
+        runtime,
+        decision=decision,
+        require_pipeline_prerequisites=False,
+    )
 
 
 def _run_provenance_gate(
     state: Mapping[str, Any],
     runtime: Runtime[BeastmodeContext],
     *,
+    decision: Any,
     require_pipeline_prerequisites: bool,
 ) -> dict[str, Any]:
     if require_pipeline_prerequisites:
@@ -55,8 +70,6 @@ def _run_provenance_gate(
         validation = state.get("validation_report")
         if not isinstance(validation, Mapping) or validation.get("passed") is not True:
             raise PermissionError("provenance gate requires successful mechanical validation")
-    decision = interrupt({"gate": "provenance", "phase": state.get("phase", "execute")}) if _autonomy(runtime, state) != "high" else "approved"
-    _require_approved(decision, "provenance")
     target = getattr(runtime.context, "run_dir", None)
     if target is None:
         return {
@@ -68,10 +81,15 @@ def _run_provenance_gate(
     context_expected = getattr(runtime.context, "expected_child_ids", None)
     if context_expected is not None:
         expected = [str(item) for item in context_expected]
+    elif require_pipeline_prerequisites:
+        pipeline_expected = state.get("expected_child_ids")
+        expected = (
+            [str(item) for item in pipeline_expected]
+            if isinstance(pipeline_expected, list)
+            else []
+        )
     else:
-        tasks = state.get("tasks")
-        tasks = tasks if isinstance(tasks, list) else []
-        expected = [str(task.get("id")) for task in tasks if isinstance(task, Mapping) and task.get("id")]
+        expected = []
     if (
         not expected
         or len(expected) > MAX_TASKS
@@ -109,6 +127,8 @@ def _run_provenance_gate(
         target_path,
         expect=expected,
         attestations=attestation_path,
+        attestation_key=getattr(runtime.context, "attestation_key", None),
+        attestation_run_id=getattr(runtime.context, "attestation_run_id", None),
     )
     _stream(runtime, {"event": "provenance_gate", "verdict": result.verdict})
     trace = trace_metadata(
@@ -133,11 +153,11 @@ def _run_provenance_gate(
 
 def gate_merge(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
     """Pause for merge approval below high; no side effects precede the pause."""
+    decision = interrupt({"gate": "merge", "phase": state.get("phase", "review")}) if _autonomy(runtime, state) != "high" else "approved"
+    _require_approved(decision, "merge")
     report = state.get("review_report")
     if not isinstance(report, Mapping) or report.get("approved") is not True:
         raise PermissionError("merge gate requires explicit reviewer approval")
-    decision = interrupt({"gate": "merge", "phase": state.get("phase", "review")}) if _autonomy(runtime, state) != "high" else "approved"
-    _require_approved(decision, "merge")
     _stream(runtime, {"event": "merge_gate", "decision": decision})
     return {"merge_decision": decision}
 

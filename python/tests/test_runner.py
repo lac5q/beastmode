@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -103,6 +105,7 @@ def test_runner_executes_a_real_goal_in_a_worktree(tmp_path: Path) -> None:
     result = subprocess.run(
         argv,
         cwd=repo,
+        env={**os.environ, "XDG_STATE_HOME": str(tmp_path / "state")},
         check=False,
         capture_output=True,
         text=True,
@@ -153,6 +156,7 @@ def test_runner_default_run_dir_does_not_use_goal_as_a_path(tmp_path: Path) -> N
     result = subprocess.run(
         argv,
         cwd=repo,
+        env={**os.environ, "XDG_STATE_HOME": str(tmp_path / "state")},
         check=False,
         capture_output=True,
         text=True,
@@ -191,3 +195,46 @@ def test_runner_rejects_parent_helper_from_target_repository(tmp_path: Path) -> 
     )
     assert result.returncode == 2
     assert "outside the target repository" in result.stderr
+
+
+def test_trusted_helper_output_is_bounded_while_running(tmp_path: Path) -> None:
+    helper = tmp_path / "large-helper"
+    helper.write_text(
+        "#!/usr/bin/env python3\nimport sys\nsys.stdin.buffer.read()\n"
+        "sys.stdout.write('x' * (1024 * 1024 + 1))\n",
+        encoding="utf-8",
+    )
+    helper.chmod(0o700)
+    namespace = runpy.run_path(str(RUNNER))
+    trusted = namespace["_trusted_helper"](
+        str(helper), repo=tmp_path / "different-repo", label="test"
+    )
+    callback = namespace["_json_callback"](trusted, required_key=None)
+    import pytest
+
+    with pytest.raises(ValueError, match="output exceeds"):
+        callback({"bounded": True})
+
+
+def test_trusted_helper_execution_is_bound_to_verified_file_identity(tmp_path: Path) -> None:
+    helper = tmp_path / "identity-helper"
+    helper.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json,sys\nsys.stdin.buffer.read()\n"
+        "print(json.dumps({'marker':'verified'}))\n",
+        encoding="utf-8",
+    )
+    helper.chmod(0o700)
+    namespace = runpy.run_path(str(RUNNER))
+    trusted = namespace["_trusted_helper"](
+        str(helper), repo=tmp_path / "different-repo", label="test"
+    )
+    helper.unlink()
+    helper.write_text(
+        "#!/usr/bin/env python3\nprint('{\"marker\":\"replacement\"}')\n",
+        encoding="utf-8",
+    )
+    helper.chmod(0o700)
+
+    result = namespace["_json_callback"](trusted, required_key=None)({"run": True})
+    assert result == {"marker": "verified"}

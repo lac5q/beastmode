@@ -4,8 +4,9 @@ Q1–Q3 change the phase order in `ROADMAP.md` and should be answered before P1
 starts. Q4–Q10 can be answered during P0/P1. Each has a recommendation, so
 silence is not a blocker — but a different answer means different phases.
 
-**Q1, Q2, Q3, Q5 are now DECIDED** (2026-08-03) — see the ✅ blocks. Q4, Q6–Q10
-remain open.
+**Q1–Q6, Q8, and Q10 are now DECIDED** — see the ✅ blocks. Q7 (whether and
+when to publish to PyPI) and Q9 (the future forever graph's budget ceiling)
+remain open and do not block the P0–P7 repository release.
 
 ---
 
@@ -123,6 +124,12 @@ P7 moves up.
 
 ## Q4 — One distribution or two? (**P1**)
 
+> ### ✅ DECIDED — one `beastmode` package with optional extras.
+>
+> The base distribution has zero dependencies. `[langgraph]`, provider,
+> `[postgres]`, and `[studio]` extras isolate optional runtime trees, while
+> import-linter enforces the framework-neutral `beastmode.core` boundary.
+
 `beastmode-core` + `beastmode-langgraph` as separate PyPI packages, or one
 `beastmode` package with `[langgraph]` / `[crewai]` extras?
 
@@ -184,6 +191,14 @@ better artifact than a silent self-edit, and it's reviewable.
 
 ## Q6 — What happens on a provider that can't prove `actual_model`?
 
+> ### ✅ DECIDED — unsupported for direct judgment; use the subprocess fallback.
+>
+> P0.1 approved no provider for direct-call judgment in the available
+> environment. `SeatModel` therefore records a silent provider as
+> `unverifiable`, and the production CLI keeps judgment/evidence behind trusted
+> subprocess helpers until a provider-specific live probe proves the resolved
+> serving model. There is no best-effort pass mode.
+
 If P0.1 finds a provider that echoes the alias rather than the resolved model,
 every direct-call child on that lane is `unverifiable` — a red gate, forever.
 
@@ -212,6 +227,14 @@ builds on it.
 ---
 
 ## Q8 — Is LangSmith allowed to be the observability story?
+
+> ### ✅ DECIDED — optional and off by default; OTel-shaped records remain
+> vendor-neutral.
+>
+> LangSmith can be enabled by the operator, including a self-hosted endpoint,
+> masking, and sampling. `acn-report` plus the canonical on-disk checker remain
+> authoritative. Disabled, unreachable, dead-endpoint, and sampled-out tracing
+> configurations are negative-tested to leave gate verdict fields unchanged.
 
 It's the natural fit and the thing LangGraph users already have. It is also
 hosted, which means run metadata leaves the machine.
@@ -320,6 +343,14 @@ wait, or halt.
 ---
 
 ## Q10 — Does `acn_meta.py` move?
+
+> ### ✅ DECIDED — repository source stays canonical; build artifacts vendor an
+> immutable copy.
+>
+> The install-free shell lane continues to own `scripts/lib/acn_meta.py`.
+> Wheels and sdists bundle that exact file at build time, and the Python wrapper
+> dynamically loads it without reimplementing verdict logic. Sdist tests prove
+> an untrusted look-alike parent directory cannot substitute the resource.
 
 A `pip`-installed package can't reach `scripts/lib/acn_meta.py` in a repo that
 may not be checked out. Either it moves into `beastmode/core/` and the bash

@@ -65,13 +65,15 @@ The autonomy scale is one vocabulary; each harness enforces it with its own knob
 |---|---|---|---|---|---|
 | low    | `--approve` | approval before each delegate_task batch; every child result surfaces; merges wait | plan/ask permission mode before each batch; no Task storm | approval prompts on; no `--yolo`; no background free-run | All asks prompt you. Slowest, safest. |
 | medium | (default)   | batches run silently; surface security/auth/payments, model failure, MODEL DRIFT, goal_blocked, merge gate | default mode; batches silent; same always-surface list | default sandbox; batches silent; same always-surface list | Phase transitions and tier-2/3 fallback surface. Routine work is silent. |
-| high   | `--no-builtin-tools` (plus pi-permission-system config with `ask`→`deny` on publishing) | multi-batch until goal_complete / repeated goal_blocked; still halts on budget, no-watcher, secrets, unrevalidated drift | `--dangerously-skip-permissions` only inside the worker contract; same halt events | `--yolo` / `--full-auto` only inside the worker contract; same halt events | Workers can't even `git commit` without deny → evidence-only close-out. |
+| high   | `--no-builtin-tools` (plus pi-permission-system config with `ask`→`deny` on publishing) | multi-batch until goal_complete / repeated goal_blocked; still halts on budget, no-watcher, secrets, unrevalidated drift | normal permission mode; same halt events | normal sandbox and approval mode; same halt events | Workers can't even `git commit` without deny → evidence-only close-out. |
 
 `--autonomy high` is only meaningful with a project-level permission config
 (`<repo>/.pi/extensions/pi-permission-system/config.json`) that turns every
 `ask` into `deny` for publishing/destructive ops. With that in place the run
 becomes a long silent sequence that lands a compact final report on
 goal_complete or halts on goal_blocked — never silently.
+Autonomy controls continuation and batching only. It never disables a harness
+sandbox, approval prompt, or permission policy.
 
 ## Surface rules (apply to all levels)
 

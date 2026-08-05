@@ -22,7 +22,7 @@ output; identifiers and diagnostic text are bounded and sanitized.
 Exit codes: 0 clean, 1 gate failure (drift or unverifiable), 2 usage error.
 
 Usage:
-    acn-report <dir-of-meta.json> --attestations <json-or-dir> [--allow-empty] [--strict]
+    acn-report <dir-of-meta.json> --attestations <json-or-dir> --trust-attestations [--allow-empty] [--strict]
 """
 
 from __future__ import annotations
@@ -39,7 +39,8 @@ UNAVAILABLE = acn_meta.UNAVAILABLE
 
 def usage() -> int:
     print("usage: acn-report <dir-of-meta.json> [--expect <batch.json|id,...>] "
-          "--attestations <json-or-dir> [--allow-empty] [--strict]", file=sys.stderr)
+          "--attestations <json-or-dir> --trust-attestations "
+          "[--allow-empty] [--strict]", file=sys.stderr)
     return 2
 
 
@@ -48,6 +49,7 @@ def main() -> int:
     strict = False
     expect = None
     attestations = None
+    trust_attestations = False
     positional: list[str] = []
     args = sys.argv[1:]
     while args:
@@ -73,6 +75,8 @@ def main() -> int:
                 )
                 return usage()
             attestations = Path(args.pop(0))
+        elif arg == "--trust-attestations":
+            trust_attestations = True
         elif arg.startswith("-"):
             print(f"acn-report: unknown arg: {arg}", file=sys.stderr)
             return usage()
@@ -80,6 +84,23 @@ def main() -> int:
             positional.append(arg)
     if len(positional) != 1:
         return usage()
+    if attestations is not None and not trust_attestations:
+        print(
+            "acn-report: --attestations requires --trust-attestations; use it "
+            "only for parent/provider evidence outside worker-writable paths",
+            file=sys.stderr,
+        )
+        return 2
+    attestation_key = None
+    attestation_run_id = None
+    if attestations is not None:
+        try:
+            attestation_key, attestation_run_id = (
+                acn_meta.attestation_credentials_from_environment()
+            )
+        except acn_meta.MetadataLimitError as exc:
+            print(f"acn-report: {acn_meta.safe_report_text(exc)}", file=sys.stderr)
+            return 2
 
     target = Path(positional[0])
     result = acn_meta.check(
@@ -88,6 +109,8 @@ def main() -> int:
         strict=strict,
         expect=expect,
         attestations=attestations,
+        attestation_key=attestation_key,
+        attestation_run_id=attestation_run_id,
     )
     if result.exit_code == 2:
         for message in result.messages:

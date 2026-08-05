@@ -58,11 +58,11 @@ else
 fi
 
 for spec in \
-  '@narumitw/pi-goal@0.43.0' \
+  '@narumitw/pi-goal@0.48.0' \
   '@quintinshaw/pi-dynamic-workflows@3.5.0' \
   'pi-loop-police@1.14.0' \
   '@gotgenes/pi-permission-system@24.0.0' \
-  '@juicesharp/rpiv-todo@2.3.1' \
+  '@juicesharp/rpiv-todo@2.4.0' \
   '@llblab/pi-telegram@0.27.0'; do
   for doc in "$ROOT/pi/SKILL.md" "$ROOT/pi/references/requirements.md"; do
     if rg -F "npm:$spec" "$doc" >/dev/null; then
@@ -75,7 +75,7 @@ done
 
 if rg -n 'pi install npm:[^[:space:]\\`]+([[:space:]\\`]|$)' \
   "$ROOT/pi/SKILL.md" "$ROOT/pi/references/requirements.md" \
-  | rg -v 'npm:(@narumitw/pi-goal@0\.43\.0|@quintinshaw/pi-dynamic-workflows@3\.5\.0|pi-loop-police@1\.14\.0|@gotgenes/pi-permission-system@24\.0\.0|@juicesharp/rpiv-todo@2\.3\.1|@llblab/pi-telegram@0\.27\.0)' \
+  | rg -v 'npm:(@narumitw/pi-goal@0\.48\.0|@quintinshaw/pi-dynamic-workflows@3\.5\.0|pi-loop-police@1\.14\.0|@gotgenes/pi-permission-system@24\.0\.0|@juicesharp/rpiv-todo@2\.4\.0|@llblab/pi-telegram@0\.27\.0)' \
   >/dev/null; then
   fail "an unpinned Pi extension install remains"
 else
@@ -86,6 +86,47 @@ if rg -U 'yoloMode: false\npermission:\n  "\*": deny' "$ROOT/pi/agents/claude-cl
   pass "Claude marker is fail-closed"
 else
   fail "Claude marker does not deny all tools"
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$TMP/.pi/agents"
+mkdir -p "$TMP/.pi/extensions/pi-permission-system"
+cp "$POLICY" "$TMP/.pi/extensions/pi-permission-system/config.json"
+printf '%s\n' '---' 'name: safe' '---' > "$TMP/.pi/agents/safe.md"
+if "$ROOT/scripts/check-pi-agent-policy" "$TMP"; then
+  pass "Pi repository agent preflight accepts agents without policy overrides"
+else
+  fail "Pi repository agent preflight rejected a safe agent"
+fi
+printf '%s\n' '---' 'name: unsafe' 'permission:' '  bash: allow' '---' \
+  > "$TMP/.pi/agents/unsafe.md"
+if "$ROOT/scripts/check-pi-agent-policy" "$TMP" >/dev/null 2>&1; then
+  fail "Pi repository agent preflight accepted a permission override"
+else
+  pass "Pi repository agent preflight rejects permission overrides"
+fi
+
+for encoded in \
+  '"permission": allow' \
+  '"yolo\u004dode": true' \
+  '? permission' \
+  'defaults: &unsafe' \
+  '{permission: allow}'; do
+  printf '%s\n' '---' 'name: unsafe' "$encoded" '---' > "$TMP/.pi/agents/unsafe.md"
+  if "$ROOT/scripts/check-pi-agent-policy" "$TMP" >/dev/null 2>&1; then
+    fail "Pi repository agent preflight accepted alternate YAML: $encoded"
+  fi
+done
+pass "Pi repository agent preflight rejects alternate YAML encodings"
+
+rm "$TMP/.pi/agents/unsafe.md"
+cp "$POLICY" "$TMP/.pi/extensions/pi-permission-system/config.json"
+printf '\n' >> "$TMP/.pi/extensions/pi-permission-system/config.json"
+if "$ROOT/scripts/check-pi-agent-policy" "$TMP" >/dev/null 2>&1; then
+  fail "Pi preflight accepted a policy with the wrong digest"
+else
+  pass "Pi preflight rejects a changed canonical policy"
 fi
 
 if (( FAILURES > 0 )); then

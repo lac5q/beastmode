@@ -41,9 +41,12 @@ Exit codes match the rest of the toolchain: 0 clean, 1 gate failure,
 from __future__ import annotations
 
 import functools
+import hashlib
+import hmac
 import json
 import os
 import re
+import stat
 import sys
 from pathlib import Path
 
@@ -59,6 +62,14 @@ MAX_SCAN_DEPTH = 8
 MAX_JSON_BYTES = 256 * 1024
 MAX_JSON_DEPTH = 8
 MAX_JSON_ITEMS = 2048
+ATTESTATION_FIELDS = (
+    "id",
+    "requested_model",
+    "actual_model",
+    "source",
+    "run_id",
+    "result_digest",
+)
 
 _REPORT_SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
@@ -170,26 +181,38 @@ def find_meta_files(target: Path) -> list[Path]:
     found: list[Path] = []
     scanned = 0
     target = Path(target)
-    for root, dirs, files in os.walk(target, followlinks=False):
-        root_path = Path(root)
+    pending = [target]
+    while pending:
+        root_path = pending.pop()
         try:
             depth = len(root_path.relative_to(target).parts)
         except ValueError as exc:
             raise MetadataLimitError("metadata scan escaped its target") from exc
         if depth > MAX_SCAN_DEPTH:
             raise MetadataLimitError(f"metadata scan depth exceeds {MAX_SCAN_DEPTH}")
-        dirs[:] = sorted(
-            name for name in dirs if not (root_path / name).is_symlink()
-        )
-        files = sorted(files)
-        scanned += len(dirs) + len(files)
-        if scanned > MAX_SCANNED_ENTRIES:
-            raise MetadataLimitError(
-                f"metadata scan exceeds {MAX_SCANNED_ENTRIES} filesystem entries"
-            )
-        for name in files:
-            path = root_path / name
-            if path.suffix.lower() != ".json" or not path.is_file():
+
+        directories: list[Path] = []
+        files: list[Path] = []
+        with os.scandir(root_path) as entries:
+            for entry in entries:
+                scanned += 1
+                if scanned > MAX_SCANNED_ENTRIES:
+                    raise MetadataLimitError(
+                        f"metadata scan exceeds {MAX_SCANNED_ENTRIES} filesystem entries"
+                    )
+                path = root_path / entry.name
+                if entry.is_symlink():
+                    continue
+                if entry.is_dir(follow_symlinks=False):
+                    directories.append(path)
+                elif entry.is_file(follow_symlinks=False):
+                    files.append(path)
+
+        # Each list is bounded by MAX_SCANNED_ENTRIES before sorting. Reverse
+        # insertion keeps the depth-first traversal deterministic.
+        pending.extend(reversed(sorted(directories)))
+        for path in sorted(files):
+            if path.suffix.lower() != ".json":
                 continue
             if len(found) >= MAX_META_FILES:
                 raise MetadataLimitError(
@@ -289,6 +312,11 @@ class Row:
         attested_requested = _first(self._attestation, "requested_model")
         if attested_id != self.raw_id or attested_requested != self._requested_raw:
             return UNVERIFIABLE, "trusted attestation does not bind this child id/request"
+        if not hmac.compare_digest(
+            str(self._attestation.get("result_digest", "")),
+            hashlib.sha256(self.path.read_bytes()).hexdigest(),
+        ):
+            return UNVERIFIABLE, "trusted attestation does not bind these result bytes"
         if self._worker_actual_raw != self._actual_raw:
             return UNVERIFIABLE, "worker metadata disagrees with trusted actual_model"
         has_req = self._requested_raw != UNAVAILABLE
@@ -326,12 +354,64 @@ def _stringify(value) -> str:
     return UNAVAILABLE if value is None else safe_report_text(value)
 
 
-def _attestation_records(source: Path) -> list[dict]:
+def _attestation_payload(record: Mapping[str, object]) -> bytes:
+    return json.dumps(
+        {field: record.get(field) for field in ATTESTATION_FIELDS},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("ascii")
+
+
+def sign_attestation(record: Mapping[str, object], key: bytes) -> str:
+    """Authenticate one bounded provider attestation with a parent-held key."""
+    if not isinstance(key, bytes) or len(key) < 32:
+        raise MetadataLimitError("attestation key must contain at least 32 bytes")
+    return hmac.new(key, _attestation_payload(record), hashlib.sha256).hexdigest()
+
+
+def attestation_credentials_from_environment() -> tuple[bytes, str]:
+    """Read CLI-only credentials without placing the authentication key in argv."""
+    encoded_key = os.environ.get("BEASTMODE_ATTESTATION_KEY", "")
+    run_id = os.environ.get("BEASTMODE_ATTESTATION_RUN_ID", "")
+    try:
+        key = bytes.fromhex(encoded_key)
+    except ValueError as exc:
+        raise MetadataLimitError("attestation key must be valid hexadecimal") from exc
+    if len(key) < 32 or not run_id:
+        raise MetadataLimitError(
+            "trusted attestations require parent-held BEASTMODE_ATTESTATION_KEY "
+            "(hex) and BEASTMODE_ATTESTATION_RUN_ID"
+        )
+    return key, run_id
+
+
+def _attestation_records(
+    source: Path, *, key: bytes, run_id: str
+) -> list[dict]:
     if source.is_symlink():
         raise MetadataLimitError("attestation source must not be a symlink")
-    paths = sorted(source.glob("*.json")) if source.is_dir() else [source]
+    if source.is_dir():
+        paths: list[Path] = []
+        with os.scandir(source) as entries:
+            for index, entry in enumerate(entries, start=1):
+                if index > MAX_SCANNED_ENTRIES:
+                    raise MetadataLimitError(
+                        f"attestation directory exceeds {MAX_SCANNED_ENTRIES} entries"
+                    )
+                path = source / entry.name
+                if path.suffix.lower() == ".json":
+                    paths.append(path)
+        paths.sort()
+    else:
+        paths = [source]
     records: list[dict] = []
     for path in paths:
+        metadata = path.stat()
+        if metadata.st_uid not in {0, os.geteuid()} or stat.S_IMODE(metadata.st_mode) & 0o022:
+            raise MetadataLimitError(
+                "attestation files must be current-user/root owned and not group/world writable"
+            )
         body = _load_json(path)
         values = body.get("attestations") if isinstance(body, dict) else None
         if values is None:
@@ -343,11 +423,16 @@ def _attestation_records(source: Path) -> list[dict]:
                 raise MetadataLimitError("each attestation must be a JSON object")
             if not all(
                 isinstance(value.get(key), str) and value.get(key)
-                for key in ("id", "requested_model", "actual_model", "source")
+                for key in (*ATTESTATION_FIELDS, "signature")
             ):
                 raise MetadataLimitError(
-                    "attestation requires nonempty id/requested_model/actual_model/source"
+                    "attestation requires authenticated child/model/run/result fields"
                 )
+            if value["run_id"] != run_id:
+                raise MetadataLimitError("attestation does not bind the expected run id")
+            expected_signature = sign_attestation(value, key)
+            if not hmac.compare_digest(value["signature"], expected_signature):
+                raise MetadataLimitError("attestation authentication failed")
             records.append(value)
             if len(records) > MAX_META_FILES:
                 raise MetadataLimitError(
@@ -356,17 +441,34 @@ def _attestation_records(source: Path) -> list[dict]:
     return records
 
 
-def load_attestations(target: Path, source: Path | None) -> dict[str, dict]:
+def load_attestations(
+    target: Path,
+    source: Path | None,
+    *,
+    attestation_key: bytes | None,
+    attestation_run_id: str | None,
+) -> dict[str, dict]:
     """Load parent-owned evidence outside the worker-writable run tree."""
     if source is None:
         return {}
+    if not isinstance(attestation_key, bytes) or len(attestation_key) < 32:
+        raise MetadataLimitError("authenticated attestations require a parent-held key")
+    if not isinstance(attestation_run_id, str) or not attestation_run_id:
+        raise MetadataLimitError("authenticated attestations require a run id")
     target_resolved = target.resolve()
     source_resolved = source.resolve()
     if source_resolved == target_resolved or target_resolved in source_resolved.parents:
         raise MetadataLimitError(
             "attestations must be outside the worker-writable run directory"
         )
-    records = _attestation_records(source_resolved)
+    metadata = source_resolved.stat()
+    if metadata.st_uid not in {0, os.geteuid()} or stat.S_IMODE(metadata.st_mode) & 0o022:
+        raise MetadataLimitError(
+            "attestation source must be current-user/root owned and not group/world writable"
+        )
+    records = _attestation_records(
+        source_resolved, key=attestation_key, run_id=attestation_run_id
+    )
     result: dict[str, dict] = {}
     for record in records:
         child_id = str(record["id"])
@@ -433,7 +535,9 @@ def expected_ids(source: str) -> list[str]:
 
 def check(target: Path, allow_empty: bool = False, strict: bool = False,
           expect: list[str] | None = None,
-          attestations: Path | None = None) -> GateResult:
+          attestations: Path | None = None,
+          attestation_key: bytes | None = None,
+          attestation_run_id: str | None = None) -> GateResult:
     """Run the provenance gate over a directory of child metas."""
     if expect is not None and len(expect) != len(set(expect)):
         return GateResult(
@@ -445,7 +549,12 @@ def check(target: Path, allow_empty: bool = False, strict: bool = False,
         return GateResult([], [f"not a regular directory: {safe_report_text(target)}"], 2)
 
     try:
-        trusted_attestations = load_attestations(target, attestations)
+        trusted_attestations = load_attestations(
+            target,
+            attestations,
+            attestation_key=attestation_key,
+            attestation_run_id=attestation_run_id,
+        )
         rows = load_rows(target, trusted_attestations)
     except (OSError, json.JSONDecodeError, RecursionError, MetadataLimitError) as exc:
         return GateResult(
@@ -519,6 +628,7 @@ def main(argv: list[str]) -> int:
     strict = False
     expect: list[str] | None = None
     attestations: Path | None = None
+    trust_attestations = False
     args = list(argv)
     while args:
         arg = args.pop(0)
@@ -544,6 +654,8 @@ def main(argv: list[str]) -> int:
                 )
                 return 2
             attestations = Path(args.pop(0))
+        elif arg == "--trust-attestations":
+            trust_attestations = True
         elif arg == "--allow-empty":
             allow_empty = True
         elif arg == "--strict":
@@ -557,8 +669,28 @@ def main(argv: list[str]) -> int:
 
     if target is None:
         print("usage: acn_meta.py --check <dir> --attestations <json|dir> "
-              "[--expect <batch.json|id,...>] [--allow-empty] [--strict]", file=sys.stderr)
+              "--trust-attestations [--expect <batch.json|id,...>] "
+              "[--allow-empty] [--strict]", file=sys.stderr)
         return 2
+    if attestations is not None and not trust_attestations:
+        print(
+            "acn_meta: --attestations requires --trust-attestations; assert only "
+            "for parent/provider evidence outside worker-writable paths",
+            file=sys.stderr,
+        )
+        return 2
+
+    attestation_key = None
+    attestation_run_id = None
+    if attestations is not None:
+        try:
+            attestation_key, attestation_run_id = attestation_credentials_from_environment()
+        except MetadataLimitError as exc:
+            print(
+                f"acn_meta: {safe_report_text(exc)}",
+                file=sys.stderr,
+            )
+            return 2
 
     result = check(
         target,
@@ -566,6 +698,8 @@ def main(argv: list[str]) -> int:
         strict=strict,
         expect=expect,
         attestations=attestations,
+        attestation_key=attestation_key,
+        attestation_run_id=attestation_run_id,
     )
     stream = sys.stderr if result.exit_code == 2 else sys.stdout
     for message in result.messages:

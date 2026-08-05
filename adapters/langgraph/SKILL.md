@@ -24,7 +24,7 @@ install-free and is unchanged for users who do not select this harness.
 | Gate | `interrupt()` with `Command(resume=...)` below high autonomy |
 | Persistence | `SqliteSaver`, `thread_id` equal to the goal id |
 | Executor | Existing coding-agent subprocess in an isolated worktree |
-| Provenance | `beastmode.core.provenance` delegates to `scripts/lib/acn_meta.py` |
+| Provenance | `beastmode.core.provenance` delegates to `scripts/lib/acn_meta.py`; parent-keyed run/result MACs prevent attestation substitution and replay |
 | Direct model | `beastmode.langgraph.as_chat_model(seat)` exposes a configured `BaseChatModel` |
 | Observability | Custom stream events plus OTel-shaped `trace_metadata` and child spans |
 
@@ -57,14 +57,19 @@ with sqlite_checkpointer(Path.home() / ".beastmode" / "langgraph.sqlite") as sav
     )
 ```
 
-The executor and `run_dir` are trusted runtime configuration. Omitting either
-causes the pipeline to block; graph state cannot select its own provenance
-target.
+The executor, `run_dir`, attestation key, and attestation run ID are trusted
+runtime configuration. `WorktreeSubprocessExecutor` creates the credentials;
+pass its `attestation_key` and `attestation_run_id` to `run_pipeline` with its
+attestation directory. Omitting them causes authenticated provenance to block;
+graph state cannot select its own provenance target or credentials.
 
 Resume the same thread with `graph.invoke(Command(resume="approved"), ...)`.
 Use `graph.get_graph().draw_mermaid()` for the living topology. Import
 `provenance_gate`, `autonomy_gate`, and `route_by_verification_cost` directly
-when embedding only the primitives you need in a foreign graph.
+when embedding only the primitives you need in a foreign graph. Use
+`build_fanout(executor)` for lane-grouped `Send` execution without the full
+pipeline; all four copy-paste patterns are executable-tested in
+`references/langgraph-templates.md`.
 
 For an async caller, use `arun_pipeline` with the same goal id. SQLite is the
 safe local default; install `beastmode[postgres]` and inject

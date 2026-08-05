@@ -18,6 +18,8 @@ class BeastmodeContext:
     goal_id: str | None = None
     run_dir: Path | None = None
     attestations: Path | None = None
+    attestation_key: bytes | None = None
+    attestation_run_id: str | None = None
     expected_child_ids: tuple[str, ...] | None = None
     max_provenance_retries: int = 1
     executor: Any = None

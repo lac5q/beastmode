@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 from langchain_core.messages import HumanMessage
 
-from beastmode.core.provenance import check_provenance
+from beastmode.core.provenance import check_provenance, sign_attestation
 from beastmode.core.seats import SeatUnavailable, preflight_seat, resolve_alias
 from beastmode.langgraph.models import as_chat_model
 
@@ -23,6 +24,11 @@ class _Response:
 class _SilentResponse:
     response_metadata = {"finish_reason": "stop"}
     usage_metadata = {"input_tokens": 2, "output_tokens": 3}
+
+
+class _OversizedResponse:
+    response_metadata = {"model_name": {"nested": ["x"] * 10_000}}
+    usage_metadata = {"nested": ["x"] * 10_000}
 
 
 class _Model:
@@ -62,20 +68,30 @@ def test_seat_metadata_requires_independent_provider_attestation(tmp_path: Path)
     assert meta["actual_model"] == "minimax/MiniMax-M3"
     assert check_provenance(tmp_path / "child", repo=ROOT).exit_code == 1
     attestation = tmp_path / "provider-attestation.json"
+    attestation_key = bytes(32)
+    attestation_run_id = "seat-fixture-run"
+    record = {
+        "id": "child-1",
+        "requested_model": meta["requested_model"],
+        "actual_model": meta["actual_model"],
+        "source": "provider-response",
+        "run_id": attestation_run_id,
+        "result_digest": hashlib.sha256(
+            (tmp_path / "child" / "meta.json").read_bytes()
+        ).hexdigest(),
+    }
+    record["signature"] = sign_attestation(record, attestation_key)
     attestation.write_text(
-        json.dumps(
-            {
-                "id": "child-1",
-                "requested_model": meta["requested_model"],
-                "actual_model": meta["actual_model"],
-                "source": "provider-response",
-            }
-        ),
+        json.dumps(record),
         encoding="utf-8",
     )
     assert (
         check_provenance(
-            tmp_path / "child", repo=ROOT, attestations=attestation
+            tmp_path / "child",
+            repo=ROOT,
+            attestations=attestation,
+            attestation_key=attestation_key,
+            attestation_run_id=attestation_run_id,
         ).exit_code
         == 0
     )
@@ -88,6 +104,14 @@ def test_silent_provider_is_unverifiable_and_async_path_writes(tmp_path: Path) -
     meta = json.loads((tmp_path / "child" / "meta.json").read_text())
     assert meta["actual_model"] is None
     assert check_provenance(tmp_path / "child", repo=ROOT).exit_code == 1
+
+
+def test_provider_metadata_is_bounded_before_child_serialization(tmp_path: Path) -> None:
+    seat = resolve_alias("minimax/MiniMax-M3", repo=tmp_path, home=tmp_path / "home")
+    seat = seat.with_chat_model(_Model())
+    with pytest.raises(ValueError, match="provider metadata"):
+        seat.child_meta(_OversizedResponse(), child_id="oversized")
+    assert not (tmp_path / "child" / "meta.json").exists()
 
 
 def test_preflight_reports_alternatives_and_supports_explicit_bypass(monkeypatch) -> None:

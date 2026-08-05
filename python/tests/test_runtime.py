@@ -23,11 +23,19 @@ from beastmode.langgraph.runtime import (
     sqlite_checkpointer,
 )
 from beastmode.langgraph.nodes import PipelineDependencies
+from beastmode.langgraph.state import BeastmodeState
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MATCH_RUN = ROOT / "tests" / "fixtures" / "acn-meta" / "match"
 ATTESTATIONS = ROOT / "tests" / "fixtures" / "acn-attestations.json"
+ATTESTATION_KEY = bytes(32)
+ATTESTATION_RUN_ID = "fixture-run"
+
+
+class ProjectState(BeastmodeState, total=False):
+    prd: str
+    priority_list: list[str]
 
 
 def _ok_executor(state):
@@ -55,7 +63,7 @@ def _trusted_provenance_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         gates_module,
         "check_provenance",
-        lambda target, expect, attestations=None: SimpleNamespace(
+        lambda target, expect, attestations=None, **_kwargs: SimpleNamespace(
             verdict="ok", messages=(), exit_code=0
         ),
     )
@@ -72,11 +80,17 @@ def test_sqlite_checkpoint_survives_reopen_and_resumes(tmp_path: Path) -> None:
     config = {"configurable": {"thread_id": "restartable-goal"}}
     initial = {
         "goal": "restartable",
+        "prd": "Health endpoint returns dependency status.",
+        "priority_list": ["contract", "implementation", "verification"],
         "run_dir": str(MATCH_RUN),
         "tasks": [{"id": "a", "goal": "restartable", "allowed_paths": [], "verify_cmds": []}],
     }
     with sqlite_checkpointer(database) as saver:
-        graph = build_pipeline(dependencies=OK_DEPENDENCIES, checkpointer=saver)
+        graph = build_pipeline(
+            dependencies=OK_DEPENDENCIES,
+            checkpointer=saver,
+            state_schema=ProjectState,
+        )
         paused = graph.invoke(
             initial,
             config=config,
@@ -85,7 +99,11 @@ def test_sqlite_checkpoint_survives_reopen_and_resumes(tmp_path: Path) -> None:
         assert "__interrupt__" in paused
 
     with sqlite_checkpointer(database) as saver:
-        graph = build_pipeline(dependencies=OK_DEPENDENCIES, checkpointer=saver)
+        graph = build_pipeline(
+            dependencies=OK_DEPENDENCIES,
+            checkpointer=saver,
+            state_schema=ProjectState,
+        )
         paused_again = graph.invoke(
             Command(resume="approved"),
             config=config,
@@ -98,6 +116,8 @@ def test_sqlite_checkpoint_survives_reopen_and_resumes(tmp_path: Path) -> None:
             context=BeastmodeContext(autonomy="medium", run_dir=MATCH_RUN),
         )
     assert completed["status"] == "ready_to_merge"
+    assert completed["prd"] == initial["prd"]
+    assert completed["priority_list"] == initial["priority_list"]
 
 
 def test_sqlite_checkpoint_storage_is_private(tmp_path: Path) -> None:
@@ -121,6 +141,8 @@ def test_async_runtime_uses_async_sqlite_saver(tmp_path: Path) -> None:
             database=tmp_path / "async.sqlite",
             run_dir=MATCH_RUN,
             attestations=ATTESTATIONS,
+            attestation_key=ATTESTATION_KEY,
+            attestation_run_id=ATTESTATION_RUN_ID,
             dependencies=OK_DEPENDENCIES,
         )
     )
@@ -156,6 +178,8 @@ def test_checkpoint_history_can_replay_a_selected_snapshot(tmp_path: Path) -> No
         autonomy="medium",
         run_dir=MATCH_RUN,
         attestations=ATTESTATIONS,
+        attestation_key=ATTESTATION_KEY,
+        attestation_run_id=ATTESTATION_RUN_ID,
         dependencies=OK_DEPENDENCIES,
     )
     assert "__interrupt__" in replayed
@@ -186,6 +210,8 @@ def test_checkpoint_replay_can_fork_a_new_goal_thread(tmp_path: Path) -> None:
         autonomy="high",
         run_dir=MATCH_RUN,
         attestations=ATTESTATIONS,
+        attestation_key=ATTESTATION_KEY,
+        attestation_run_id=ATTESTATION_RUN_ID,
         dependencies=OK_DEPENDENCIES,
     )
     assert forked["status"] == "ready_to_merge"
@@ -202,6 +228,8 @@ def test_initial_command_cannot_jump_to_merge(tmp_path: Path) -> None:
             database=tmp_path / "goto.sqlite",
             run_dir=MATCH_RUN,
             attestations=ATTESTATIONS,
+            attestation_key=ATTESTATION_KEY,
+            attestation_run_id=ATTESTATION_RUN_ID,
             dependencies=OK_DEPENDENCIES,
         )
     assert not (tmp_path / "goto.sqlite").exists()
@@ -262,7 +290,7 @@ def test_trusted_wrapper_alone_invokes_merger(
     calls: list[str] = []
     observed_attestations: list[Path | None] = []
 
-    def provenance(target, expect, attestations=None):
+    def provenance(target, expect, attestations=None, **_kwargs):
         observed_attestations.append(attestations)
         return SimpleNamespace(verdict="ok", messages=(), exit_code=0)
 
@@ -287,6 +315,8 @@ def test_trusted_wrapper_alone_invokes_merger(
         database=tmp_path / "trusted.sqlite",
         run_dir=MATCH_RUN,
         attestations=ATTESTATIONS,
+        attestation_key=ATTESTATION_KEY,
+        attestation_run_id=ATTESTATION_RUN_ID,
         dependencies=dependencies,
     )
     assert calls == ["ready_to_merge"]

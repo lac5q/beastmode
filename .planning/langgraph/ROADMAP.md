@@ -4,7 +4,12 @@ Implementation status: the P1–P7 package, adapter, CLI, persistence, and
 documentation work is present in the current `main` worktree. P0.1 produced a
 provider matrix with no direct-call provider promoted; the safe subprocess
 fallback is therefore the release configuration. P0.2 and P0.3 are complete.
-Public push remains behind the repository security-release gate.
+Public push remains behind the repository security-release gate. The completed
+Standard scan `4846cd52-de67-4f97-b6a2-c84933241ac9` is mapped into **P7S**
+below: one critical, thirteen high, nine medium, two low, and one deferred
+candidate. Its snapshot changed while the scan was running, so its findings are
+planning input; a clean-snapshot verification scan is still required before
+release.
 
 Read `REQUIREMENTS.md` first — it holds the concept mapping, the LangGraph API
 facts each phase depends on, and the risk register phases P0–P2 exist to retire.
@@ -36,9 +41,12 @@ below. Q4 and Q6–Q10 remain open but do not block P0.
   passing evidence.
 - **P1–P7:** implemented locally; the dependency-free bash lane, Python tests,
   package build, Studio import, CLI smoke run, and acceptance checks pass.
-- **P8/P9:** intentionally deferred as separate efforts.
-- **Release:** not complete until the required security scan finishes and the
-  public artifact is inspected for sensitive data.
+- **P7S:** required security hardening is planned below; it preserves worker
+  capability by moving it behind explicit sandbox grants rather than disabling
+  tools globally.
+- **P8/P9:** intentionally deferred as separate efforts and gated on P7S.
+- **Release:** not complete until P7S is green, generated distributions are
+  inspected for sensitive data, and a final clean-snapshot scan passes.
 
 ---
 
@@ -90,7 +98,8 @@ Per hard rule 9, frontier lanes are explicit-only — the seats below are a
 | **P5** | `bm --harness langgraph` + persistence + mermaid export | `--harness langgraph` preflights and runs a real goal; absent package exits 2 with an install hint, never a traceback; kill/resume completes; **bash lane still install-free** |
 | **P6** | **Composability — the LangGraph-user surface**: importable nodes, subgraph embedding, state interop, `langgraph.json` / Studio | A user drops `provenance_gate` into *their own* graph; beastmode embeds as a subgraph in a foreign parent; `langgraph dev` opens it in Studio; **bash lane still install-free** |
 | **P7** | Docs, adapter SKILL, parity tests, release | `test-acn-parity.sh` covers the Python state shape; `SKILL.md` v2.4.0; package builds; **bash lane still install-free** |
-| **P8** | `graphs/forever.py` — the continuous evolver + bounded topology mutation (separate effort) | Gated on P1–P7 |
+| **P7S** | Capability-preserving security hardening and public-release gate | All critical/high findings closed; sensitive-data release findings closed regardless of severity; remaining medium/low items fixed or explicitly accepted; final scan targets the exact clean commit; **bash lane still install-free** |
+| **P8** | `graphs/forever.py` — the continuous evolver + bounded topology mutation (separate effort) | Gated on P1–P7S |
 | **P9** | CrewAI binding (separate effort) | Gated on P8 |
 
 **Two audiences, two finish lines.** P5 is where *beastmode users* get served —
@@ -455,10 +464,150 @@ strategically pointless.
 
 ---
 
+## P7S — Capability-preserving security hardening and release gate
+
+P7S is release work, not a feature rollback. Beastmode remains a capable
+development tool: workers may still write code, run commands, and use network
+access when explicitly granted. The security boundary is that those
+capabilities live **inside** the worker environment; untrusted repositories and
+worker narratives do not execute in, select evidence for, or mutate the trusted
+parent control plane.
+
+Source: sealed Standard scan `4846cd52-de67-4f97-b6a2-c84933241ac9`
+(2026-08-04 working-tree snapshot). Coverage was 128/128 files, 31 candidates,
+31 validations, and 26 attack paths. One provider-metadata candidate remains
+deferred, so the scan's semantic coverage is partial. The scan warned that the
+working tree changed during review; its results therefore drive remediation,
+but do not satisfy the final release scan.
+
+### P7S design rules
+
+1. **Power stays in the capability plane.** File writes, shell commands,
+   package tools, and optional network access run inside the worktree sandbox
+   with explicit task grants. Security fixes may scope or broker a capability;
+   they may not silently remove a supported workflow.
+2. **The parent is a narrow control plane.** Parent code may prepare trusted
+   paths, manifests, attestations, validation facts, and merge decisions. It
+   never executes target-repository hooks, trusts worker status as validation,
+   or passes raw worker narratives as reviewer instructions.
+3. **Two deployment postures, one safe default.** `untrusted` is the default
+   for arbitrary repositories and requires the complete boundary below.
+   `trusted-dev` may relax only documented convenience controls after an
+   explicit operator choice; provenance, release scanning, and secret
+   redaction never become warn-only.
+4. **Environment isolation is enforceable, not prose.** The untrusted profile
+   runs in an ephemeral dev container/VM or equivalent boundary without host
+   credential mounts, SSH agent, Docker socket, or broad home-directory mounts.
+   Network and secret access are separately brokered capabilities.
+5. **Public release is a different trust boundary from local development.** A
+   successful local run never substitutes for scanning Git history and the
+   exact generated wheel/sdist that will be published.
+6. **Invariant 0 still outranks the phase.** The dependency-free bash lane
+   remains install-free after every P7S subphase.
+
+### P7S.0 — Close parent-boundary code execution
+
+| ID | Sev | Work item | Capability-preserving implementation | Exit |
+|---|---:|---|---|---|
+| S-01 | critical | Pre-sandbox Git checkout hooks | Disable target hooks and untrusted Git config only for parent worktree preparation; worker Git remains available inside policy | A malicious `post-checkout` fixture never runs before Bubblewrap |
+| S-02 | high | Repository-local run-root symlinks | Anchor runs in an owner-only trusted base and use no-follow, descriptor-relative path operations | Every symlink-component and replacement-race fixture fails before an external write |
+| S-03 | high | Trusted-helper replacement race | Require trusted ancestors and bind execution to the verified file identity | A helper swapped after verification never executes |
+| S-04 | hardening | Parent-side tool resolution | Centralize parent Git/helper invocation around trusted absolute executables and a sanitized environment | A repository-local fake `git` cannot run as the parent |
+
+### P7S.1 — Preserve independent trust decisions
+
+| ID | Sev | Work item | Capability-preserving implementation | Exit |
+|---|---:|---|---|---|
+| S-05 | high | Caller-selected provenance manifest | Require parent-owned `expected_child_ids`; mutable graph state cannot select the obligation | Omitting a failed child is always `unverifiable` |
+| S-06 | high | Fan-out self-validation | Keep fan-out execution, but reserve `validated` for independent validator + provenance gates | Forged worker `execution_status=ok` cannot produce `validated` |
+| S-07 | high | Reviewer prompt injection | Give the reviewer a typed report + diff projection; store raw logs separately as untrusted evidence | Adversarial stdout is absent from reviewer instructions and cannot approve work |
+| S-08 | medium | Mechanical-validator prompt injection | Give the validator bounded measured facts only; model-backed validators must use a hardened typed contract | Validation is unchanged when worker narratives are adversarial |
+| S-09 | high | Missing Pi project policy | Verify policy path, digest, and active extension before `exec pi` | Missing/stale policy blocks Pi without disabling Pi itself |
+| S-10 | high | Pi YAML policy parser bypass | Parse frontmatter with Pi-equivalent YAML semantics; reject forbidden keys, aliases, duplicates, and unsupported forms | Differential fixtures cannot encode `permission` or `yoloMode` around the checker |
+| S-11 | high | Claude prompt/option injection | Make reviewer prompt transport stdin-only and reject unknown wrapper flags | Dash-prefixed prompts never enter option-parsed argv |
+| S-12 | low | Claude stdin prompt exposed in argv | Keep prompt bytes on stdin or a protected descriptor | Process listings contain fixed options only |
+| S-13 | medium | Hermes provider regex bypass | Validate provider syntax and compare parsed keys literally | Regex metacharacter providers fail preflight |
+| S-14 | medium | Same-UID attestation substitution | Bind evidence to run/child/result with a parent-held nonce or MAC, or explicitly narrow and enforce the principal boundary | Same-UID replacement/replay cannot produce `ok` provenance |
+
+### P7S.2 — Bound resources and process lifetime
+
+| ID | Sev | Work item | Capability-preserving implementation | Exit |
+|---|---:|---|---|---|
+| S-15 | high | Worker memory/PID/CPU exhaustion | Add cgroup or RLIMIT memory, PID, and CPU quotas plus an aggregate concurrency budget | Allocation, fork, and CPU fixtures are kernel-terminated without affecting the host |
+| S-16 | medium | Metadata pre-limit enumeration | Replace per-directory `os.walk` materialization with a bounded incremental walk | A directory beyond the cap fails within bounded memory/time |
+| S-17 | medium | Public-guard output buffering | Stream NUL-safe Git records with explicit item/byte/diagnostic limits | Large-history fixtures fail closed without unbounded shell memory |
+| S-18 | medium | Studio descendant cleanup | Start a dedicated process group/session and terminate the complete tree | No descendant survives success, timeout, crash, or SIGTERM resistance |
+
+### P7S.3 — Make public release fail closed
+
+| ID | Sev | Work item | Capability-preserving implementation | Exit |
+|---|---:|---|---|---|
+| S-19 | high | Binary-history and encoded-path secret bypass | Scan reachable historical blob bytes and NUL-safe paths with a fail-closed object limit | Historical binary credentials and control-byte filenames are rejected |
+| S-20 | high | Generated distributions not scanned | Build first, unpack wheel/sdist, then scan their exact bytes and paths | A generated-only fake secret blocks release |
+| S-21 | high | Packaging resource symlinks | Reject symlinks and require resolved build resources under canonical source roots | External sentinel files cannot enter wheel/sdist |
+| S-22 | medium | Runtime redaction gaps | Share credential families between runtime and release guard; redact before stream/persistence | Bare `github_pat_` and `sk-proj-` fixtures never reach traces or state |
+| S-23 | high | Mutable branch bootstrap | Publish immutable signed/versioned installer assets and verify before execution | Documentation contains no moving-branch pipe-to-shell path |
+| S-24 | medium | Unhashed Python CI artifacts | Generate hash-locked inputs and install with hash enforcement | Altered allowed-version artifact fails before install |
+| S-25 | medium | Registry package content integrity | Record/verify package tarball integrity and disable unnecessary lifecycle scripts | Every executable installer dependency has repository-owned integrity evidence |
+| S-26 | low | Commit-subject log injection | Omit subjects or render bounded escaped diagnostics | Control bytes never reach public CI logs |
+
+### P7S.4 — Resolve the deferred provider bound
+
+Candidate `candidate-a87094c809d2c537` remains follow-up, not silently clean.
+Add a supported-provider/fake-provider fixture with oversized nested
+`response_metadata` and `usage_metadata`; establish documented maximum size,
+depth, and item count; enforce the bound before copying or serializing child
+metadata. The candidate must leave P7S as either a tested finding with a fix or
+a rejected row with concrete provider-contract evidence.
+
+**Implemented 2026-08-04:** provider response metadata is fixed-key projected,
+usage metadata is incrementally bounded by item count/depth/text size, and the
+final child document is capped before write. The oversized supported-provider
+fixture fails before serialization. Candidate `candidate-a87094c809d2c537` is
+therefore resolved as a tested resource-exhaustion case.
+
+### P7S implementation status — 2026-08-04
+
+- [x] S-01–S-04: trusted parent Git/path/helper boundary
+- [x] S-05–S-14: independent manifests, validation/review contracts, Pi and
+  Claude policy, literal Hermes parsing, authenticated run/result attestations
+- [x] S-15–S-18: worker quotas, bounded metadata walking/guard output, complete
+  Studio process-group cleanup
+- [x] S-19–S-26: raw history and distribution scanning, packaging containment,
+  redaction, immutable installer bootstrap, Python/npm artifact integrity, and
+  terminal-safe diagnostics
+- [x] P7S.4 deferred provider metadata bound
+- [ ] Release gate: clean exact-commit security scan, public push, remote CI,
+  and branch cleanup
+
+### P7S release exit (deterministic)
+
+- S-01 through S-26 have regression tests. Critical/high rows are closed; any
+  remaining medium/low risk has an explicit owner, rationale, and expiry.
+- S-19 through S-23 are merge-blocking regardless of accepted severity because
+  the operator requirement is **never publish sensitive material**.
+- The `untrusted` profile proves worker capability still works: one fixture
+  writes only allowed files, runs declared commands, uses explicitly granted
+  network access, emits provenance, and reaches review without host credentials.
+- The `trusted-dev` profile is explicit, documented, and cannot weaken
+  provenance, redaction, or public-release gates.
+- `./tests/run-all.sh` passes without Python packages after every subphase.
+- `pytest python/tests`, import-linter, package build, Studio smoke, isolated
+  wheel smoke, and all security regressions pass from a clean tree.
+- `public-artifact-guard --history` scans the exact release commit, and the
+  generated-artifact guard scans the exact wheel/sdist selected for release.
+- A fresh Codex Security scan targets the exact clean commit and reports no
+  open critical/high findings. The scan runs after all edits and immediately
+  before public push; a changed-tree warning invalidates the gate.
+- Only after those checks may `main` be pushed/tagged. Branch cleanup follows
+  successful remote CI, never precedes it.
+
+---
+
 ## P8 — `graphs/forever.py` (separate effort, gated)
 
 Not the same thing as P3, and worth stating plainly: P3 ports the *existing*
-fixed loop. P7 is the **new capability** — the continuously-cooking evolver that
+fixed loop. P8 is the **new capability** — the continuously-cooking evolver that
 keeps a project moving for days, with a graph that cycles rather than
 terminates.
 
@@ -499,7 +648,7 @@ section part of the P7 diff. Note that it is the first time an autonomy level
 grants a *capability* rather than merely suppressing a prompt — worth one more
 look before P7 starts.
 
-**Gated on:** P1–P7 shipped.
+**Gated on:** P1–P7 shipped and P7S release exit green.
 
 ---
 
@@ -532,3 +681,7 @@ In priority order — the first one decides ties.
 5. `schema/*.json` is still the only source of truth; no field list exists twice.
 6. `scripts/lib/acn_meta.py` is still the only gate implementation.
 7. `beastmode.core` has zero framework imports, proven by CI.
+8. Capability remains available behind explicit sandbox grants; no security
+   fix moves untrusted execution into the parent or turns a gate into prose.
+9. Public release scans both complete Git history and exact generated
+   distributions, and a changed tree invalidates the final security gate.

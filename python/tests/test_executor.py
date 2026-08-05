@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import pytest
 
 from beastmode.core.executors import SubprocessExecutor, WorktreeSubprocessExecutor
 from beastmode.core.provenance import check_provenance
+from beastmode.core.worktree import isolated_worktree
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +32,22 @@ def _repo(tmp_path: Path) -> Path:
     _git(repo, "add", "README.md")
     _git(repo, "commit", "-qm", "seed")
     return repo
+
+
+def test_parent_worktree_creation_disables_repository_hooks(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    hook_dir = repo / "attacker-hooks"
+    hook_dir.mkdir()
+    marker = tmp_path / "hook-ran"
+    hook = hook_dir / "post-checkout"
+    hook.write_text(f"#!/bin/sh\nprintf exploited > {marker}\n", encoding="utf-8")
+    hook.chmod(0o755)
+    _git(repo, "config", "core.hooksPath", str(hook_dir))
+
+    with isolated_worktree(repo, tmp_path / "isolated") as worktree:
+        assert (worktree / "README.md").read_text(encoding="utf-8") == "seed\n"
+
+    assert not marker.exists()
 
 
 def test_worktree_executor_isolates_changes_and_blocks_commit_push(tmp_path: Path) -> None:
@@ -60,7 +78,7 @@ def test_worktree_executor_isolates_changes_and_blocks_commit_push(tmp_path: Pat
         {
             "run_dir": run_dir,
             "executor_model": "minimax/MiniMax-M3",
-            "task": {"id": "child-a", "goal": "write a file"},
+            "task": {"id": "child-a", "goal": "write a file", "allowed_paths": ["child.txt"]},
         }
     )
     assert result["execution_status"] == "ok"
@@ -80,6 +98,100 @@ def test_worktree_executor_isolates_changes_and_blocks_commit_push(tmp_path: Pat
         text=True,
     ).stdout == ""
     assert check_provenance(run_dir, repo=ROOT, expect=["child-a"]).verdict == "unverifiable"
+
+
+def test_parent_worktree_stays_clean_for_entire_child_run(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    run_dir = tmp_path / "run"
+    command = (
+        sys.executable,
+        "-c",
+        (
+            "import json, os, pathlib, time; "
+            "pathlib.Path('child.txt').write_text('isolated\\n'); "
+            "time.sleep(0.25); "
+            "pathlib.Path(os.environ['BEASTMODE_META_DIR'], 'meta.json').write_text(json.dumps({"
+            "'id':os.environ['BEASTMODE_TASK_ID'],"
+            "'requested_model':os.environ['BEASTMODE_REQUESTED_MODEL'],"
+            "'actual_model':os.environ['BEASTMODE_REQUESTED_MODEL'],"
+            "'stop_reason':'end_turn','usage':{},'files_changed':['child.txt'],"
+            "'commands_run':[], 'verify':{'passed':True}}))"
+        ),
+    )
+    executor = WorktreeSubprocessExecutor(repo=repo, command=command, allow_network=True)
+    results: list[dict[str, object]] = []
+
+    def run_child() -> None:
+        results.append(
+            executor(
+                {
+                    "run_dir": run_dir,
+                    "executor_model": "minimax/MiniMax-M3",
+                    "task": {
+                        "id": "clean-parent",
+                        "goal": "write only in child worktree",
+                        "allowed_paths": ["child.txt"],
+                    },
+                }
+            )
+        )
+
+    worker = threading.Thread(target=run_child)
+    worker.start()
+    observations = 0
+    while worker.is_alive():
+        status = subprocess.run(
+            ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        assert status == ""
+        observations += 1
+        time.sleep(0.005)
+    worker.join()
+
+    assert observations > 0
+    assert results[0]["execution_status"] == "ok"
+    assert subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout == ""
+
+
+def test_worktree_executor_fails_closed_on_out_of_contract_path(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    (repo / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-qm", "ignore fixture")
+    command = (
+        sys.executable,
+        "-c",
+        "from pathlib import Path\n"
+        "try:\n"
+        "    Path('.git').write_text('bad')\n"
+        "    print('git-pointer-writable')\n"
+        "except OSError:\n"
+        "    print('git-pointer-readonly')\n"
+        "Path('ignored.txt').write_text('blocked')\n",
+    )
+    result = WorktreeSubprocessExecutor(repo=repo, command=command, allow_network=True)(
+        {
+            "run_dir": tmp_path / "run",
+            "task": {
+                "id": "path-contract",
+                "goal": "write only docs",
+                "allowed_paths": ["docs"],
+            },
+        }
+    )
+    assert result["execution_status"] == "failed"
+    assert result["files_changed"] == ["ignored.txt"]
+    assert result["unauthorized_paths"] == ["ignored.txt"]
+    assert "allowed_paths" in result["path_authorization_error"]
+    assert result["executor_stdout"].strip() == "git-pointer-readonly"
 
 
 def test_parent_attestor_writes_external_evidence_after_child_exit(tmp_path: Path) -> None:
@@ -136,19 +248,65 @@ def test_parent_attestor_writes_external_evidence_after_child_exit(tmp_path: Pat
     assert result["executor_stdout"].strip() == "attestation-hidden"
     assert attestation_path == expected_attestation
     assert not attestation_path.is_relative_to(run_dir)
-    assert json.loads(attestation_path.read_text()) == {
+    attestation = json.loads(attestation_path.read_text())
+    assert {
+        key: attestation[key]
+        for key in ("id", "requested_model", "actual_model", "source")
+    } == {
         "id": "attested",
         "requested_model": "minimax/MiniMax-M3",
         "actual_model": "minimax/MiniMax-M3",
         "source": "trusted-provider-journal",
     }
+    assert attestation["run_id"] == executor.attestation_run_id
+    assert len(attestation["result_digest"]) == 64
+    assert len(attestation["signature"]) == 64
     assert check_provenance(
         run_dir,
         repo=ROOT,
         expect=["attested"],
         attestations=attestation_path,
+        attestation_key=executor.attestation_key,
+        attestation_run_id=executor.attestation_run_id,
     ).verdict == "ok"
     assert result["trace_records"][0]["status"]["code"] == "ok"
+
+    forged = dict(attestation)
+    forged["actual_model"] = "attacker/substituted"
+    attestation_path.write_text(json.dumps(forged), encoding="utf-8")
+    substituted = check_provenance(
+        run_dir,
+        repo=ROOT,
+        expect=["attested"],
+        attestations=attestation_path,
+        attestation_key=executor.attestation_key,
+        attestation_run_id=executor.attestation_run_id,
+    )
+    assert substituted.verdict == "unverifiable"
+    assert any("authentication failed" in message for message in substituted.messages)
+
+    attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+    replayed = check_provenance(
+        run_dir,
+        repo=ROOT,
+        expect=["attested"],
+        attestations=attestation_path,
+        attestation_key=executor.attestation_key,
+        attestation_run_id="different-run",
+    )
+    assert replayed.verdict == "unverifiable"
+    assert any("run id" in message for message in replayed.messages)
+
+
+def test_existing_attestation_directory_is_forced_owner_only(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    run_dir = tmp_path / "run"
+    attestation_dir = tmp_path / ".run.attestations"
+    attestation_dir.mkdir(mode=0o777)
+    attestation_dir.chmod(0o777)
+    executor = WorktreeSubprocessExecutor(repo=repo, command=(sys.executable, "-c", "pass"))
+    assert executor.attestation_directory_for(run_dir) == attestation_dir
+    assert attestation_dir.stat().st_mode & 0o077 == 0
 
 
 def test_parent_attestation_does_not_trust_worker_actual_model(tmp_path: Path) -> None:
@@ -176,12 +334,13 @@ def test_parent_attestation_does_not_trust_worker_actual_model(tmp_path: Path) -
             "source": "trusted-provider-journal",
         }
 
-    result = WorktreeSubprocessExecutor(
+    executor = WorktreeSubprocessExecutor(
         repo=repo,
         command=command,
         allow_network=True,
         model_attestor=attest,
-    )(
+    )
+    result = executor(
         {
             "run_dir": run_dir,
             "executor_model": "minimax/MiniMax-M3",
@@ -195,6 +354,8 @@ def test_parent_attestation_does_not_trust_worker_actual_model(tmp_path: Path) -
         repo=ROOT,
         expect=["forged"],
         attestations=Path(result["model_attestation_path"]),
+        attestation_key=executor.attestation_key,
+        attestation_run_id=executor.attestation_run_id,
     ).verdict == "unverifiable"
 
 
@@ -233,6 +394,16 @@ def test_killed_child_without_meta_is_unverifiable(tmp_path: Path) -> None:
     )({"run_dir": run_dir, "task": {"id": "killed", "goal": "sleep"}})
     assert result["execution_status"] == "failed"
     assert check_provenance(run_dir, repo=ROOT, expect=["killed"]).verdict == "unverifiable"
+    report = subprocess.run(
+        [str(ROOT / "scripts" / "acn-report"), str(run_dir), "--expect", "killed"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert report.returncode == 1
+    rendered_report = report.stdout + report.stderr
+    assert "killed" in rendered_report
+    assert "cannot be shown to have run under the pinned model" in rendered_report
 
 
 def test_worktree_executor_removes_stale_metadata_before_launch(tmp_path: Path) -> None:
@@ -378,6 +549,23 @@ def test_worktree_executor_fails_closed_on_disk_budget(tmp_path: Path) -> None:
     assert not (run_dir / "disk").exists()
 
 
+def test_worktree_executor_enforces_kernel_memory_limit(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    result = WorktreeSubprocessExecutor(
+        repo=repo,
+        command=(sys.executable, "-c", "bytearray(1024 * 1024 * 1024)"),
+        allow_network=True,
+        max_memory_bytes=256 * 1024 * 1024,
+    )(
+        {
+            "run_dir": tmp_path / "run",
+            "task": {"id": "memory-limit", "goal": "allocate", "allowed_paths": []},
+        }
+    )
+    assert result["execution_status"] == "failed"
+    assert result["executor_returncode"] != 0
+
+
 def test_task_id_cannot_escape_run_or_worktree_root(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     run_dir = tmp_path / "run"
@@ -391,6 +579,27 @@ def test_task_id_cannot_escape_run_or_worktree_root(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="task id"):
         executor({"run_dir": run_dir, "task": {"id": "../outside", "goal": "escape"}})
     assert not outside.exists()
+
+
+def test_run_root_rejects_symlink_components_before_external_write(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    redirected = tmp_path / "redirected"
+    redirected.symlink_to(outside, target_is_directory=True)
+    executor = WorktreeSubprocessExecutor(
+        repo=repo,
+        command=(sys.executable, "-c", "print('must not run')"),
+        allow_network=True,
+    )
+    with pytest.raises(ValueError, match="symlink components"):
+        executor(
+            {
+                "run_dir": redirected / "run",
+                "task": {"id": "symlink-root", "goal": "reject", "allowed_paths": []},
+            }
+        )
+    assert list(outside.iterdir()) == []
 
 
 def test_subprocess_executor_bounds_and_redacts_output(tmp_path: Path) -> None:

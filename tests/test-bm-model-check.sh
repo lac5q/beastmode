@@ -29,6 +29,10 @@ minimax       MiniMax-M3                                 1M       64K      yes  
 TABLE
   exit 0
 fi
+if [ "$1" = "list" ]; then
+  printf '%s\n' '  npm:@gotgenes/pi-permission-system'
+  exit 0
+fi
 exit 0
 EOF
 chmod +x "$TMP/bin/pi"
@@ -108,6 +112,24 @@ set -e
 [ "$code" = "2" ] || fail "expected exit 2 for ssh option target, got $code"
 echo "$out" | grep -q "not an ssh option" || fail "did not explain rejected ssh option target"
 ok "ssh option target rejected"
+
+# Test 8: the optional LangGraph package is absent.  A -S interpreter keeps
+# the source tree importable while excluding every site-package, including
+# LangGraph itself.
+echo "Test 8: absent LangGraph runtime exits 2 with an install hint"
+cat > "$TMP/bin/python-no-site" <<'EOF'
+#!/usr/bin/env bash
+exec /usr/bin/python3 -S "$@"
+EOF
+chmod +x "$TMP/bin/python-no-site"
+set +e
+out="$(BEASTMODE_PYTHON="$TMP/bin/python-no-site" BM_SKIP_MODEL_CHECK=1 run_bm "do a thing" --harness langgraph 2>&1)"
+code=$?
+set -e
+[ "$code" = "2" ] || fail "expected exit 2 without LangGraph, got $code"
+echo "$out" | grep -q "pip install.*beastmode.*langgraph" || fail "missing LangGraph install hint"
+echo "$out" | grep -q "Traceback" && fail "missing LangGraph runtime exposed a traceback"
+ok "absent LangGraph runtime failed cleanly with an install hint"
 
 echo ""
 echo "All model-availability tests passed."

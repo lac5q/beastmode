@@ -7,9 +7,8 @@
 # pool across every Claude model and is rate-limited).
 #
 # Usage:
-#   claude-pro "<prompt>"                 # prompt as argv
-#   claude-pro --model opus "<prompt>"     # override model (default: opus)
-#   echo "<prompt>" | claude-pro           # prompt via stdin
+#   printf '%s' "<prompt>" | claude-pro
+#   printf '%s' "<prompt>" | claude-pro --model opus
 #   cat prompt.txt | claude-pro           # multi-line prompt via stdin
 #
 # This is the beastmode Claude external lane. See
@@ -25,7 +24,6 @@ fi
 
 # Default model: opus. Override with --model.
 MODEL="opus"
-PROMPT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,21 +41,13 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      # First non-flag arg is the prompt. Remaining args are appended.
-      if [[ -z "$PROMPT" ]]; then
-        PROMPT="$1"
-      else
-        PROMPT="$PROMPT $1"
-      fi
-      shift
+      echo "claude-pro: prompts are accepted only on stdin; unknown argument: $1" >&2
+      exit 2
       ;;
   esac
 done
 
-# If no argv prompt was given, read stdin.
-if [[ -z "$PROMPT" ]]; then
-  PROMPT="$(cat)"
-fi
+PROMPT="$(cat)"
 
 if [[ -z "$PROMPT" ]]; then
   echo "claude-pro: no prompt provided (argv or stdin)" >&2
@@ -66,4 +56,4 @@ fi
 
 # This wrapper is a watcher/verifier lane. Plan mode keeps it useful for
 # read-only judgment while failing closed instead of granting unattended tools.
-exec claude -p --permission-mode plan --model "$MODEL" "$PROMPT"
+printf '%s' "$PROMPT" | claude -p --permission-mode plan --model "$MODEL"

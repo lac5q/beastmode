@@ -132,7 +132,7 @@ under a pinned model. Run the gate over the batch directory before you
 report `validated`:
 
 ```bash
-scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-harness-journal.json>
+scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-harness-journal.json> --trust-attestations
 ```
 
 Exit 1 means drift or unverifiable; either way the batch is not validated.

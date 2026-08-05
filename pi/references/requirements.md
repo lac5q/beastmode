@@ -18,32 +18,32 @@ CI checks, and drift audits.
 All six are MIT-licensed (or near-MIT) and install from npm:
 
 ```bash
-pi install npm:@narumitw/pi-goal@0.43.0 \
+pi install npm:@narumitw/pi-goal@0.48.0 \
   npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
   npm:pi-loop-police@1.14.0 \
   npm:@gotgenes/pi-permission-system@24.0.0 \
-  npm:@juicesharp/rpiv-todo@2.3.1 \
+  npm:@juicesharp/rpiv-todo@2.4.0 \
   npm:@llblab/pi-telegram@0.27.0
 ```
 
 | Package | Role | Optional? | Notes |
 |---|---|---|---|
-| `@narumitw/pi-goal@0.43.0` | Loop engine — `/goal`, `goal_complete`, `goal_blocked` | **required** | Without this, the skill's auto-continuation step is inert. |
+| `@narumitw/pi-goal@0.48.0` | Loop engine — `/goal`, `goal_complete`, `goal_blocked` | **required** | Without this, the skill's auto-continuation step is inert. |
 | `@quintinshaw/pi-dynamic-workflows@3.5.0` | Fan-out + model routing + verifier primitives | **required** | Without this, only single-agent work is possible. |
 | `pi-loop-police@1.14.0` | Anti-spin circuit breaker | **required** | Unattended runs WILL spin eventually; this is the kill switch. |
 | `@gotgenes/pi-permission-system@24.0.0` | Worker-contract enforcer | **required** | Without the pinned extension and required project config, worker contracts rely on prose alone. See `pi-permission-config.md`. |
-| `@juicesharp/rpiv-todo@2.3.1` | Live progress overlay (TUI) | recommended | Strongly recommended for visibility; not blocking. |
+| `@juicesharp/rpiv-todo@2.4.0` | Live progress overlay (TUI) | recommended | Strongly recommended for visibility; not blocking. |
 | `@llblab/pi-telegram@0.27.0` | Remote supervision (phone) | optional | Requires one-time `/telegram-setup` with a bot token. If absent, skip telegram and continue. |
 
 ## One-line install + verify
 
 ```bash
 # Install
-pi install npm:@narumitw/pi-goal@0.43.0 \
+pi install npm:@narumitw/pi-goal@0.48.0 \
   npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
   npm:pi-loop-police@1.14.0 \
   npm:@gotgenes/pi-permission-system@24.0.0 \
-  npm:@juicesharp/rpiv-todo@2.3.1 \
+  npm:@juicesharp/rpiv-todo@2.4.0 \
   npm:@llblab/pi-telegram@0.27.0
 
 # Verify all six are present

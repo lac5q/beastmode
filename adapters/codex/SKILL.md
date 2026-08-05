@@ -58,7 +58,8 @@ GLM when an independent cross-family validator is wanted.
 
 ```bash
 # Qwen
-~/.local/bin/qwen-agent -p "Reply with exactly: QWEN OK"
+printf '%s\n' 'Reply with exactly: QWEN OK' | \
+  ~/.local/bin/qwen-agent --max-tool-calls 0
 
 # Direct MiniMax API (MINIMAX_API_KEY in env; never print the key)
 curl -sS https://api.minimax.io/v1/chat/completions \
@@ -118,7 +119,7 @@ Unverifiable child model = **UNVERIFIED DRAFT** lane. Output may be used
 as input but is never `validated` until re-checked under a pinned model.
 A meta carrying a single merged `model` instead of both `requested_model`
 and `actual_model` is unverifiable — there is nothing to compare.
-`scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json>` is the gate; exit 1 means
+`scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json> --trust-attestations` is the gate; exit 1 means
 drift or unverifiable.
 
 ## Autonomy mapping

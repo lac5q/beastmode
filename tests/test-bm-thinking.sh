@@ -18,6 +18,10 @@ minimax       MiniMax-M3                                 1M       64K      yes  
 TABLE
   exit 0
 fi
+if [ "$1" = "list" ]; then
+  printf '%s\n' '  npm:@gotgenes/pi-permission-system'
+  exit 0
+fi
 printf '%s\n' "$@" > "$BM_TEST_ARGS"
 EOF
 chmod +x "$TMP/bin/pi"

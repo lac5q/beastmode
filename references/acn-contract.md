@@ -89,16 +89,18 @@ nothing to compare, and a comparison that cannot be made is not a pass.
 
 `meta.json` is worker output, not independent evidence. The parent harness or
 provider adapter must also write an attestation outside the worker-writable run
-tree. Each attestation binds `id`, `requested_model`, and `actual_model`, and
-names a nonempty `source` such as `harness-journal` or `provider-response`:
+tree. Each attestation binds `id`, `requested_model`, `actual_model`, `run_id`,
+and the exact result digest, is authenticated with a parent-held key, and names
+a nonempty `source` such as `harness-journal` or `provider-response`:
 
 ```json
-{"id":"child-1","requested_model":"minimax/MiniMax-M3","actual_model":"minimax/MiniMax-M3","source":"harness-journal"}
+{"id":"child-1","requested_model":"minimax/MiniMax-M3","actual_model":"minimax/MiniMax-M3","source":"harness-journal","run_id":"<parent-run-id>","result_digest":"<sha256>","signature":"<hmac-sha256>"}
 ```
 
-The gate rejects absent attestations, disagreement between worker metadata and
-trusted evidence, duplicate expected/observed IDs, and attestations stored
-inside the run directory.
+The gate rejects absent or unauthenticated attestations, cross-run replay,
+result-byte substitution, disagreement between worker metadata and trusted
+evidence, duplicate expected/observed IDs, and attestations stored inside the
+run directory.
 
 One valid sibling does not carry a batch. Each child is judged on its own
 record, so a run where nine children proved their model and one did not is a
@@ -120,8 +122,8 @@ before it wrote any meta leaves no file, so a surviving sibling would carry
 the batch to a clean exit. Pass the batch's expected child ids to close that:
 
 ```bash
-enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect <batch.json>
-enforce-models --check-meta <run-dir> --attestations <trusted.json> --expect child-1,child-2
+enforce-models --check-meta <run-dir> --attestations <trusted.json> --trust-attestations --expect <batch.json>
+enforce-models --check-meta <run-dir> --attestations <trusted.json> --trust-attestations --expect child-1,child-2
 ```
 
 The manifest is not a new artifact - `tasks[].id` is already required by

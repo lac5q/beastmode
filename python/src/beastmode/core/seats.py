@@ -13,6 +13,22 @@ from typing import Any, Iterable, Mapping
 from .schema import source_repository_root
 
 
+MAX_PROVIDER_METADATA_ITEMS = 256
+MAX_PROVIDER_METADATA_DEPTH = 4
+MAX_PROVIDER_TEXT_CHARS = 4096
+MAX_CHILD_META_BYTES = 256 * 1024
+_RESPONSE_METADATA_KEYS = (
+    "model_name",
+    "model",
+    "model_id",
+    "served_model",
+    "model_used",
+    "stop_reason",
+    "finish_reason",
+    "finishReason",
+)
+
+
 class UnknownAliasError(LookupError):
     """Raised when a friendly tier alias cannot be resolved."""
 
@@ -219,6 +235,9 @@ def preflight_seat(
 
 def write_child_meta(run_dir: Path, meta: Mapping[str, Any]) -> Path:
     """Atomically write one canonical ``meta.json`` into a child run dir."""
+    encoded = json.dumps(dict(meta), indent=2, sort_keys=True) + "\n"
+    if len(encoded.encode("utf-8")) > MAX_CHILD_META_BYTES:
+        raise ValueError(f"child metadata exceeds {MAX_CHILD_META_BYTES} bytes")
     destination_dir = Path(run_dir)
     destination_dir.mkdir(parents=True, exist_ok=True)
     destination = destination_dir / "meta.json"
@@ -227,8 +246,7 @@ def write_child_meta(run_dir: Path, meta: Mapping[str, Any]) -> Path:
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(dict(meta), handle, indent=2, sort_keys=True)
-            handle.write("\n")
+            handle.write(encoded)
         os.replace(temporary_name, destination)
     except BaseException:
         try:
@@ -241,14 +259,67 @@ def write_child_meta(run_dir: Path, meta: Mapping[str, Any]) -> Path:
 
 def _response_mapping(response: Any, attribute: str) -> dict[str, Any]:
     value = response.get(attribute) if isinstance(response, Mapping) else getattr(response, attribute, {})
-    return dict(value) if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        return {}
+    if attribute == "response_metadata":
+        # Only provider identity/termination facts are consumed. Fixed-key
+        # projection avoids walking an attacker-sized provider response map.
+        projected: dict[str, Any] = {}
+        for key in _RESPONSE_METADATA_KEYS:
+            item = value.get(key)
+            if isinstance(item, (str, int, float, bool)) or item is None:
+                projected[key] = _bounded_provider_value(item, depth=0, counter=[0])
+        return projected
+    bounded = _bounded_provider_value(value, depth=0, counter=[0])
+    return bounded if isinstance(bounded, dict) else {}
+
+
+def _bounded_provider_value(value: Any, *, depth: int, counter: list[int]) -> Any:
+    if depth > MAX_PROVIDER_METADATA_DEPTH:
+        raise ValueError("provider metadata nesting exceeds its depth limit")
+    counter[0] += 1
+    if counter[0] > MAX_PROVIDER_METADATA_ITEMS:
+        raise ValueError("provider metadata exceeds its item limit")
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, str):
+        if len(value) > MAX_PROVIDER_TEXT_CHARS:
+            raise ValueError("provider metadata text exceeds its size limit")
+        return value
+    if isinstance(value, Mapping):
+        result: dict[str, Any] = {}
+        for index, key in enumerate(value, start=1):
+            if index > MAX_PROVIDER_METADATA_ITEMS:
+                raise ValueError("provider metadata mapping exceeds its item limit")
+            if not isinstance(key, str) or len(key) > 128:
+                raise ValueError("provider metadata keys must be bounded strings")
+            result[key] = _bounded_provider_value(
+                value[key], depth=depth + 1, counter=counter
+            )
+        return result
+    if isinstance(value, (list, tuple)):
+        result = []
+        for index, item in enumerate(value, start=1):
+            if index > MAX_PROVIDER_METADATA_ITEMS:
+                raise ValueError("provider metadata sequence exceeds its item limit")
+            result.append(
+                _bounded_provider_value(item, depth=depth + 1, counter=counter)
+            )
+        return result
+    raise ValueError("provider metadata contains a non-JSON value")
 
 
 def _first_value(mapping: Mapping[str, Any], *keys: str) -> str | None:
     for key in keys:
         value = mapping.get(key)
-        if value not in (None, "", "unavailable", "unknown"):
-            return str(value)
+        if (
+            isinstance(value, (str, int, float))
+            and not isinstance(value, bool)
+            and value not in (None, "", "unavailable", "unknown")
+        ):
+            rendered = str(value)
+            if len(rendered) <= 512:
+                return rendered
     return None
 
 

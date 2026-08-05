@@ -5,7 +5,7 @@
 #   enforce-models --harness pi|hermes|claude|codex|langgraph --model provider/model [...]
 #
 # Postflight (scans a directory of meta.json files):
-#   enforce-models --check-meta <dir> --attestations <json-or-dir>
+#   enforce-models --check-meta <dir> --attestations <json-or-dir> --trust-attestations
 #                                     [--expect <batch.json|id,...>]
 #                                     [--allow-empty] [--strict]
 #
@@ -41,6 +41,7 @@ usage() {
   cat >&2 <<'USAGE'
 usage: enforce-models --harness pi|hermes|claude|codex|langgraph --model provider/model [...]
        enforce-models --check-meta <dir> --attestations <json-or-dir>
+                                         --trust-attestations
                                          [--expect <batch.json|id,...>]
                                          [--allow-empty] [--strict]
 USAGE
@@ -65,6 +66,7 @@ while [ $# -gt 0 ]; do
     --expect=*)   META_FLAGS+=(--expect "${1#*=}"); shift ;;
     --attestations) META_FLAGS+=(--attestations "${2:-}"); shift 2 ;;
     --attestations=*) META_FLAGS+=(--attestations "${1#*=}"); shift ;;
+    --trust-attestations) META_FLAGS+=(--trust-attestations); shift ;;
     --allow-empty) META_FLAGS+=(--allow-empty); shift ;;
     --strict)     META_FLAGS+=(--strict); shift ;;
     -h|--help)    usage ;;
@@ -163,6 +165,9 @@ case "$HARNESS" in
     for model in "${MODELS[@]}"; do
       [[ "$model" == *"/"* ]] || { missing+=("$model"); continue; }
       provider="${model%%/*}"
+      case "$provider" in
+        ""|*[!A-Za-z0-9._-]*) missing+=("$model"); continue ;;
+      esac
       found=0
       if [ -f "$cfg" ]; then
         # grep only the key (provider name); we don't decode the file contents.
@@ -173,8 +178,26 @@ case "$HARNESS" in
         fi
       fi
       if [ "$found" -eq 0 ] && [ -f "$auth" ]; then
-        # grep the provider key in JSON; never print the file.
-        if grep -q "\"$provider\"[[:space:]]*:" "$auth" 2>/dev/null; then
+        # Parse JSON and compare key names literally; provider input must never
+        # become a regular expression over an authentication file.
+        if python3 - "$auth" "$provider" <<'PY' >/dev/null 2>&1
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    body = json.load(handle)
+wanted = sys.argv[2]
+
+def contains_key(value):
+    if isinstance(value, dict):
+        return wanted in value or any(contains_key(child) for child in value.values())
+    if isinstance(value, list):
+        return any(contains_key(child) for child in value)
+    return False
+
+raise SystemExit(0 if contains_key(body) else 1)
+PY
+        then
           found=1
         fi
       fi

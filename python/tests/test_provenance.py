@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+import os
 
 import pytest
 
@@ -11,15 +12,20 @@ from beastmode.core.provenance import canonical_gate_path, check_provenance
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures" / "acn-meta"
 ATTESTATIONS = ROOT / "tests" / "fixtures" / "acn-attestations.json"
+ATTESTATION_KEY = bytes(32)
+ATTESTATION_RUN_ID = "fixture-run"
 
 
-def _bash_verdict(directory: Path, *extra: str) -> tuple[int, str]:
+def _bash_verdict(
+    directory: Path, *extra: str, environment: dict[str, str] | None = None
+) -> tuple[int, str]:
     completed = subprocess.run(
         [str(ROOT / "scripts" / "enforce-models"), "--check-meta", str(directory), *extra],
         cwd=ROOT,
         check=False,
         capture_output=True,
         text=True,
+        env={**os.environ, **(environment or {})},
     )
     return completed.returncode, completed.stdout + completed.stderr
 
@@ -34,10 +40,21 @@ def test_python_gate_matches_bash_gate_for_every_fixture() -> None:
     for name, exit_code in expected.items():
         directory = FIXTURES / name
         python_result = check_provenance(
-            directory, repo=ROOT, attestations=ATTESTATIONS
+            directory,
+            repo=ROOT,
+            attestations=ATTESTATIONS,
+            attestation_key=ATTESTATION_KEY,
+            attestation_run_id=ATTESTATION_RUN_ID,
         )
         bash_code, bash_output = _bash_verdict(
-            directory, "--attestations", str(ATTESTATIONS)
+            directory,
+            "--attestations",
+            str(ATTESTATIONS),
+            "--trust-attestations",
+            environment={
+                "BEASTMODE_ATTESTATION_KEY": ATTESTATION_KEY.hex(),
+                "BEASTMODE_ATTESTATION_RUN_ID": ATTESTATION_RUN_ID,
+            },
         )
         assert python_result.exit_code == bash_code == exit_code
         assert (python_result.verdict == "ok") is (exit_code == 0)
@@ -52,6 +69,8 @@ def test_python_gate_catches_missing_expected_child(tmp_path: Path) -> None:
         expect=["a", "ghost"],
         repo=ROOT,
         attestations=ATTESTATIONS,
+        attestation_key=ATTESTATION_KEY,
+        attestation_run_id=ATTESTATION_RUN_ID,
     )
     assert result.exit_code == 1
     assert result.verdict == "unverifiable"
@@ -64,6 +83,8 @@ def test_python_gate_rejects_duplicate_expected_child_ids() -> None:
         expect=["a", "a"],
         repo=ROOT,
         attestations=ATTESTATIONS,
+        attestation_key=ATTESTATION_KEY,
+        attestation_run_id=ATTESTATION_RUN_ID,
     )
     assert result.exit_code == 1
     assert result.verdict == "unverifiable"

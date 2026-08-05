@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Reject repository Pi agents that can override the canonical permission policy."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+
+MAX_AGENT_FILES = 256
+MAX_AGENT_BYTES = 256 * 1024
+EXPECTED_POLICY_SHA256 = "4faf8a7ef9082296ac1072e5ba43fd241c6c79bcf19c04e40b0b25027c75bb98"
+PROJECT_POLICY = Path(".pi/extensions/pi-permission-system/config.json")
+FORBIDDEN_KEYS = {"permission", "yoloMode"}
+YAML_ALIAS = re.compile(r"(?:^|[\s:,\[\]{}])[*&][A-Za-z0-9_-]+")
+
+
+def frontmatter(path: Path) -> list[str]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("agent definitions must be regular non-symlink files")
+    if path.stat().st_size > MAX_AGENT_BYTES:
+        raise ValueError(f"agent definition exceeds {MAX_AGENT_BYTES} bytes")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return []
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            return lines[1:index]
+    raise ValueError("agent definition has unterminated frontmatter")
+
+
+def _mapping_key(line: str) -> tuple[int, str] | None:
+    """Parse a key from the supported, deliberately small YAML subset."""
+    if "\t" in line:
+        raise ValueError("tabs are not supported in Pi agent frontmatter")
+    stripped = line.lstrip(" ")
+    if not stripped or stripped.startswith("#") or stripped.startswith("-"):
+        return None
+    if stripped.startswith(("?", "!", "%")):
+        raise ValueError("explicit keys, tags, and directives are not supported")
+    if YAML_ALIAS.search(stripped) or "<<:" in stripped:
+        raise ValueError("YAML aliases, anchors, and merge keys are not supported")
+    if any(character in stripped for character in "{}[]"):
+        raise ValueError("flow-style YAML is not supported")
+
+    quote = None
+    escaped = False
+    separator = -1
+    for index, character in enumerate(stripped):
+        if quote == '"' and escaped:
+            escaped = False
+            continue
+        if quote == '"' and character == "\\":
+            escaped = True
+            continue
+        if quote is not None:
+            if character == quote:
+                if quote == "'" and index + 1 < len(stripped) and stripped[index + 1] == "'":
+                    continue
+                quote = None
+            continue
+        if character in "\"'":
+            quote = character
+        elif character == ":":
+            separator = index
+            break
+    if quote is not None:
+        raise ValueError("unterminated quoted YAML key")
+    if separator < 0:
+        return None
+    token = stripped[:separator].strip()
+    if not token:
+        raise ValueError("empty YAML mapping key")
+    if token.startswith('"'):
+        try:
+            key = json.loads(token)
+        except json.JSONDecodeError as exc:
+            raise ValueError("unsupported double-quoted YAML key") from exc
+    elif token.startswith("'"):
+        if len(token) < 2 or not token.endswith("'"):
+            raise ValueError("unsupported single-quoted YAML key")
+        key = token[1:-1].replace("''", "'")
+    else:
+        key = token
+    if not isinstance(key, str) or not key:
+        raise ValueError("YAML mapping keys must be non-empty strings")
+    return len(line) - len(stripped), key
+
+
+def validate_frontmatter(lines: list[str]) -> None:
+    seen_by_indent: dict[int, set[str]] = {}
+    for line in lines:
+        parsed = _mapping_key(line)
+        if parsed is None:
+            continue
+        indent, key = parsed
+        for deeper in tuple(level for level in seen_by_indent if level > indent):
+            del seen_by_indent[deeper]
+        seen = seen_by_indent.setdefault(indent, set())
+        if key in seen:
+            raise ValueError(f"duplicate YAML key: {key}")
+        seen.add(key)
+        if key in FORBIDDEN_KEYS:
+            raise ValueError("repository Pi agents may not override permission or yoloMode")
+
+
+def verify_project_policy(root: Path) -> None:
+    path = root / PROJECT_POLICY
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"required canonical Pi policy is missing: {PROJECT_POLICY}")
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != EXPECTED_POLICY_SHA256:
+        raise ValueError(f"canonical Pi policy digest mismatch: {PROJECT_POLICY}")
+    try:
+        policy = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("canonical Pi policy is not valid JSON") from exc
+    if not isinstance(policy, dict) or policy.get("yoloMode") is not False:
+        raise ValueError("canonical Pi policy does not disable yolo mode")
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 1:
+        print("usage: check-pi-agent-policy <repository>", file=sys.stderr)
+        return 2
+    root = Path(argv[0]).resolve()
+    candidates: list[Path] = []
+    for relative in (Path(".pi/agents"), Path(".pi/agent/agents")):
+        directory = root / relative
+        if directory.is_symlink():
+            print(f"bm: Pi agent directory must not be a symlink: {relative}", file=sys.stderr)
+            return 2
+        if directory.is_dir():
+            candidates.extend(sorted(directory.rglob("*.md")))
+    if len(candidates) > MAX_AGENT_FILES:
+        print(f"bm: Pi agent count exceeds {MAX_AGENT_FILES}", file=sys.stderr)
+        return 2
+    for path in candidates:
+        try:
+            lines = frontmatter(path)
+            validate_frontmatter(lines)
+        except (OSError, UnicodeError, ValueError) as exc:
+            print(f"bm: unsafe Pi agent definition {path.relative_to(root)}: {exc}", file=sys.stderr)
+            return 2
+    try:
+        verify_project_policy(root)
+    except (OSError, ValueError) as exc:
+        print(f"bm: Pi permission policy preflight failed: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Public artifact secret and private-path guard
@@ -56,8 +57,10 @@ jobs:
       - name: Install the worktree filesystem sandbox
         run: sudo apt-get update && sudo apt-get install --yes bubblewrap
 
-      - name: Install the dependency-free package test lane
-        run: PIP_CONSTRAINT="$PWD/python/constraints-ci.txt" python -m pip install -c python/constraints-ci.txt -e "python[dev,langgraph]"
+      - name: Install hash-locked test dependencies
+        run: |
+          python -m pip install --require-hashes -r python/requirements-ci.lock
+          python -m pip install --no-deps -e python
 
       - name: Test framework-neutral core
         run: python -m pytest python/tests
@@ -65,8 +68,14 @@ jobs:
       - name: Enforce the framework-neutral core import boundary
         run: lint-imports --config python/pyproject.toml
 
+      - name: Serve the graph through LangGraph Studio discovery
+        run: python python/scripts/studio-smoke.py
+
       - name: Build the package
-        run: PIP_CONSTRAINT="$PWD/python/constraints-ci.txt" python -m build python/
+        run: python -m build --no-isolation python/
+
+      - name: Scan the exact generated distributions
+        run: ./scripts/public-artifact-guard --treeish HEAD --artifact python/dist/beastmode-*.whl --artifact python/dist/beastmode-*.tar.gz
 
       - name: Smoke-test the isolated wheel
         shell: bash

@@ -326,6 +326,15 @@ case "$HARNESS" in
     exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
     ;;
   pi)
+    PI_POLICY_CHECK="$SCRIPT_DIR/check-pi-agent-policy"
+    if [ ! -x "$PI_POLICY_CHECK" ] || ! "$PI_POLICY_CHECK" "$PWD"; then
+      echo "bm: Pi agent permission preflight failed" >&2
+      exit 2
+    fi
+    if ! pi list 2>/dev/null | grep -Fxq '  npm:@gotgenes/pi-permission-system'; then
+      echo "bm: canonical Pi permission extension is not installed and active" >&2
+      exit 2
+    fi
     exec pi "${PI_ARGS[@]}" "$GOAL"
     ;;
   hermes)

@@ -34,25 +34,26 @@ them together.
 ```bash
 pi --version                    # must be >= 0.80.6 (pi-goal requires it)
 pi list                         # must include all six packages; install missing:
-pi install npm:@narumitw/pi-goal@0.43.0 \
+pi install npm:@narumitw/pi-goal@0.48.0 \
   npm:@quintinshaw/pi-dynamic-workflows@3.5.0 \
   npm:pi-loop-police@1.14.0 npm:@gotgenes/pi-permission-system@24.0.0 \
-  npm:@juicesharp/rpiv-todo@2.3.1 npm:@llblab/pi-telegram@0.27.0
+  npm:@juicesharp/rpiv-todo@2.4.0 npm:@llblab/pi-telegram@0.27.0
 pi --list-models | head         # confirm frontier + economy models exist on this host
 ```
 
-Before `/goal` or any workflow call, install the canonical policy from
-`pi/config/pi-permission-system.json` at
+Before `/goal` or any workflow call, install the canonical policy distributed
+with this skill at `~/.agents/skills/beastmode-pi/config/pi-permission-system.json` to
 `<repo>/.pi/extensions/pi-permission-system/config.json`, trust the project,
 and verify Pi reports that the project policy loaded. Missing, invalid, or
 skipped policy is a hard preflight failure. Never continue under only a global
 fallback, and never enable automatic approval.
 
 ```bash
-install -Dm600 pi/config/pi-permission-system.json \
+install -Dm600 ~/.agents/skills/beastmode-pi/config/pi-permission-system.json \
   .pi/extensions/pi-permission-system/config.json
-cmp -s pi/config/pi-permission-system.json \
+cmp -s ~/.agents/skills/beastmode-pi/config/pi-permission-system.json \
   .pi/extensions/pi-permission-system/config.json
+~/.local/bin/check-pi-agent-policy "$PWD"
 ```
 
 **Model availability.** `bm "<goal>" --frontier kimi3 --economy minimax` will

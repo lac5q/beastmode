@@ -1,11 +1,13 @@
 # Acceptance Contract — Beastmode on LangGraph (v2.4.0)
 
-This contract covers **P0–P7** of `ROADMAP.md`. P8 (the `forever` graph) and P9
-(CrewAI) get their own contracts when they're unblocked.
+This contract covers **P0–P7S** of `ROADMAP.md`. P8 (the `forever` graph) and
+P9 (CrewAI) get their own contracts when they're unblocked. P7S is the
+capability-preserving security-release gate added from sealed Standard scan
+`4846cd52-de67-4f97-b6a2-c84933241ac9`.
 
-Written per `SKILL.md` §Step 1. `OPEN-QUESTIONS.md` Q1, Q2, Q3 and Q5 were
-answered 2026-08-03 and are folded in below; Q4 and Q6–Q10 remain open but do
-not block P0.
+Written per `SKILL.md` §Step 1. `OPEN-QUESTIONS.md` Q1–Q6, Q8, and Q10 are
+answered and folded in below. Q7 (PyPI publication) and Q9 (the future forever
+graph's budget ceiling) remain outside this P0–P7S contract.
 
 ---
 
@@ -59,6 +61,16 @@ explicit ship-it.
    worktree, and never commits, pushes, or reads secrets.
 6. Gates block below `high` autonomy; `MODEL DRIFT` surfaces at every level.
 7. `beastmode.core` imports no agent framework — proven in CI, not by review.
+8. Untrusted repository and worker capability stays inside the sandbox. The
+   parent never executes repository hooks, trusts worker status as validation,
+   or uses raw worker narratives as trusted reviewer instructions.
+9. Resource controls bound worker memory, PIDs, CPU, disk, files, output, and
+   aggregate concurrency without globally disabling worker commands or
+   explicitly granted network access.
+10. Public-release checks scan complete Git history **and** the exact generated
+    wheel/sdist. A changed working tree invalidates the scan.
+11. No critical/high security finding may remain open at release. Sensitive-data
+    publication controls are merge-blocking at every severity.
 
 **Files/areas likely touched:** `python/` (new), `scripts/bm`,
 `scripts/enforce-models`, `scripts/lib/acn_meta.py` (possible relocation — Q10),
@@ -76,8 +88,30 @@ bash tests/test-bm-model-check.sh     # regression: --harness bogus still exits 
 bash -n scripts/bm scripts/enforce-models scripts/acn-report scripts/lib/prompts.sh
 python3 -m json.tool schema/*.json scripts/tier-aliases.json
 python -m build python/              # wheel builds; imports with no provider SDKs
+./scripts/public-artifact-guard --history  # exact clean release commit
+# unpack + scan exact python/dist wheel/sdist with the P7S artifact guard
 git status --porcelain               # empty after the full suite (CI already asserts this)
 ```
+
+**P7S capability-preserving security acceptance:**
+
+- A malicious target `post-checkout` hook cannot run during parent worktree
+  creation, while worker Git and declared build tools still run inside policy.
+- A symlinked run root or packaging resource fails before any external read,
+  write, removal, or artifact inclusion.
+- Worker-forged status, a reduced expected-child manifest, or adversarial logs
+  cannot produce `validated`, reviewer approval, or a merge-ready state.
+- Pi and Claude adapters retain their intended workflows while semantic policy
+  bypasses and argv option injection fail closed.
+- Kernel-enforced resource fixtures terminate abusive workers without killing
+  the parent or disabling ordinary concurrent tasks.
+- Binary-history, encoded-path, generated-only, and expanded-token fixtures all
+  block public release without printing secret values.
+- Installer and package dependencies are immutable and integrity-verified
+  before execution.
+- A fresh final Standard scan runs against the exact clean commit after all
+  remediation, returns no open critical/high findings, and has no changed-tree
+  warning.
 
 **Manual QA:**
 

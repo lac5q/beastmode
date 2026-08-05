@@ -150,11 +150,13 @@ fi
 echo "check (e): enforce-models --check-meta"
 FIX="$ROOT/tests/fixtures/acn-meta"
 ATTEST="$ROOT/tests/fixtures/acn-attestations.json"
+export BEASTMODE_ATTESTATION_KEY="$(printf '00%.0s' {1..32})"
+export BEASTMODE_ATTESTATION_RUN_ID="fixture-run"
 
 set +e
-out_match="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" 2>&1)"
+out_match="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --trust-attestations 2>&1)"
 rc_match=$?
-out_drift="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/drift" --attestations "$ATTEST" 2>&1)"
+out_drift="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/drift" --attestations "$ATTEST" --trust-attestations 2>&1)"
 rc_drift=$?
 set -e
 
@@ -162,6 +164,15 @@ if [ "$rc_match" = "0" ] && ! echo "$out_match" | grep -q "MODEL DRIFT"; then
   pass "enforce-models --check-meta all-matching exits 0"
 else
   fail "enforce-models --check-meta matching dir: expected exit 0 no drift, got rc=$rc_match out=$out_match"
+fi
+set +e
+out_untrusted="$("$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" 2>&1)"
+rc_untrusted=$?
+set -e
+if [ "$rc_untrusted" = "2" ] && echo "$out_untrusted" | grep -q -- '--trust-attestations'; then
+  pass "standalone attestations require an explicit parent/provider trust assertion"
+else
+  fail "standalone attestation path was trusted implicitly (rc=$rc_untrusted out=$out_untrusted)"
 fi
 if [ "$rc_drift" = "1" ] && echo "$out_drift" | grep -q "MODEL DRIFT"; then
   pass "enforce-models --check-meta drifting exits 1 with MODEL DRIFT"
@@ -241,6 +252,50 @@ else
   fail "deep meta: expected bounded failure, got rc=$GATE_RC out=$GATE_OUT"
 fi
 
+python3 - "$ROOT" <<'PY' && pass "metadata discovery stops before materializing an oversized directory" || fail "metadata discovery did not enforce its entry cap incrementally"
+import importlib.util
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("acn_meta_bounded_walk", root / "scripts/lib/acn_meta.py")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+seen = 0
+
+class Entry:
+    def __init__(self, index):
+        self.name = f"entry-{index}.txt"
+    def is_symlink(self):
+        return False
+    def is_dir(self, *, follow_symlinks):
+        return False
+    def is_file(self, *, follow_symlinks):
+        return True
+
+class Entries:
+    def __enter__(self):
+        return self
+    def __exit__(self, *_):
+        return False
+    def __iter__(self):
+        global seen
+        for index in range(module.MAX_SCANNED_ENTRIES + 1000):
+            seen += 1
+            yield Entry(index)
+
+module.os.scandir = lambda _path: Entries()
+try:
+    module.find_meta_files(Path("scan-root"))
+except module.MetadataLimitError:
+    pass
+else:
+    raise SystemExit("oversized synthetic directory was accepted")
+if seen != module.MAX_SCANNED_ENTRIES + 1:
+    raise SystemExit(f"scanner consumed {seen} entries before failing")
+PY
+
 SECRET_MODEL="ghp_$(printf 'a%.0s' {1..24})"
 printf '%s\n' "{\"id\":\"secret-child\",\"requested_model\":\"$SECRET_MODEL\",\"actual_model\":\"other\",\"stop_reason\":\"end\",\"usage\":{},\"files_changed\":[],\"commands_run\":[],\"verify\":{}}" > "$BOUNDS/meta.json"
 run_gate "$ROOT/scripts/acn-report" "$BOUNDS"
@@ -273,6 +328,15 @@ else
   fail "Hermes missing config: expected exit 2, got rc=$GATE_RC out=$GATE_OUT"
 fi
 
+mkdir -p "$TMP/hermes-regex/.hermes"
+printf '%s\n' '{"unrelated-provider": {"token": "fixture"}}' > "$TMP/hermes-regex/.hermes/auth.json"
+run_gate env HOME="$TMP/hermes-regex" "$ROOT/scripts/enforce-models" --harness hermes --model '.*/anything'
+if [ "$GATE_RC" = "2" ]; then
+  pass "Hermes preflight treats provider identifiers as literals"
+else
+  fail "Hermes regex provider bypass: expected exit 2, got rc=$GATE_RC out=$GATE_OUT"
+fi
+
 # The network cache probe must reject resource-amplifying call counts before I/O.
 run_gate "$ROOT/scripts/cache-hitrate" --base-url http://127.0.0.1:1 --calls 11
 if [ "$GATE_RC" = "2" ] && echo "$GATE_OUT" | grep -q "between 1 and 10"; then
@@ -294,7 +358,7 @@ fi
 CFG="$TMP/withcfg"; mkdir -p "$CFG"
 cp "$FIX/match/a.json" "$CFG/a.json"
 printf '%s\n' '{"model": "minimax/MiniMax-M3", "provider": "minimax"}' > "$CFG/config.json"
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$CFG" --attestations "$ATTEST"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$CFG" --attestations "$ATTEST" --trust-attestations
 if [ "$GATE_RC" = "0" ]; then
   pass "provider config is not mistaken for a child record"
 else
@@ -303,21 +367,21 @@ fi
 
 # A child that wrote nothing at all leaves no file to scan, so only the
 # batch's own id list can catch it.
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a,ghost
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --trust-attestations --expect a,ghost
 if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
   pass "--expect catches a child that wrote no meta"
 else
   fail "--expect: expected exit 1 naming 'ghost', got rc=$GATE_RC out=$GATE_OUT"
 fi
 
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --trust-attestations --expect a
 if [ "$GATE_RC" = "0" ]; then
   pass "--expect passes when every expected child reported"
 else
   fail "--expect all-present: expected exit 0, got rc=$GATE_RC out=$GATE_OUT"
 fi
 
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect a,a
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --trust-attestations --expect a,a
 if [[ "$GATE_RC" -eq 2 && "$GATE_OUT" == *"must be unique"* ]]; then
   pass "--expect rejects duplicate child ids"
 else
@@ -331,7 +395,7 @@ cat > "$TMP/batch.json" <<'JSON'
  "tasks": [{"id": "a", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]},
            {"id": "ghost", "goal": "g", "allowed_paths": ["src"], "verify_cmds": ["true"]}]}
 JSON
-run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --expect "$TMP/batch.json"
+run_gate "$ROOT/scripts/enforce-models" --check-meta "$FIX/match" --attestations "$ATTEST" --trust-attestations --expect "$TMP/batch.json"
 if [ "$GATE_RC" = "1" ] && echo "$GATE_OUT" | grep -q "ghost"; then
   pass "--expect reads child ids from a batch file"
 else
@@ -345,9 +409,9 @@ echo "check (e3): enforce-models and acn-report agree"
 AGREE=1
 for case_dir in match drift legacy empty; do
   set +e
-  "$ROOT/scripts/enforce-models" --check-meta "$FIX/$case_dir" --attestations "$ATTEST" >/dev/null 2>&1
+  "$ROOT/scripts/enforce-models" --check-meta "$FIX/$case_dir" --attestations "$ATTEST" --trust-attestations >/dev/null 2>&1
   rc_enforce=$?
-  "$ROOT/scripts/acn-report" "$FIX/$case_dir" --attestations "$ATTEST" >/dev/null 2>&1
+  "$ROOT/scripts/acn-report" "$FIX/$case_dir" --attestations "$ATTEST" --trust-attestations >/dev/null 2>&1
   rc_report=$?
   set -e
   if [ "$rc_enforce" != "$rc_report" ]; then

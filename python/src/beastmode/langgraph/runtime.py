@@ -105,6 +105,8 @@ def run_pipeline(
     database: Path,
     run_dir: Path | None = None,
     attestations: Path | None = None,
+    attestation_key: bytes | None = None,
+    attestation_run_id: str | None = None,
     dependencies: PipelineDependencies | None = None,
     resume: Any = None,
 ) -> dict[str, Any]:
@@ -112,6 +114,9 @@ def run_pipeline(
     trusted_run_dir = _trusted_run_dir(run_dir)
     trusted_attestations = _trusted_attestations_path(
         attestations, run_dir=trusted_run_dir
+    )
+    trusted_attestation_key, trusted_attestation_run_id = _trusted_attestation_credentials(
+        trusted_attestations, attestation_key, attestation_run_id
     )
     dependencies = dependencies or PipelineDependencies()
     payload = _pipeline_payload(
@@ -128,6 +133,8 @@ def run_pipeline(
             goal_id=goal_id,
             run_dir=trusted_run_dir,
             attestations=trusted_attestations,
+            attestation_key=trusted_attestation_key,
+            attestation_run_id=trusted_attestation_run_id,
         )
         result = graph.invoke(
             payload,
@@ -146,6 +153,8 @@ async def arun_pipeline(
     database: Path,
     run_dir: Path | None = None,
     attestations: Path | None = None,
+    attestation_key: bytes | None = None,
+    attestation_run_id: str | None = None,
     dependencies: PipelineDependencies | None = None,
     resume: Any = None,
 ) -> dict[str, Any]:
@@ -153,6 +162,9 @@ async def arun_pipeline(
     trusted_run_dir = _trusted_run_dir(run_dir)
     trusted_attestations = _trusted_attestations_path(
         attestations, run_dir=trusted_run_dir
+    )
+    trusted_attestation_key, trusted_attestation_run_id = _trusted_attestation_credentials(
+        trusted_attestations, attestation_key, attestation_run_id
     )
     dependencies = dependencies or PipelineDependencies()
     payload = _pipeline_payload(
@@ -169,6 +181,8 @@ async def arun_pipeline(
             goal_id=goal_id,
             run_dir=trusted_run_dir,
             attestations=trusted_attestations,
+            attestation_key=trusted_attestation_key,
+            attestation_run_id=trusted_attestation_run_id,
         )
         if os.environ.get("BEASTMODE_NATIVE_ASYNC_SQLITE") == "1":
             result = await graph.ainvoke(
@@ -213,6 +227,8 @@ def replay_from_checkpoint(
     autonomy: str = "medium",
     run_dir: Path | None = None,
     attestations: Path | None = None,
+    attestation_key: bytes | None = None,
+    attestation_run_id: str | None = None,
     dependencies: PipelineDependencies | None = None,
 ) -> dict[str, Any]:
     """Replay a goal from a selected checkpoint.
@@ -226,6 +242,9 @@ def replay_from_checkpoint(
     trusted_run_dir = _trusted_run_dir(run_dir)
     trusted_attestations = _trusted_attestations_path(
         attestations, run_dir=trusted_run_dir
+    )
+    trusted_attestation_key, trusted_attestation_run_id = _trusted_attestation_credentials(
+        trusted_attestations, attestation_key, attestation_run_id
     )
     with sqlite_checkpointer(database) as saver:
         graph = build_pipeline(dependencies=dependencies, checkpointer=saver)
@@ -245,6 +264,8 @@ def replay_from_checkpoint(
                     goal_id=new_goal_id,
                     run_dir=trusted_run_dir,
                     attestations=trusted_attestations,
+                    attestation_key=trusted_attestation_key,
+                    attestation_run_id=trusted_attestation_run_id,
                 ),
                 durability=durability_for(autonomy),
             )
@@ -256,6 +277,8 @@ def replay_from_checkpoint(
                 goal_id=goal_id,
                 run_dir=trusted_run_dir,
                 attestations=trusted_attestations,
+                attestation_key=trusted_attestation_key,
+                attestation_run_id=trusted_attestation_run_id,
             ),
             durability=durability_for(autonomy),
         )
@@ -329,6 +352,20 @@ def _trusted_attestations_path(
             "attestations must resolve outside the worker-writable run_dir"
         )
     return source
+
+
+def _trusted_attestation_credentials(
+    attestations: Path | None,
+    key: bytes | None,
+    run_id: str | None,
+) -> tuple[bytes | None, str | None]:
+    if attestations is None:
+        return None, None
+    if not isinstance(key, bytes) or len(key) < 32:
+        raise ValueError("attestations require a parent-held key of at least 32 bytes")
+    if not isinstance(run_id, str) or not run_id or len(run_id) > 256:
+        raise ValueError("attestations require a bounded nonempty run id")
+    return key, run_id
 
 
 def _checkpoint_history_limit(limit: int | None) -> int:

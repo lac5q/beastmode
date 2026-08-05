@@ -13,7 +13,7 @@ import importlib.util
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from .schema import source_repository_root
 
@@ -81,6 +81,8 @@ def check_provenance(
     expect: Iterable[str] | None = None,
     repo: Path | None = None,
     attestations: Path | None = None,
+    attestation_key: bytes | None = None,
+    attestation_run_id: str | None = None,
 ) -> ProvenanceResult:
     """Run ``acn_meta.check`` and preserve its verdicts and exit code."""
     gate = _load_gate(repo)
@@ -90,12 +92,19 @@ def check_provenance(
         strict=strict,
         expect=list(expect) if expect is not None else None,
         attestations=Path(attestations) if attestations is not None else None,
+        attestation_key=attestation_key,
+        attestation_run_id=attestation_run_id,
     )
     return ProvenanceResult(
         rows=tuple(result.rows),
         messages=tuple(result.messages),
         exit_code=result.exit_code,
     )
+
+
+def sign_attestation(record: Mapping[str, object], key: bytes) -> str:
+    """Use the canonical gate framing to authenticate a provider record."""
+    return str(_load_gate().sign_attestation(record, key))
 
 
 def required_meta_fields(repo: Path | None = None) -> tuple[str, ...]:
