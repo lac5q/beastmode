@@ -152,7 +152,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy; d
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   case "$f" in
-    bm) HASH="e9dadce4343f0a9f007a7a6037122eec599bbe62d58ef884d7dc6b40a382cb40" ;;
+    bm) HASH="d7be354edd234a10417f83ad310f0b6c758438c68154f10b198e712754325dc1" ;;
     tier-aliases.json) HASH="f731437e1a6917ae8f21302c3e8d54cb2c82a9e937623993b031e935e12356b4" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;

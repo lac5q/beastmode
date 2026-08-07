@@ -35,6 +35,14 @@ EOF
 cat > "$TMP/bin/codex" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$BM_TEST_ARGS"
+if [ -n "${BM_TEST_ENV:-}" ]; then
+  printf 'CODEX_HOME=%s\nXDG_CACHE_HOME=%s\nXDG_DATA_HOME=%s\nXDG_STATE_HOME=%s\nXDG_CONFIG_HOME=%s\n' \
+    "${CODEX_HOME:-}" \
+    "${XDG_CACHE_HOME:-}" \
+    "${XDG_DATA_HOME:-}" \
+    "${XDG_STATE_HOME:-}" \
+    "${XDG_CONFIG_HOME:-}" > "$BM_TEST_ENV"
+fi
 exit 0
 EOF
 chmod +x "$TMP/bin/pi" "$TMP/bin/hermes" "$TMP/bin/claude" "$TMP/bin/codex"
@@ -81,13 +89,35 @@ done
 ok "high autonomy does not bypass Hermes or Claude permissions"
 
 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
-  "$ROOT/scripts/bm" "inspect" --harness codex --frontier sol --autonomy high >/dev/null
+  "$ROOT/scripts/bm" "inspect" --harness pi --frontier gpt5.6 --autonomy high >/dev/null
+grep -Fxq -- '--exclude-tools' "$args" \
+  || fail "Pi high autonomy did not keep a read-only tool surface"
+grep -Fxq 'bash,edit,write' "$args" \
+  || fail "Pi high autonomy did not exclude mutation-capable built-ins"
+if grep -Fxq -- '--no-builtin-tools' "$args"; then
+  fail "Pi high autonomy disabled repository read tools"
+fi
+ok "Pi high autonomy keeps evidence access without mutation tools"
+
+codex_env="$TMP/codex.env"
+BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" BM_TEST_ENV="$codex_env" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/bm" "inspect" --harness codex --frontier gpt5.6 --thinking max --autonomy high >/dev/null
 grep -Fxq -- '--model' "$args" || fail "Codex invocation omitted --model"
-grep -Fxq 'openai-codex/gpt-5.6-sol' "$args" || fail "Codex invocation did not pin the resolved model"
+grep -Fxq 'gpt-5.6-luna' "$args" || fail "Codex invocation did not pin the bare resolved model"
+grep -Fxq 'model_reasoning_effort="max"' "$args" || fail "Codex invocation did not forward max reasoning effort"
+grep -Fxq -- '--ignore-user-config' "$args" || fail "Codex invocation did not isolate the worker from user MCP and hook drift"
+grep -Fxq -- '--ephemeral' "$args" || fail "Codex invocation did not isolate worker session state"
+grep -Eq '^CODEX_HOME=.+/codex$' "$codex_env" || fail "Codex invocation did not use a writable isolated CODEX_HOME"
+for xdg_var in XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CONFIG_HOME; do
+  grep -Eq "^${xdg_var}=.+" "$codex_env" || fail "Codex invocation did not isolate $xdg_var"
+done
+if grep -Fxq 'openai-codex/gpt-5.6-luna' "$args"; then
+  fail "Codex invocation retained a provider prefix the CLI does not accept"
+fi
 if grep -Eq -- '--yolo|--full-auto|--dangerously-skip-permissions' "$args"; then
   fail "Codex high autonomy weakened sandbox or approval controls"
 fi
-ok "Codex is model-pinned without permission bypass"
+ok "Codex is model-pinned at the requested reasoning effort without permission bypass"
 
 set +e
 codex_out="$(BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \

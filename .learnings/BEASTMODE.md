@@ -1,5 +1,16 @@
 # Beastmode learnings
 
+## BM-20260807 Luna high-autonomy read surface
+
+- Director/Lead: current Codex session; requested director/worker seat: `openai-codex/gpt-5.6-luna` at max thinking; Watcher: unavailable; Harness: Pi via `bm`.
+- Acceptance checks: native Luna read-only smoke through the actual `bm` executable; `bash tests/test-shell-security.sh`; no writes, commits, pushes, or outbound mutations by the worker.
+- Result: partial but repaired locally. The repository launcher and installed `~/.local/bin/bm` now keep read/search access and exclude `bash,edit,write` at high autonomy. The native Luna smoke returned the expected repository facts. A multi-file audit exceeded the bounded wall-clock and produced no verifiable report, so it is not treated as validated.
+- What worked: `enforce-models --harness pi --model openai-codex/gpt-5.6-luna` passed; the actual installed runner returned `memroos-monorepo` and the `dev` script; all shell-security tests passed.
+- What failed / drifted: the first fix only changed the Beastmode checkout while `PATH` resolved a stale copied runner at `~/.local/bin/bm`; that runner still used `--no-builtin-tools`, so headless Luna could not inspect source. The multi-file audit also lacked exposed worker metadata before timeout.
+- Routing rule to change: no model-routing change. Add an installation invariant: the runner invoked by `PATH` must match the reviewed source/release bytes before a high-autonomy run is called verifiable.
+- Skill/config update needed: yes — keep high autonomy read-capable but mutation-excluding, and add an installed-runner parity check to the installation/host preflight procedure.
+- Promoted to: `scripts/bm`, `references/autonomy-levels.md`, `tests/test-shell-security.sh`, and the local installed runner; remote hosts still require an explicitly authorized rollout.
+
 ## BM-20260803 LangGraph runtime implementation — P1–P7 mechanical pass
 
 - Director/Lead: current Codex session; Watcher/Reviewer: unavailable; Executor: current session; Harness: manual/GSD with local `.venv`.

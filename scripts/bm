@@ -34,7 +34,7 @@ FRONTIER=""
 ECONOMY=""
 WATCHER=""
 AUTONOMY="medium"
-THINKING="high"
+THINKING="max"
 LANGGRAPH_GRAPH="pipeline"
 EXECUTOR_COMMAND=""
 ATTESTOR_COMMAND=""
@@ -150,7 +150,7 @@ while [ $# -gt 0 ]; do
     --worktree-root=*) WORKTREE_ROOT="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
     --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
-    --thinking)        THINKING="${2:-high}"; shift 2 ;;
+    --thinking)        THINKING="${2:-max}"; shift 2 ;;
     --thinking=*)      THINKING="${1#*=}"; shift ;;
     -h|--help)         PRINT_HELP=1; shift ;;
     --)                shift; while [ $# -gt 0 ]; do GOAL_PARTS+=("$1"); shift; done ;;
@@ -179,8 +179,8 @@ if [ "$HARNESS" = "langgraph" ] && [ "$LANGGRAPH_GRAPH" != "pipeline" ]; then
 fi
 
 case "$THINKING" in
-  none|minimal|low|medium|high|xhigh) ;;
-  *) echo "bm: --thinking must be none|minimal|low|medium|high|xhigh (got: $THINKING)" >&2; exit 2 ;;
+  none|minimal|low|medium|high|xhigh|max) ;;
+  *) echo "bm: --thinking must be none|minimal|low|medium|high|xhigh|max (got: $THINKING)" >&2; exit 2 ;;
 esac
 
 GOAL="${GOAL_PARTS[*]:-}"
@@ -239,7 +239,7 @@ elif [ -n "$ECONOMY" ]; then
   PI_ARGS+=(--model "$ECONOMY")
 else
   # Pin the unqualified Beastmode path to the approved cheap worker.
-  PI_ARGS+=(--model "minimax/MiniMax-M3")
+  PI_ARGS+=(--model "openai-codex/gpt-5.6-luna")
 fi
 # ponytail: build the --models list from the seats that were actually set.
 # `--models "$FRONTIER,$ECONOMY"` handed pi a leading comma whenever --economy
@@ -251,7 +251,13 @@ for seat_model in "$FRONTIER" "$ECONOMY"; do
 done
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$MODELS_CSV")
 [ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
-[ "$AUTONOMY" = "high" ] && PI_ARGS+=(--no-builtin-tools)
+# High autonomy must still let the director inspect the repository. Disabling
+# every built-in tool made headless Luna runs unverifiable: the model could
+# neither read source nor search the worktree, while the workflow extensions
+# remained loaded. Keep the read/search built-ins and fail closed on mutation;
+# the project permission policy continues to govern bash/MCP and all external
+# paths.
+[ "$AUTONOMY" = "high" ] && PI_ARGS+=(--exclude-tools bash,edit,write)
 
 # Remote dispatch: hand the goal to the selected remote host over SSH and tail the goal log.
 # ponytail: foreground SSH so the user sees the live goal stream. If they want
@@ -331,7 +337,9 @@ case "$HARNESS" in
       echo "bm: Pi agent permission preflight failed" >&2
       exit 2
     fi
-    if ! pi list 2>/dev/null | grep -Fxq '  npm:@gotgenes/pi-permission-system'; then
+    # Pi appends the installed package version in `pi list`; match the
+    # canonical package name without requiring an exact unversioned line.
+    if ! pi list 2>/dev/null | grep -Eq '^  npm:@gotgenes/pi-permission-system(@|$)'; then
       echo "bm: canonical Pi permission extension is not installed and active" >&2
       exit 2
     fi
@@ -364,7 +372,27 @@ case "$HARNESS" in
     ;;
   codex)
     # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.
-    X_ARGS=(exec --model "$FRONTIER" "$FULL_PROMPT")
-    exec codex "${X_ARGS[@]}"
+    # Beastmode aliases are provider-qualified for cross-harness provenance,
+    # while the Codex CLI accepts the bare OpenAI model id.
+    CODEX_MODEL="${FRONTIER#*/}"
+    ORIGINAL_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+    CODEX_WORKER_ROOT="${BEASTMODE_CODEX_STATE_ROOT:-${TMPDIR:-/tmp}/beastmode-codex-${UID:-0}-$$}"
+    CODEX_WORKER_HOME="$CODEX_WORKER_ROOT/codex"
+    mkdir -p "$CODEX_WORKER_HOME" \
+      "$CODEX_WORKER_ROOT/cache" \
+      "$CODEX_WORKER_ROOT/data" \
+      "$CODEX_WORKER_ROOT/state" \
+      "$CODEX_WORKER_ROOT/config"
+    chmod 700 "$CODEX_WORKER_ROOT" "$CODEX_WORKER_HOME"
+    if [ -r "$ORIGINAL_CODEX_HOME/auth.json" ]; then
+      ln -sf "$ORIGINAL_CODEX_HOME/auth.json" "$CODEX_WORKER_HOME/auth.json"
+    fi
+    X_ARGS=(exec --ephemeral --ignore-user-config --model "$CODEX_MODEL" -c "model_reasoning_effort=\"$THINKING\"" "$FULL_PROMPT")
+    CODEX_HOME="$CODEX_WORKER_HOME" \
+      XDG_CACHE_HOME="$CODEX_WORKER_ROOT/cache" \
+      XDG_DATA_HOME="$CODEX_WORKER_ROOT/data" \
+      XDG_STATE_HOME="$CODEX_WORKER_ROOT/state" \
+      XDG_CONFIG_HOME="$CODEX_WORKER_ROOT/config" \
+      exec codex "${X_ARGS[@]}"
     ;;
 esac
