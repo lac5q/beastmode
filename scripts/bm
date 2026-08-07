@@ -27,6 +27,21 @@
 
 set -euo pipefail
 
+# SSH/non-interactive shells do not source a user's login profile. Keep the
+# runner deterministic on macOS (Homebrew) and Linux (user-local installs) by
+# exposing the standard executable locations before model preflight and
+# harness dispatch. This is path discovery only; it never changes credentials
+# or permission policy.
+for bm_bin_dir in "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+  if [ -d "$bm_bin_dir" ]; then
+    case ":$PATH:" in
+      *":$bm_bin_dir:"*) ;;
+      *) PATH="$PATH:$bm_bin_dir" ;;
+    esac
+  fi
+done
+export PATH
+
 GSD=0
 ON="auto"
 HARNESS="pi"
