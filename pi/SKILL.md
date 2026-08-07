@@ -49,12 +49,21 @@ skipped policy is a hard preflight failure. Never continue under only a global
 fallback, and never enable automatic approval.
 
 ```bash
-install -Dm600 ~/.agents/skills/beastmode-pi/config/pi-permission-system.json \
+mkdir -p .pi/extensions/pi-permission-system
+umask 077
+cp ~/.agents/skills/beastmode-pi/config/pi-permission-system.json \
   .pi/extensions/pi-permission-system/config.json
+chmod 600 .pi/extensions/pi-permission-system/config.json
 cmp -s ~/.agents/skills/beastmode-pi/config/pi-permission-system.json \
   .pi/extensions/pi-permission-system/config.json
 ~/.local/bin/check-pi-agent-policy "$PWD"
 ```
+
+The `install -D` form is not portable to the BSD `install` shipped on macOS;
+the explicit `mkdir`/`cp`/`chmod` sequence above is the portable equivalent.
+For non-interactive SSH shells, keep `~/.local/bin`, `/opt/homebrew/bin`, and
+`/usr/local/bin` on `PATH` before invoking `pi` directly. The `bm` runner adds
+these locations without overriding an explicitly supplied `PATH`.
 
 **Model availability.** `bm "<goal>" --frontier kimi3 --economy minimax` will
 exit with code 2 before any `pi` invocation if either resolved

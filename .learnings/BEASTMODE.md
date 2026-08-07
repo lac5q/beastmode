@@ -1,5 +1,15 @@
 # Beastmode learnings
 
+## BM-20260807 non-interactive macOS preflight repair
+
+- Director/Lead: current Codex session; requested model: `openai-codex/gpt-5.6-luna`; Harness: Pi via `bm`; watcher unavailable.
+- Acceptance checks: native `pi --list-models`/`enforce-models` preflight; canonical policy digest; read-only `bm` smoke on `main-mac`; `bash tests/run-all.sh` locally.
+- Result: PASS after repair. The runner now appends standard user/Homebrew executable locations only when absent, preserving caller `PATH` precedence. Local Beastmode is 12/12 green, and the macOS smoke returned the expected project facts with `BM_EXIT`.
+- What failed / drifted: a non-login SSH shell could not find Homebrew `pi` or `node`; the macOS Pi `better-sqlite3` binary was built for Node ABI 147 while the host ran ABI 137. Rebuilding `better-sqlite3` in the host-local Pi package directory removed the warnings; the rerun was clean.
+- Routing rule to change: none. Model and permission preflight remain fail-closed; path discovery must not reorder an explicitly supplied test or worker `PATH`.
+- Skill/config update: made the Pi policy-install recipe BSD/macOS-portable and documented the non-interactive path invariant in `pi/SKILL.md`.
+- Promoted to: `scripts/bm`, `scripts/install-beastmode-pi.sh`, and `pi/SKILL.md`; host-local policy and dependency repair remain uncommitted runtime state until the governed rollout is authorized.
+
 ## BM-20260807 Luna high-autonomy read surface
 
 - Director/Lead: current Codex session; requested director/worker seat: `openai-codex/gpt-5.6-luna` at max thinking; Watcher: unavailable; Harness: Pi via `bm`.
