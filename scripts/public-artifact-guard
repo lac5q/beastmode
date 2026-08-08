@@ -59,10 +59,19 @@ case "$GIT_BIN" in
 esac
 ancestor="$GIT_BIN"
 while [ "$ancestor" != "/" ]; do
-  mode="$(stat -Lc '%a' -- "$ancestor" 2>/dev/null || true)"
-  [ -n "$mode" ] || { printf '%s\n' "public-artifact-guard: cannot verify Git path" >&2; exit 2; }
-  if (( (8#$mode & 0022) != 0 )); then
-    printf '%s\n' "public-artifact-guard: Git path has group/world-writable components" >&2
+  # GNU stat first, BSD/macOS stat as fallback; both follow symlinks.
+  mode="$(stat -Lc '%a' -- "$ancestor" 2>/dev/null || stat -Lf '%Lp' -- "$ancestor" 2>/dev/null || true)"
+  owner="$(stat -Lc '%u' -- "$ancestor" 2>/dev/null || stat -Lf '%u' -- "$ancestor" 2>/dev/null || true)"
+  { [ -n "$mode" ] && [ -n "$owner" ]; } || { printf '%s\n' "public-artifact-guard: cannot verify Git path" >&2; exit 2; }
+  if (( (8#$mode & 0002) != 0 )); then
+    printf '%s\n' "public-artifact-guard: Git path has world-writable components" >&2
+    exit 2
+  fi
+  # Group-writable is only a trust boundary when the component is not already
+  # owned by root or the invoking user (Homebrew prefixes are user-owned and
+  # admin-group-writable by default on macOS).
+  if (( (8#$mode & 0020) != 0 )) && [ "$owner" != "0" ] && [ "$owner" != "$(id -u)" ]; then
+    printf '%s\n' "public-artifact-guard: Git path has group-writable components not owned by root or the invoking user" >&2
     exit 2
   fi
   ancestor="$(dirname -- "$ancestor")"
