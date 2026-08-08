@@ -13,9 +13,10 @@
   "terra":        { "provider": "openai-codex", "model": "gpt-5.6-terra",     "tier": "frontier", "family": "openai-codex" },
   "grok":         { "provider": "xai-oauth",   "model": "grok-4.5",           "tier": "frontier", "family": "xai" },
   "glm":          { "provider": "zai",         "model": "glm-5.2",            "tier": "frontier", "family": "zai" },
-  "minimax":      { "provider": "minimax",     "model": "MiniMax-M3",         "tier": "economy",  "family": "minimax" },
-  "minimax-fast": { "provider": "minimax",     "model": "MiniMax-M2.7-highspeed", "tier": "economy", "family": "minimax" },
-  "qwen":         { "provider": "qwen",        "model": "qwen3.7-plus",       "tier": "economy",  "family": "qwen" },
-  "gwen":         { "provider": "qwen",        "model": "qwen3.7-max",        "tier": "economy",  "family": "qwen" },
+  "luna-max":     { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max" },
+  "minimax":      { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
+  "minimax-fast": { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
+  "qwen":         { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
+  "gwen":         { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
   "haiku":        { "provider": "anthropic",   "model": "claude-haiku-4-5",   "tier": "economy",  "family": "anthropic" }
 }
