@@ -1,6 +1,6 @@
 ---
 name: beastmode-pi
-description: Pi-specific harness adapter for the universal Beastmode MofA orchestration framework (see the `beastmode` skill, v2.1). Composes five installed pi packages into the universal loop — pi-goal as the in-session goal engine, pi-dynamic-workflows as the fan-out / model-router, pi-loop-police as the anti-spin circuit breaker, pi-permission-system as the worker-contract enforcer, rpiv-todo + pi-telegram as live visibility. Use when Luis asks for beastmode, a Mixture-of-Agents run, autonomous goal execution, planner/worker/watcher, or a phase takeover inside a pi session.
+description: Pi-specific harness adapter for the universal Beastmode MofA orchestration framework (see the `beastmode` skill, v2.5.0). Composes five installed pi packages into the universal loop — pi-goal as the in-session goal engine, pi-dynamic-workflows as the fan-out / model-router, pi-loop-police as the anti-spin circuit breaker, pi-permission-system as the worker-contract enforcer, rpiv-todo + pi-telegram as live visibility. Use when Luis asks for beastmode, a Mixture-of-Agents run, autonomous goal execution, planner/worker/watcher, or a phase takeover inside a pi session.
 version: 1.0.0
 author: Luis Calderon
 tags: [beastmode, mofa, pi, orchestration, multi-agent, model-routing, worktrees, self-improving]
@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/pi/SKILL.md
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in the
-canonical `beastmode` skill (v2.1) — load it first and follow it. This
+canonical `beastmode` skill (v2.5.0) — load it first and follow it. This
 adapter tells you which pi packages implement which role and how to wire
 them together.
 
@@ -155,9 +155,9 @@ verifier-tier review, never for bulk cheap work.
 
 ## Operating loop
 
-1. **Load the universal skill first.** Read `beastmode` v2.1 — Step 0
-   (preflight), Step 1 (acceptance contract), Step 2 (design with
-   challenge). This adapter does not redefine those.
+1. **Load the universal skill first.** Read `beastmode` v2.5.0 — Step 0
+   (preflight), Step 1 (goal interview), Step 2 (acceptance contract), and
+   Step 3 (design with challenge). This adapter does not redefine those.
 
 2. **Optional durable goal record.** Beastmode itself does not require a
    specific goal store. If the consumer repo overlays one (e.g., memroos
@@ -166,7 +166,7 @@ verifier-tier review, never for bulk cheap work.
    and proceed.
 
 3. **Write the acceptance contract** in the universal format (see the
-   `beastmode` skill, Step 1). Capture: goal / non-goals / user-visible
+   `beastmode` skill, Step 2). Capture: goal / non-goals / user-visible
    acceptance / files likely touched / verification commands / manual QA /
    escalation triggers / self-improvement log path.
 
@@ -223,7 +223,10 @@ verifier-tier review, never for bulk cheap work.
    forbidden commands (commit, push, delete outside scope, publish, send
    email, access secrets, change cloud config), required output (summary,
    unified diff or exact files changed, commands run, verification notes,
-   risks/blockers). Workers never commit or push — the director merges.
+  risks/blockers). Workers never commit or push — the director merges.
+   Workers never interview the user; ambiguity → `needs_decision` in
+   `meta.json` (shape per `schema/acn-contract.json`), or
+   `stop_reason: "needs_decision"` when blocked.
 
 6. **Guardrails are mandatory.** loop-police needs no configuration; if it
    fires repeatedly on one subtask, shrink the slice or switch worker lane.
@@ -262,7 +265,7 @@ Beastmode's universal artifacts, written in this order:
    `scripts/enforce-models --check-meta <run-dir>` before claiming
    `validated`.
 2. **Acceptance contract delta** — update the contract file (the one from
-   Step 3) with actual vs planned for each acceptance bullet, and the
+   Step 2) with actual vs planned for each acceptance bullet, and the
    verification commands that passed.
 3. **Self-improvement entry** — append a section to
    `<repo>/.learnings/BEASTMODE.md` (universal) with: `## Role Routing`,
@@ -297,7 +300,7 @@ fine.
 
 ## See also
 
-- `beastmode` (v2.1) — the canonical framework this adapter implements
+- `beastmode` (v2.5.0) — the canonical framework this adapter implements
 - `references/pi-permission-config.md` — starter permission-system config
   encoding the worker contract
 - `references/context-rot-mitigation.md` (in the universal skill) — keep

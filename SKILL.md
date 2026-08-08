@@ -9,7 +9,7 @@ description: >
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
   Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
-version: 2.4.0
+version: 2.5.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
 related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
@@ -36,7 +36,7 @@ Beastmode is a structured approach to multi-agent software development that sepa
 
 Beastmode routes every unit of work to a tier, not a specific model. Pick the best available model in each tier for your environment.
 
-**One vocabulary (v2.2):** model **families**, **tiers**, **seats**, **autonomy levels**, and the **ACN fan-out contract** are defined once, machine-readably, in `schema/` (`families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`). Every harness adapter and every doc references that schema — if prose and schema disagree, schema wins. Human-readable views: `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, `references/tier-aliases.md`.
+**One vocabulary (v2.2):** model **families**, **tiers**, **seats**, **autonomy levels** (including interview scaling), and the **ACN fan-out contract** are defined once, machine-readably, in `schema/` (`families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`). Every harness adapter and every doc references that schema — if prose and schema disagree, schema wins. Human-readable views: `references/families-tiers-seats.md`, `references/autonomy-levels.md`, `references/acn-contract.md`, `references/tier-aliases.md`.
 
 | Tier | Example models | Owns |
 |------|---------------|------|
@@ -111,6 +111,7 @@ Use beastmode for complex tasks that need:
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
 9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses MiniMax-M3. Codex, GPT, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
 10. **Public GitHub release is security-gated.** Before every public push, merge, or deployment, run the repository security scan and inspect its completed coverage/findings artifacts. Never publish credentials, tokens, private keys, local auth files, or sensitive environment values. An unresolved security blocker stops the release.
+11. **No silent assumptions.** Material ambiguity is either asked (per the autonomy interview matrix in schema/autonomy-levels.json) or recorded as an explicit Assumption in the acceptance contract and surfaced at the next gate. Workers never interview the user — they return needs_decision items in their meta/report and the director surfaces them at the gate.
 
 ## The ACN Layer (Async Parallel Sub-agents)
 
@@ -289,7 +290,21 @@ If your harness is unavailable, fall back to a simpler harness (e.g., `delegate_
 
 **Model availability preflight (`bm`).** Before invoking `pi`, `bm` validates every `--frontier` and `--economy` alias against `pi --list-models` on the local host. If a resolved `provider/model` is not present, `bm` exits with code 2 and prints the available alternatives, so a goal never starts against an unresolvable model. The check is skipped when `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs) or when `--on` is not local (the remote host owns availability).
 
-### Step 1: Define Acceptance Contract
+### Step 1: Goal Interview (Autonomy-Scaled)
+
+Before writing the acceptance contract, interview the user according to the
+matrix in `schema/autonomy-levels.json`: `low` presents every material gray
+area and keeps asking until resolved; `medium` and `high` ask one batched round
+of the top 3–5 impact-ranked questions, then record remaining ambiguity as
+explicit Assumptions. Never re-ask decisions already locked in
+`GOAL_STATE.md`, `.planning/**/CONTEXT.md`, `.planning/**/SPEC.md`, or earlier
+gate answers. The interview clarifies how to deliver the stated goal, never
+whether to add a new capability; put new capabilities in Deferred ideas. A
+non-interactive lane downgrades to assumptions-only and logs
+`interview downgraded: non-interactive lane` in the phase report. Full protocol:
+`references/goal-interview.md`.
+
+### Step 2: Define Acceptance Contract
 
 Before any delegation, write:
 
@@ -298,13 +313,16 @@ Goal: <user-visible outcome>
 Non-goals: <scope boundaries>
 User-visible acceptance: <what the user will see/test>
 Files/areas likely touched: <paths>
+Locked decisions: <from interview + imported CONTEXT.md/SPEC.md, with sources>
+Assumptions (unconfirmed): <A1..An, each with impact-if-wrong>
+Open questions deferred to gates: <ids or none>
 Verification commands: <unit/integration/e2e commands>
 Manual QA: <visual/security checks>
 Escalation triggers: <auth/security/payments/data-loss/architecture-uncertainty>
 Self-improvement log path: <.learnings/BEASTMODE.md or project-local path>
 ```
 
-### Step 2: Design (Frontier Tier — With Challenge)
+### Step 3: Design (Frontier Tier — With Challenge)
 
 Design is the highest-leverage phase — this is where frontier tokens are worth spending. Do not skimp here to save cost; a bad design multiplies executor waste downstream.
 
@@ -322,7 +340,7 @@ Design is the highest-leverage phase — this is where frontier tokens are worth
 - GSD: `gsd-plan-phase "<phase goal>"`
 - Manual: Write plan in markdown, commit to `.planning/` or similar
 
-### Step 3: Delegate Routine Work
+### Step 4: Delegate Routine Work
 
 Use tight task specs. One task should be reviewable in a single diff.
 
@@ -345,7 +363,7 @@ discount entirely.
 - **Claude Code:** `Task("<task>")`
 - **Manual:** Executor works in branch, commits changes
 
-### Step 4: Validate (Cheap), Then Review (Frontier)
+### Step 5: Validate (Cheap), Then Review (Frontier)
 
 **Stage 1 — Mechanical validation (executor tier):** the economy model (MiniMax M3 / Qwen) runs the contract's verification commands and produces a structured report:
 
@@ -356,6 +374,7 @@ discount entirely.
 - Lint/typecheck: pass | fail (<count> issues)
 - Diff stats: <files changed, +/- lines>; unrelated files touched: yes/no
 - Contract checklist: <each acceptance item: met / not met / can't verify>
+- Needs decision: <items or none>
 ```
 
 **Stage 2 — Judgment review (frontier tier):** the lead or Codex reviews the *report + diff* against the contract. Frontier tokens go to reading the diff and making the call, not to re-running or watching tests.
@@ -378,7 +397,7 @@ git diff main...<branch>
 - Secrets/credentials were exposed
 - The executor made decisions reserved for the lead
 
-### Step 5: Merge Gate
+### Step 6: Merge Gate
 
 **Merge commands by harness:**
 - **Ultraswarm:** `ultraswarm merge <task-id> --repo . --approved`
@@ -387,7 +406,7 @@ git diff main...<branch>
 
 Never merge on executor self-report alone. The lead or Codex watcher must verify.
 
-### Step 6: Self-Improving Checkpoint
+### Step 7: Self-Improving Checkpoint
 
 After every phase, append a learning entry before continuing.
 
@@ -494,6 +513,10 @@ Phases completed: <n>
 Director / watcher / executor split: <summary>
 Models: Frontier (Fable/Kimi 3/Opus) <x%>, Codex/GPT <y%>, Executor (MiniMax M3/Qwen) <z%>
 Token/cost report: <harness report or estimate>
+Worker table:
+| worker | phase | model requested→actual | tokens (% of run) | status | produced |
+Failures/hangs/drift: <itemized one-liners or none>
+Ledger: .beastmode/LEDGER.md (<n> entries)
 Verification: <commands and results, per validation report>
 Self-improvement: <learning entry path + promoted updates, if any>
 Merge status: <merged/branch ready/blocked>
@@ -604,6 +627,7 @@ Anthropic credentials are never forwarded to them.
 - **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
 - **Tier aliases:** See `references/tier-aliases.md` (and `scripts/tier-aliases.json`) for the friendly-name → `provider/model` (+ family, tier) map consumed by `scripts/bm`. Verify them against `pi --list-models` on the configured worker host.
 - **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and the per-harness enforcement map.
+- **Goal interview:** See `references/goal-interview.md` for gray-area identification, question rounds, assumptions, needs_decision gate integration, and harness mappings.
 - **Child liveness:** See `references/child-liveness.md` for the hung-agent contract — progress signals over wall-clock, marker-based startup probes, bounded watchers, and the kill → smoke → retry-once → escalate ladder.
 - **Context rot mitigation:** See `references/context-rot-mitigation.md` for detailed analysis of context accumulation, architectural fixes, and monitoring strategies.
 - **Orchestration comparison:** See `references/orchestration-comparison.md` for the evolution from early prototypes to v2.x.

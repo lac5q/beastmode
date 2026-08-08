@@ -79,6 +79,25 @@ unverified draft, even if the output looks plausible.
 that reports a single merged `model` - the pre-v2.3 shape - gives the gate
 nothing to compare, and a comparison that cannot be made is not a pass.
 
+### Optional `needs_decision`
+
+Workers may include an optional `needs_decision` array in `meta.json`; it is
+not part of `meta_json_required_fields`, so metas without open questions remain
+valid. Each item mirrors `schema/acn-contract.json`:
+
+```json
+{"id":"string","question":"string","options":[],"assumed":"string","impact_if_wrong":"string"}
+```
+
+Workers never interview the user. When an ambiguity is covered by the
+acceptance contract, the worker continues under that assumption and records the
+item. If it is genuinely blocked, it stops with
+`stop_reason: "needs_decision"`. The director combines items from worker metas,
+watcher review, and its own review. At low and medium, the next phase gate
+includes `## Open Questions` and cannot pass until each item is answered or
+explicitly deferred; a deferral becomes an Assumption. At high, items fold into
+the final report's Assumptions section.
+
 ### Three verdicts, two of them failures
 
 | Verdict | Condition | Gate |

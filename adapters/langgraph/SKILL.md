@@ -11,7 +11,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/langgraph/SKI
 # Beastmode LangGraph — runtime adapter
 
 This adapter supplies the LangGraph mechanics for the canonical `beastmode`
-skill (v2.4.0). Install `beastmode[langgraph]` (plus `[studio]` for
+skill (v2.5.0). Install `beastmode[langgraph]` (plus `[studio]` for
 `langgraph dev`); the shell lane remains
 install-free and is unchanged for users who do not select this harness.
 
@@ -39,6 +39,13 @@ Gates are blocking below high. `MODEL DRIFT` and `unverifiable` are always
 surfaced and never count as validated. No watcher, no validated. A provider
 that does not prove `actual_model` is unsupported for direct-call judgment
 seats and must use the subprocess fallback.
+
+## Interview mapping
+
+The upfront interview is a checkpointed `interrupt()` before the design node.
+Gate open questions ride the existing `interrupt()` gates; low and medium
+wait for answers or explicit deferrals, while high folds them into the final
+report after its upfront interview.
 
 ## Usage
 

@@ -4,6 +4,11 @@
   "model_drift_always_surfaces": true,
   "levels": {
     "low": {
+      "interview": {
+        "upfront": "full",
+        "in_process": "gate-questions",
+        "question_budget": null
+      },
       "runs_without_surfacing": [
         "Single executor turn, one read-only tool call"
       ],
@@ -17,6 +22,11 @@
       ]
     },
     "medium": {
+      "interview": {
+        "upfront": "batched",
+        "in_process": "gate-questions",
+        "question_budget": 5
+      },
       "runs_without_surfacing": [
         "Whole phase: acceptance → design package → delegate → validate → review"
       ],
@@ -29,6 +39,11 @@
       ]
     },
     "high": {
+      "interview": {
+        "upfront": "batched",
+        "in_process": "escalation-only",
+        "question_budget": 5
+      },
       "runs_without_surfacing": [
         "Multi-phase until goal_complete or 3 identical goal_blocked in a row with concrete evidence",
         "One safe workaround after a model failure"
@@ -41,5 +56,11 @@
         "Model failure + workaround result"
       ]
     }
+  },
+  "interview_protocol": "references/goal-interview.md",
+  "reporting": {
+    "ledger": ".beastmode/LEDGER.md",
+    "digest_cadence": "every phase gate and at least hourly",
+    "final_worker_table": true
   }
 }
