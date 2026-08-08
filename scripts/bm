@@ -10,6 +10,7 @@
 #   bm "<goal>" --frontier sol --thinking medium
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
+#   bm "<goal>" --interview full|batched|assumptions|off # goal interview mode
 #   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
 #      --attestor-command /trusted/attest --validator-command /trusted/validate \
 #      --reviewer-command /trusted/review
@@ -49,6 +50,7 @@ FRONTIER=""
 ECONOMY=""
 WATCHER=""
 AUTONOMY="medium"
+INTERVIEW=""
 THINKING="max"
 LANGGRAPH_GRAPH="pipeline"
 EXECUTOR_COMMAND=""
@@ -165,6 +167,8 @@ while [ $# -gt 0 ]; do
     --worktree-root=*) WORKTREE_ROOT="${1#*=}"; shift ;;
     --autonomy)        AUTONOMY="${2:-medium}"; shift 2 ;;
     --autonomy=*)      AUTONOMY="${1#*=}"; shift ;;
+    --interview)       INTERVIEW="${2:-}"; shift 2 ;;
+    --interview=*)     INTERVIEW="${1#*=}"; shift ;;
     --thinking)        THINKING="${2:-max}"; shift 2 ;;
     --thinking=*)      THINKING="${1#*=}"; shift ;;
     -h|--help)         PRINT_HELP=1; shift ;;
@@ -181,6 +185,19 @@ fi
 case "$AUTONOMY" in
   low|medium|high) ;;
   *) echo "bm: --autonomy must be low|medium|high (got: $AUTONOMY)" >&2; exit 2 ;;
+esac
+
+if [ -z "$INTERVIEW" ]; then
+  case "$AUTONOMY" in
+    low) INTERVIEW_MODE="full" ;;
+    medium|high) INTERVIEW_MODE="batched" ;;
+  esac
+else
+  INTERVIEW_MODE="$INTERVIEW"
+fi
+case "$INTERVIEW_MODE" in
+  full|batched|assumptions|off) ;;
+  *) echo "bm: --interview must be full|batched|assumptions|off (got: $INTERVIEW_MODE)" >&2; exit 2 ;;
 esac
 
 case "$HARNESS" in
@@ -245,9 +262,11 @@ fi
 PHASE_PROMPT="$(bm_phase_prompt)"
 MODEL_FAILURE_PROMPT="$(bm_model_failure_prompt "$AUTONOMY")"
 GATE_PROMPT="$(bm_gate_prompt "$AUTONOMY")"
+INTERVIEW_PROMPT=""
+[ "$INTERVIEW_MODE" != "off" ] && INTERVIEW_PROMPT="$(bm_interview_prompt "$INTERVIEW_MODE")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
 SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $SEAT_PROMPT")
+PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $INTERVIEW_PROMPT $SEAT_PROMPT")
 if [ -n "$FRONTIER" ]; then
   PI_ARGS+=(--model "$FRONTIER")
 elif [ -n "$ECONOMY" ]; then
@@ -299,6 +318,7 @@ if [ "$ON" != "local" ]; then
   [ -n "$ECONOMY" ]  && REMOTE_CMD="$REMOTE_CMD --economy $(shquote "$ECONOMY")"
   [ -n "$WATCHER" ]  && REMOTE_CMD="$REMOTE_CMD --watcher $(shquote "$WATCHER")"
   REMOTE_CMD="$REMOTE_CMD --autonomy $(shquote "$AUTONOMY")"
+  REMOTE_CMD="$REMOTE_CMD --interview $(shquote "$INTERVIEW_MODE")"
   REMOTE_CMD="$REMOTE_CMD --thinking $(shquote "$THINKING")"
   [ "$HARNESS" = "langgraph" ] && REMOTE_CMD="$REMOTE_CMD --graph $(shquote "$LANGGRAPH_GRAPH")"
   [ -n "$EXECUTOR_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --executor-command $(shquote "$EXECUTOR_COMMAND")"
@@ -318,6 +338,8 @@ FULL_PROMPT="$PHASE_PROMPT
 $MODEL_FAILURE_PROMPT
 
 $GATE_PROMPT
+
+$INTERVIEW_PROMPT
 
 $SEAT_PROMPT
 

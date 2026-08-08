@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/codex/SKILL.m
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in
-the canonical `beastmode` skill (v2.4.0) — load it first and follow it.
+the canonical `beastmode` skill (v2.5.0) — load it first and follow it.
 This adapter tells you which Codex primitives implement which seat and
 which external lanes the bounded workers can call.
 
@@ -144,6 +144,13 @@ Models: requested <tier: provider/model> → actual <provider/model per task>
 Drift: none | MODEL DRIFT: <requested> → <actual> on <task(s)>
 ```
 
+## Interview mapping
+
+Interactive Codex sessions present interview and gate questions as numbered-list
+plain text. `codex exec` lanes are non-interactive, so they downgrade to
+assumptions-only and log `interview downgraded: non-interactive lane` in the
+phase report.
+
 ## Worker prompt contract
 
 Byte-identical shared contract across every worker; the per-task
@@ -221,7 +228,7 @@ still referencing `beastmode-qwen-cloud` should migrate to this adapter.
 
 ## See also
 
-- `beastmode` (v2.4.0) — the canonical framework this adapter implements
+- `beastmode` (v2.5.0) — the canonical framework this adapter implements
 - `schema/acn-contract.json` — machine source of truth for batch / task
   / meta.json shapes
 - `references/autonomy-levels.md` and `references/orchestration-comparison.md`

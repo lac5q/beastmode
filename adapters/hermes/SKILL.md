@@ -12,7 +12,7 @@ source_repo: https://github.com/lac5q/beastmode/blob/main/adapters/hermes/SKILL.
 
 This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in the
-canonical `beastmode` skill (v2.4.0) - load it first and follow it. This
+canonical `beastmode` skill (v2.5.0) - load it first and follow it. This
 adapter tells you which Hermes primitives implement which seat and how to
 wire them together.
 
@@ -100,6 +100,12 @@ Models: requested <tier: provider/model> → actual <provider/model per task>
 Drift: none | MODEL DRIFT: <requested> → <actual> on <task(s)>
 ```
 
+## Interview mapping
+
+Run one combined `clarify()` batch per upfront interview round; never issue N
+parallel clarifies. Surface accrued gate open questions through that same
+combined batch mechanism, including explicit answers or deferrals.
+
 ## Worker prompt contract
 
 Byte-identical shared contract across every child in the batch; the per-task
@@ -145,7 +151,7 @@ Exit 1 means drift or unverifiable; either way the batch is not validated.
 2. Pin the executor model in `~/.hermes/config.yaml` (see MODEL PINNING).
  Back the file up first.
 3. Write the acceptance contract in the universal format (see
- `beastmode`, Step 1). Capture: goal / non-goals / user-visible acceptance
+ `beastmode`, Step 2). Capture: goal / non-goals / user-visible acceptance
  / files likely touched / verification commands / manual QA / escalation
  triggers / self-improvement log path.
 4. Fan out with `delegate_task(tasks=[...])` for any phase wider than one
@@ -171,7 +177,7 @@ Universal Beastmode artifacts, written in this order:
  (`<id>` from the `delegate_task` handle) plus each child's
  `meta.json` shape from `schema/acn-contract.json`. Persist them under
  the run-record path the universal skill specifies.
-2. **Acceptance contract delta** - update the contract file from Step 3
+2. **Acceptance contract delta** - update the contract file from Step 2
  with actual vs planned for each acceptance bullet, and the verification
  commands that passed.
 3. **Self-improvement entry** - append to `<repo>/.learnings/BEASTMODE.md`
@@ -197,7 +203,7 @@ Universal Beastmode artifacts, written in this order:
 
 ## See also
 
-- `beastmode` (v2.4.0) - the canonical framework this adapter implements
+- `beastmode` (v2.5.0) - the canonical framework this adapter implements
 - `schema/acn-contract.json` - machine source of truth for the batch / task
  / meta.json shapes
 - `references/autonomy-levels.md` - the three-level scale and surfacing rules

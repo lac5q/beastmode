@@ -91,6 +91,45 @@ else
 
   out="$(bash -c 'set -e; . "$1"; bm_phase_prompt' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
   echo "$out" | grep -q "MODEL DRIFT" && pass "bm_phase_prompt → MODEL DRIFT" || fail "bm_phase_prompt missing 'MODEL DRIFT'; got: $out"
+  if echo "$out" | grep -q "LEDGER.md" && echo "$out" | grep -q "progress digest"; then
+    pass "bm_phase_prompt → ledger and progress digest"
+  else
+    fail "bm_phase_prompt missing ledger/progress digest contract; got: $out"
+  fi
+
+  out="$(bash -c 'set -e; . "$1"; bm_interview_prompt full' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
+  if echo "$out" | grep -q "interview the user" && echo "$out" | grep -q "no material gray area"; then
+    pass "bm_interview_prompt full → material gray-area interview"
+  else
+    fail "bm_interview_prompt full missing interview contract; got: $out"
+  fi
+
+  out="$(bash -c 'set -e; . "$1"; bm_interview_prompt batched' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
+  if echo "$out" | grep -q "one batched interview round" && echo "$out" | grep -q "top 3-5"; then
+    pass "bm_interview_prompt batched → top 3-5 round"
+  else
+    fail "bm_interview_prompt batched missing batch contract; got: $out"
+  fi
+
+  out="$(bash -c 'set -e; . "$1"; bm_interview_prompt assumptions' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
+  echo "$out" | grep -q "Do not block on clarifying questions" && pass "bm_interview_prompt assumptions → non-blocking" || fail "bm_interview_prompt assumptions missing non-blocking contract; got: $out"
+
+  set +e
+  out="$(bash -c '. "$1"; bm_interview_prompt bogus' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ]; then
+    pass "bm_interview_prompt bogus exits non-zero"
+  else
+    fail "bm_interview_prompt bogus unexpectedly exited 0; output: $out"
+  fi
+
+  out="$(bash -c 'set -e; . "$1"; bm_gate_prompt medium' bash "$ROOT/scripts/lib/prompts.sh" 2>&1)"
+  if echo "$out" | grep -q "STOP and return control" && echo "$out" | grep -q "Open Questions"; then
+    pass "bm_gate_prompt medium → STOP and Open Questions"
+  else
+    fail "bm_gate_prompt medium missing STOP/Open Questions contract; got: $out"
+  fi
 fi
 
 # ---- (d) enforce-models --harness pi rejects unknown model ----
@@ -515,6 +554,22 @@ else
     pass "scripts/bm --harness bogus exits 2"
   else
     fail "scripts/bm --harness bogus expected exit 2, got $rc; output: $out"
+  fi
+fi
+
+# ---- (g2) scripts/bm --interview bogus exits 2 ----
+echo "check (g2): scripts/bm --interview bogus exits 2"
+if [ ! -f "$ROOT/scripts/bm" ]; then
+  fail "scripts/bm missing"
+else
+  set +e
+  out="$("$ROOT/scripts/bm" "x" --interview bogus 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" = "2" ]; then
+    pass "scripts/bm --interview bogus exits 2"
+  else
+    fail "scripts/bm --interview bogus expected exit 2, got $rc; output: $out"
   fi
 fi
 

@@ -4,6 +4,34 @@ Tracing is optional, off by default, and never load-bearing for provenance,
 validation, review, or merge. `scripts/acn-report` and
 `scripts/lib/acn_meta.py` remain the offline source of truth.
 
+## Run ledger and progress digests
+
+The target repository keeps an append-only run ledger at
+`.beastmode/LEDGER.md`; create `.beastmode/` if it is missing. Write one line
+for each worker dispatched, worker completed, worker failed or hung, phase gate
+reached, and merge event:
+
+```text
+| <UTC hh:mm> | phase <n> | <worker-id or gate> | <requested>-><actual model> | <tokens> tok (<pct of phase budget>) | <done|failed|hung|drift|gate> | <one-line what> |
+```
+
+Emit a compact progress digest to the operator at every phase gate and at least
+once per hour during a long phase. Keep it to eight lines or fewer and include
+no raw logs:
+
+```text
+BM progress <elapsed> — phase <n>/<N> <name>
+Workers: <d> done / <f> failed / <r> running
+Tokens: <total> (<pct> of budget) — per model: <model a>: <tok> (<pct>), <model b>: <tok> (<pct>)
+Completed since last digest: <one-liners>
+Failures/drift: <one-liners or none>
+```
+
+Derive digests from the same worker `meta.json` data used by the drift gate.
+`scripts/acn-report` already normalizes per-child usage and is the data source;
+do not build a second usage or drift tool. Ledger and digest reporting apply at
+every autonomy level.
+
 ## LangSmith setup
 
 The three hosted-service variables are:

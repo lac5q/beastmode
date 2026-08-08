@@ -16,6 +16,21 @@ committing/pushing, no secrets, verifier-first, no watcher = no validated).
 **Default: medium.** Most feature work, most reviews, no chat spam — only the
 high-risk gates escalate. Switch with `bm "<goal>" --autonomy low|high`.
 
+## Interview scaling
+
+The autonomy interview matrix is defined by `schema/autonomy-levels.json`; the
+schema wins if this prose differs. The full protocol, including gray-area
+identification and harness mapping, is in `references/goal-interview.md`.
+
+| Level | Upfront | In-process | Question budget |
+|---|---|---|---|
+| **low** | full | gate-questions | unbounded |
+| **medium** (default) | batched | gate-questions | 5 |
+| **high** | batched | escalation-only | 5 upfront only |
+
+Any non-interactive lane downgrades to assumptions-only and logs
+`interview downgraded: non-interactive lane` in the phase report.
+
 ## Surfacing is blocking below high
 
 At **low** and **medium**, "surfaces" means **stops**: the run emits its phase
@@ -23,7 +38,9 @@ report, then halts and waits for human approval before the next phase or any
 merge. It never continues past a surfaced gate on its own. Only **high**
 proceeds through gates automatically (and even then it halts on its
 always-surface events above). If a run at low/medium keeps going after a gate,
-that is a harness bug — treat it as a `goal_blocked` and stop it.
+that is a harness bug — treat it as a `goal_blocked` and stop it. Gates also
+present accrued open questions; unanswered items block exactly like unapproved
+phases.
 
 ## Per-phase usage reports (all levels)
 
@@ -35,10 +52,15 @@ Phase <n> <name>: <status>
 Models: requested <tier: provider/model> → actual <provider/model per task>
 Tokens: <used> / <phase budget> (<percent>)  Time: <actual> vs <estimate>
 Drift: none | MODEL DRIFT: <requested> → <actual> on <task(s)>
+Open questions: <n> (answered <a>, deferred <d>) | none
+Workers: <id>: <model> <tokens> (<pct of phase>) <status>; ...
 ```
 
 At low/medium the report is the gate — approval resumes the run. At high the
-reports accumulate into the final output in order.
+reports accumulate into the final output in order. The append-only ledger at
+`.beastmode/LEDGER.md` and the compact progress digest at every phase gate and
+at least once per hour apply at every autonomy level; reporting is not
+autonomy-scaled.
 
 ## Model drift always surfaces
 
