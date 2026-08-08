@@ -141,3 +141,21 @@
 
 ## Promoted to
 - None this run. Skills (`beastmode`, `beastmode-install`) still need their v2.2 version bump + adapter cross-refs as a separate maintenance pass.
+
+## BM-20260807-2315 phase-201 goal-interview (v2.5.0)
+- Director/Lead: anthropic/claude-fable-5 (Claude Code session, effort high)
+- Watcher/Reviewer: anthropic/claude-opus-4-8 (claude -p --effort high)
+- Executor: openai-codex/gpt-5.6-luna (codex exec, model_reasoning_effort=max)
+- Harness: claude-code manual ACN (codex exec + claude -p children, git worktree isolation)
+- Acceptance checks: tests/run-all.sh (12/12), python3 -m json.tool both schemas, parity greps, bash -n
+- Result: pass (merged a7cb9c6)
+- Token/cost note: luna 353,984 tokens; opus/fable usage unavailable from harness
+- What worked: file-pointer child prompt started instantly (no long-inline hang); the new needs_decision protocol fired correctly on its very first run — executor hit the installer-hash non-goal boundary, recorded a clean decision item instead of improvising, and stopped
+- What failed / drifted:
+  1. Startup probe watched the child's stdout, which was piped through `tail` — fully buffered, so the probe reported HUNG while the child was fine. Valid liveness signals for codex children: the rollout artifact under ~/.codex/sessions/ growing, process CPU, worktree dirtiness. Never a piped stdout file.
+  2. The "read-only" opus reviewer ran via claude -p with Bash allowed and reverted worktree state mid-review (reflog: reset moving to HEAD), erasing a director fix. Reviewers must get --permission-mode plan, or review a snapshot/second worktree — prompt-level "do not edit" is not an enforcement mechanism.
+  3. The reviewer brief was written before a design amendment and never regenerated; it contradicted DESIGN.md (high-autonomy interview matrix). The reviewer correctly treated DESIGN.md as authoritative, but briefs must be regenerated after any design amendment.
+  4. Goal launched from a memroos worktree initially wrote planning docs into memroos .planning; operator directive: beastmode work always lands in ~/github/beastmode regardless of session cwd (also note ~/.claude/skills/beastmode is a symlink to it).
+- Routing rule to change: none (requested == actual on all children)
+- Skill/config update needed: yes — promote lessons 1–2 into references/child-liveness.md and the claude-code adapter watcher section
+- Promoted to: notes only (separate user-approved maintenance task per promotion rules)
