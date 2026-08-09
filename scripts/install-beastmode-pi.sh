@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "1c392c892ef51912d82eff4b18e1bf91324547c9f61e5269feaaaf94a6f3953f" \
+fetch_pinned "$URL" "$DEST" "2a5905a3cdc999ff709187b19a42a8c8dc9b3e95c1694a3d039eceb83774d3a0" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
