@@ -159,3 +159,16 @@
 - Routing rule to change: none (requested == actual on all children)
 - Skill/config update needed: yes — promote lessons 1–2 into references/child-liveness.md and the claude-code adapter watcher section
 - Promoted to: notes only (separate user-approved maintenance task per promotion rules)
+
+## BM-20260809-1800 luna-max-throughput
+- Director/Lead: Codex root session.
+- Watcher/Reviewer: Claude Opus via `claude -p --permission-mode plan` (prior bounded review).
+- Executor: `openai-codex/gpt-5.6-luna`, reasoning `max`.
+- Harness: native `bin/beast-luna` provenance wrapper, three concurrent read-only smoke seats.
+- Acceptance checks: three parallel `bin/beast-luna --smoke` invocations; each wrapper inspected the Codex session artifact and required `gpt-5.6-luna` + `max`.
+- Result: pass for lane availability; no repository work was delegated by the smoke batch.
+- What worked: concurrency 3 completed with independent attestation for all three sessions. The wrapper's session-level evidence is stronger than child self-identification.
+- What failed / drifted: the earlier local ACN batch requested Luna but one child self-reported GPT-5/Codex and the siblings had no independent attestation; that batch was stopped and remains unvalidated.
+- Routing rule to change: never increase fan-out above three merely to compensate for unverifiable provenance; re-run the same bounded slices through an attesting wrapper, then gate.
+- Skill/config update needed: yes — Luna Max is now the explicit default economy seat; Claude subscription validation remains one watcher only.
+- Promoted to: `SKILL.md`, `scripts/bm`, `scripts/langgraph-runner`, and harness docs in commit `c266696` (local; public push held by pre-existing history guard finding).
