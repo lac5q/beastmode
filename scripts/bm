@@ -69,7 +69,19 @@ PRINT_HELP=0
 # Look in the user-global file first, then the shipped file. Repository aliases
 # are untrusted by default because a checkout must not be able to downgrade the
 # requested model. Set BM_TRUST_REPO_ALIASES=1 only after reviewing that file.
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the launcher path before deriving sibling files.  On macOS the
+# installed `~/.local/bin/bm` is a symlink to this script; using BASH_SOURCE
+# directly makes SCRIPT_DIR point at ~/.local/bin and breaks `lib/prompts.sh`.
+BM_SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$BM_SOURCE" ]; do
+  BM_SOURCE_DIR="$(cd -P -- "$(dirname -- "$BM_SOURCE")" && pwd)"
+  BM_SOURCE_LINK="$(readlink "$BM_SOURCE")"
+  case "$BM_SOURCE_LINK" in
+    /*) BM_SOURCE="$BM_SOURCE_LINK" ;;
+    *) BM_SOURCE="$BM_SOURCE_DIR/$BM_SOURCE_LINK" ;;
+  esac
+done
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$BM_SOURCE")" && pwd)"
 SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
 
 resolve_alias() {
@@ -222,6 +234,28 @@ GOAL="${GOAL_PARTS[*]:-}"
 if [ -n "$FRONTIER" ] && ! FRONTIER="$(resolve_alias "$FRONTIER")"; then exit 2; fi
 if [ -n "$ECONOMY" ] && ! ECONOMY="$(resolve_alias "$ECONOMY")"; then exit 2; fi
 if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
+
+# Circuit breaker: never fan out a Claude seat on subscription OAuth (the
+# ToS-ban pattern). OAuth path = ANTHROPIC_API_KEY unset. Interactive runs may
+# approve via prompt; non-interactive (subagent/Codex) must be pre-authorized
+# with BM_ALLOW_CLAUDE_OAUTH=1 by Luis. ponytail: one gate covers all seats.
+for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
+  [ -z "$seat" ] && continue
+  case "$seat" in
+    anthropic/*|*claude*) ;;
+    *) continue ;;
+  esac
+  [ -n "${ANTHROPIC_API_KEY:-}" ] && continue          # API-key billing: fine
+  [ "${BM_ALLOW_CLAUDE_OAUTH:-0}" = "1" ] && continue  # pre-authorized by Luis
+  if [ -t 0 ] && [ -t 1 ]; then
+    printf 'bm: BREAKER: seat "%s" is a Claude model on subscription OAuth (no ANTHROPIC_API_KEY).\n' "$seat" >&2
+    printf 'bm: Fan-out of Claude seats on OAuth risks the Anthropic ToS ban. Authorize this run? [y/N] ' >&2
+    read -r _bm_oauth_ok
+    case "$_bm_oauth_ok" in y|Y|yes) continue ;; esac
+  fi
+  echo "bm: BREAKER: blocked Claude OAuth seat '$seat'. Luis must re-run with BM_ALLOW_CLAUDE_OAUTH=1 after approval." >&2
+  exit 3
+done
 
 if [ "$HARNESS" = "codex" ] && [ -z "$FRONTIER" ]; then
   echo "bm: --harness codex requires --frontier <alias|provider/model> so the model is pinned" >&2

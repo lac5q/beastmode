@@ -6,6 +6,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# This suite uses fake harnesses and never contacts Anthropic. Explicitly
+# authorize its synthetic Claude seat so the production subscription breaker
+# does not mask the shell-argument assertions; the breaker itself is tested in
+# test-bm-model-check.sh.
+export BM_ALLOW_CLAUDE_OAUTH=1
+
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "ok: $*"; }
 
