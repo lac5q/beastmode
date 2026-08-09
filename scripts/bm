@@ -11,6 +11,7 @@
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
 #   bm "<goal>" --interview full|batched|assumptions|off # goal interview mode
+#   bm "<goal>" --claude-subscription       # authorize one Claude Pro/Max watcher
 #   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
 #      --attestor-command /trusted/attest --validator-command /trusted/validate \
 #      --reviewer-command /trusted/review
@@ -47,8 +48,13 @@ GSD=0
 ON="auto"
 HARNESS="pi"
 FRONTIER=""
-ECONOMY=""
+# Keep the economy seat explicit so every harness pins the approved low-cost
+# worker instead of inheriting a host/session default. Callers can override it
+# with --economy for a deliberate alternate lane.
+ECONOMY="luna-max"
+ECONOMY_EXPLICIT=0
 WATCHER=""
+CLAUDE_SUBSCRIPTION=0
 AUTONOMY="medium"
 INTERVIEW=""
 THINKING="max"
@@ -160,10 +166,11 @@ while [ $# -gt 0 ]; do
     --on=*)            ON="${1#*=}"; shift ;;
     --frontier)        FRONTIER="${2:-}"; shift 2 ;;
     --frontier=*)      FRONTIER="${1#*=}"; shift ;;
-    --economy)         ECONOMY="${2:-}"; shift 2 ;;
-    --economy=*)       ECONOMY="${1#*=}"; shift ;;
+    --economy)         ECONOMY="${2:-}"; ECONOMY_EXPLICIT=1; shift 2 ;;
+    --economy=*)       ECONOMY="${1#*=}"; ECONOMY_EXPLICIT=1; shift ;;
     --watcher)         WATCHER="${2:-}"; shift 2 ;;
     --watcher=*)       WATCHER="${1#*=}"; shift ;;
+    --claude-subscription) CLAUDE_SUBSCRIPTION=1; shift ;;
     --graph)           LANGGRAPH_GRAPH="${2:-pipeline}"; shift 2 ;;
     --graph=*)         LANGGRAPH_GRAPH="${1#*=}"; shift ;;
     --executor-command) EXECUTOR_COMMAND="${2:-}"; shift 2 ;;
@@ -233,7 +240,42 @@ GOAL="${GOAL_PARTS[*]:-}"
 # Resolve aliases after parsing so the help path stays side-effect free.
 if [ -n "$FRONTIER" ] && ! FRONTIER="$(resolve_alias "$FRONTIER")"; then exit 2; fi
 if [ -n "$ECONOMY" ] && ! ECONOMY="$(resolve_alias "$ECONOMY")"; then exit 2; fi
+# Hermes names its authenticated Luna provider `vibeproxy`, while Pi/Codex
+# use the `openai-codex` namespace. Translate only the implicit default so the
+# request remains model-pinned without rewriting an operator's explicit
+# provider/model override.
+if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_EXPLICIT" = "0" ] \
+  && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
+  ECONOMY="vibeproxy/gpt-5.6-luna"
+fi
 if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
+
+# Claude Pro/Max is an explicit, single-seat watcher path. It uses
+# `claude -p` and the signed-in subscription quota, not the Anthropic API
+# OAuth pool. Keep this opt-in and fail closed if a caller turns it into a
+# multi-seat fan-out or uses a different harness.
+if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
+  if [ "$HARNESS" != "claude" ]; then
+    echo "bm: --claude-subscription requires --harness claude" >&2
+    exit 2
+  fi
+  claude_seats=0
+  for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
+    [ -z "$seat" ] && continue
+    case "$seat" in
+      anthropic/*|*claude*) claude_seats=$((claude_seats + 1)) ;;
+    esac
+  done
+  if [ "$claude_seats" -ne 1 ]; then
+    echo "bm: --claude-subscription requires exactly one Claude seat, got $claude_seats" >&2
+    exit 2
+  fi
+  if [ -z "$FRONTIER" ]; then
+    echo "bm: --claude-subscription requires --frontier fable|opus|opus5 to pin the watcher model" >&2
+    exit 2
+  fi
+  export BM_ALLOW_CLAUDE_OAUTH=1
+fi
 
 # Circuit breaker: never fan out a Claude seat on subscription OAuth (the
 # ToS-ban pattern). OAuth path = ANTHROPIC_API_KEY unset. Interactive runs may
@@ -348,6 +390,7 @@ if [ "$ON" != "local" ]; then
   REMOTE_CMD="bm $(shquote "$GOAL")"
   [ "$GSD" = "1" ]   && REMOTE_CMD="$REMOTE_CMD --gsd"
   REMOTE_CMD="$REMOTE_CMD --harness $(shquote "$HARNESS")"
+  [ "$CLAUDE_SUBSCRIPTION" = "1" ] && REMOTE_CMD="$REMOTE_CMD --claude-subscription"
   [ -n "$FRONTIER" ] && REMOTE_CMD="$REMOTE_CMD --frontier $(shquote "$FRONTIER")"
   [ -n "$ECONOMY" ]  && REMOTE_CMD="$REMOTE_CMD --economy $(shquote "$ECONOMY")"
   [ -n "$WATCHER" ]  && REMOTE_CMD="$REMOTE_CMD --watcher $(shquote "$WATCHER")"

@@ -4,8 +4,8 @@ description: >
   Multi-agent orchestration framework for high-intensity feature implementation.
   Routes work across model tiers: frontier models (Claude Fable, Kimi 3, Opus;
   Codex only when explicitly selected) own design, architecture, and review sign-off,
-  while economy models (MiniMax M3,
-  Qwen/Gwen) handle implementation and mechanical validation in isolated worktrees,
+  while the pinned Luna Max economy lane handles implementation and mechanical
+  validation in isolated worktrees,
   with a self-improving learning loop that promotes lessons back into skills.
   Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
   Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
@@ -28,7 +28,7 @@ Beastmode is a structured approach to multi-agent software development that sepa
 
 - **Director/Lead (Design tier):** Frontier model (Claude Fable, Kimi 3, or Opus) owns intent, architecture, creative judgment, and final sign-off. Codex is an explicit opt-in lane only.
 - **Watcher/Reviewer:** Adversarial reviewer (frontier or mid-tier: Fable/Kimi 3/Opus) challenges plans, gates merges, and catches scope creep. Codex is used here only when explicitly named.
-- **Executor (Execution tier):** Economy model (MiniMax M3, Qwen 3.7 Plus / Gwen) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees.
+- **Executor (Execution tier):** Luna Max (`openai-codex/gpt-5.6-luna`, reasoning `max`) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees. Legacy MiniMax/Qwen lanes remain explicit overrides only.
 - **Harness:** Any orchestration tool (Ultraswarm, GSD, `delegate_task`, Claude Code subagents, or manual git workflow).
 - **Memory:** Self-improvement loop records lessons and promotes repeated patterns into skills/config.
 
@@ -41,7 +41,7 @@ Beastmode routes every unit of work to a tier, not a specific model. Pick the be
 | Tier | Example models | Owns |
 |------|---------------|------|
 | **Design (frontier)** | Claude Fable (`claude-fable-5`), Kimi 3, Claude Opus, Codex/GPT frontier | Intent interpretation, architecture, API/data-model design, tradeoff decisions, acceptance contracts, final review sign-off, escalations |
-| **Execution (economy)** | MiniMax M3, Qwen 3.7 Plus / Gwen, Haiku-class | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
+| **Execution (economy)** | Luna Max (`gpt-5.6-luna`); explicit legacy MiniMax/Qwen/Haiku overrides | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
 
 **The routing principle: verification cost, not task type.**
 
@@ -84,17 +84,17 @@ Use beastmode for complex tasks that need:
 **Role split:**
 - **Director (Fable / Kimi 3 / Opus):** Intent, architecture, design docs, creative judgment, final sign-off
 - **Watcher (Codex/GSD or a second frontier model):** Adversarial planning, scope/cost review, merge gating — pairing two different frontier models (e.g. Fable designs, Kimi 3 challenges) catches blind spots a single model family misses
-- **Executor (MiniMax M3 / Qwen / Gwen):** Implementation, tests, docs, scripts, mechanical refactors, and mechanical validation (running verification commands, producing pass/fail reports)
+- **Executor (Luna Max):** Implementation, tests, docs, scripts, mechanical refactors, and mechanical validation (running verification commands, producing pass/fail reports)
 
 **Key rule:** The frontier lead must aggressively avoid spending tokens on routine implementation *or* on watching test output scroll by. Delegate file edits, test writing, docs, refactors, command execution, and validation runs to the executor tier; the lead only reads the structured validation report and the diff.
 
 ### Variant B: Explicit Codex-Led Beastmode
 
-**Use when:** The user explicitly names Codex for this bounded task. Codex/GSD leads, with MiniMax-M3 executing routine work.
+**Use when:** The user explicitly names Codex for this bounded task. Codex/GSD leads, with Luna Max executing routine work.
 
 **Role split:**
 - **Director/Reviewer (Codex/GSD or current session):** Planning, review, merge decisions
-- **Executor (MiniMax M3 / Qwen / Gwen):** Implementation, tests, docs, scripts, mechanical validation
+- **Executor (Luna Max):** Implementation, tests, docs, scripts, mechanical validation
 - **Escalation:** On security, auth, payments, data-loss, production incidents, or failed executor attempts, stop and ask the user to name the frontier lane. Codex or another frontier model runs only after explicit selection.
 
 **Key rule:** Delegate routine work to the executor tier, but don't merge until the lead verifies acceptance.
@@ -109,7 +109,7 @@ Use beastmode for complex tasks that need:
 6. **Usage is reported per phase, not just at the end.** Every phase closes with a usage report: requested vs actual model per task, tokens used vs phase budget, actual vs estimated time (see `references/autonomy-levels.md` for the format). If the harness doesn't expose a value, say "unavailable" — never omit the report.
 7. **Model drift always surfaces, and so does not knowing.** If a task was served by a model other than the requested `provider/model` (router fallback, harness default, silent substitution), flag it as MODEL DRIFT in the phase report immediately, at every autonomy level. Drifted work is not `validated` until re-validated under the correct tier. A task whose serving model cannot be established at all is **unverifiable** and is treated the same way — never let a silent "unavailable" read as a pass.
 8. **Gates are blocking below high autonomy.** At `low` and `medium` autonomy (medium is the default), the run stops at each phase gate — report, then wait for approval before the next phase or any merge. Only `--autonomy high` proceeds through gates automatically, and even it halts on its always-surface events.
-9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses MiniMax-M3. Codex, GPT, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
+9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses the pinned Luna Max economy lane. Codex, GPT frontier profiles, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
 10. **Public GitHub release is security-gated.** Before every public push, merge, or deployment, run the repository security scan and inspect its completed coverage/findings artifacts. Never publish credentials, tokens, private keys, local auth files, or sensitive environment values. An unresolved security blocker stops the release.
 11. **No silent assumptions.** Material ambiguity is either asked (per the autonomy interview matrix in schema/autonomy-levels.json) or recorded as an explicit Assumption in the acceptance contract and surfaced at the next gate. Workers never interview the user — they return needs_decision items in their meta/report and the director surfaces them at the gate.
 
@@ -130,11 +130,26 @@ The shared rules (all harnesses):
 1. **Preflight every seat's model** before fan-out (`scripts/enforce-models`); missing → exit 2 with alternatives.
 2. **Pin the executor model on children.** Never let economy work silently inherit a parent/session default. If the runtime cannot prove the child's model, the child is an unverified draft lane — never `validated`.
 3. **Parallel by default** for independent executor slices; group same-lane workers (prompt-cache warmth); default concurrency 3 unless the harness is explicitly configured higher.
-4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches or explicitly requested Codex/Claude parallel sessions). Orchestrator children may wait to synthesize. Automatic background workers are MiniMax-M3 only.
+4. **Background where supported** — the director doesn't block the chat path waiting on workers (Hermes background batches or explicitly requested Codex/Claude parallel sessions). Orchestrator children may wait to synthesize. Automatic background workers are Luna Max only.
 5. **Consolidate → mechanical validation (economy) → watcher judgment (frontier) → gate by autonomy.**
 6. **MODEL DRIFT always surfaces** (requested vs actual per child, `meta.json` shape in `schema/acn-contract.json`) and blocks `validated` at every autonomy level. `scripts/acn-report` normalizes child metas into the phase report; `scripts/enforce-models --check-meta <dir>` is the gate. Both run the same checker (`scripts/lib/acn_meta.py`), so they cannot disagree about whether a batch is validated.
 7. **Unprovable provenance fails closed.** A child whose `meta.json` is missing, unreadable, or reports a single merged `model` instead of `requested_model` + `actual_model` is **unverifiable** — the gate exits non-zero on it exactly as it does on drift. "We could not tell which model ran this" is not a pass. An ACN run that produced no child metas at all is likewise a failure unless you assert `--allow-empty`.
 8. **Every child proves liveness; wall-clock never decides.** Embed a unique `BM-RUN: <id>` marker per dispatch (after the shared contract, so the cached prefix stays byte-identical) and arm a bounded startup probe (default 3 min) WITH the dispatch that finds the marker in the child's session artifact (codex rollout under `~/.codex/sessions/`, harness journal, or out-file). Judge long runs by progress signals — CPU time accruing, session artifact growing, output growing — never elapsed time. All signals flat = HUNG: kill the child AND its watchers, smoke the lane *after* killing (hung processes can wedge subsequent dispatches on the same lane), re-dispatch once; a second consecutive hang stops the retry loop and goes to the operator with a lane-substitution proposal. Any signal advancing = WORKING: never killed without operator approval. Watchers are always iteration-capped with an explicit failure line — an unbounded `until` loop whose condition can no longer come true becomes an orphan that "runs for hours". Prefer short inline child prompts pointing at an instruction file over long inline prompts (observed 2026-08-04: 3/3 long-inline codex dispatches hung at startup; all file-pointer and short dispatches succeeded). Full procedure: `references/child-liveness.md`.
+
+### Luna Max throughput and Claude subscription validation
+
+`luna-max` is the approved low-cost worker alias: `openai-codex/gpt-5.6-luna`
+with `reasoning=max`. Use ACN's default concurrency of three for independent
+Luna slices, with a pinned model and a per-child `meta.json`; do not create
+duplicate slices just to increase the count. Close each batch with one
+mechanical report and one judgment watcher.
+
+Claude Pro/Max validation is a separate, explicit lane. Run one watcher only
+through `bm --harness claude --frontier fable|opus|opus5
+--claude-subscription`, which invokes `claude -p --permission-mode plan` and
+uses the signed-in subscription quota. The switch rejects non-Claude harnesses
+and multi-seat Claude fan-out, so subscription quota is never consumed by
+bulk workers.
 
 ## Choosing Your Harness
 
@@ -147,8 +162,8 @@ Parses `--harness hermes|pi|claude|codex|langgraph` (default `pi`), `--gsd`,
 `--frontier <alias>`, `--economy <alias>`, `--watcher <alias>`,
 `--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
 aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
-`kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `minimax` →
-`minimax/MiniMax-M3`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
+`kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `luna-max` →
+`openai-codex/gpt-5.6-luna`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
 with the user-global `~/.beastmode/tier-aliases.json`. Repository-local
 aliases are ignored unless the operator explicitly sets
 `BM_TRUST_REPO_ALIASES=1` after review. See `scripts/bm` and
@@ -194,7 +209,7 @@ gsd-verify-work
 gsd-ship
 ```
 
-Let GSD handle planning/phase gates, and delegate routine implementation units to the executor tier (MiniMax M3 / Qwen) via Ultraswarm or `delegate_task`.
+Let GSD handle planning/phase gates, and delegate routine implementation units to the Luna Max executor tier via Ultraswarm or `delegate_task`.
 
 ### Harness 3: delegate_task (Hermes/OpenClaw)
 
@@ -269,7 +284,7 @@ git merge beastmode/<task-id>
 | delegate_task (raw) | ❌ No | ❌ No | ❌ No | Small parallel tasks, no repo |
 | Manual git | ✅ Yes (branches) | ❌ Manual | ❌ No | No orchestration tool available |
 
-**Default recommendation:** Use Hermes ACN on Hermes boxes (`bm --harness hermes`) and Pi where the pi packages are installed (`--harness pi`, the `bm` default), with MiniMax-M3 pinned for automatic workers. Use Claude Code or Codex adapters only when the user explicitly names them. Fall back to GSD if the repo uses it, `delegate_task` raw for small tasks, manual git as last resort.
+**Default recommendation:** Use Hermes ACN on Hermes boxes (`bm --harness hermes`) and Pi where the pi packages are installed (`--harness pi`, the `bm` default), with Luna Max pinned for automatic workers and concurrency 3. Use Claude Code or Codex adapters only when the user explicitly names them. Fall back to GSD if the repo uses it, `delegate_task` raw for small tasks, manual git as last resort.
 
 ## The Beastmode Loop
 
@@ -365,7 +380,7 @@ discount entirely.
 
 ### Step 5: Validate (Cheap), Then Review (Frontier)
 
-**Stage 1 — Mechanical validation (executor tier):** the economy model (MiniMax M3 / Qwen) runs the contract's verification commands and produces a structured report:
+**Stage 1 — Mechanical validation (executor tier):** the pinned Luna Max economy worker runs the contract's verification commands and produces a structured report:
 
 ```markdown
 ## Validation Report <task-id>
@@ -455,7 +470,7 @@ The self-improvement loop writes **notes only** during a beastmode run. Any last
 - Final sign-off
 - Escalation decisions
 
-**Move to MiniMax M3 / Qwen / Gwen:**
+**Move to the Luna Max economy lane (legacy MiniMax/Qwen only by explicit override):**
 - Code generation
 - Tests
 - Docs
@@ -498,7 +513,7 @@ the frontier director, whose long stable prefix is re-sent on every turn.
 - Production incidents
 - Failed executor attempts
 
-**Move to MiniMax M3 / Qwen / Gwen:**
+**Move to the Luna Max economy lane (legacy MiniMax/Qwen only by explicit override):**
 - Everything else (implementation, tests, docs, refactors, scripts, commands, mechanical validation)
 
 ## Required Final Report
@@ -511,7 +526,7 @@ Variant: frontier-led | codex-led
 Harness: <ultraswarm/gsd/delegate_task/claude-code/manual>
 Phases completed: <n>
 Director / watcher / executor split: <summary>
-Models: Frontier (Fable/Kimi 3/Opus) <x%>, Codex/GPT <y%>, Executor (MiniMax M3/Qwen) <z%>
+Models: Frontier (Fable/Kimi 3/Opus) <x%>, Codex/GPT <y%>, Executor (Luna Max) <z%>
 Token/cost report: <harness report or estimate>
 Worker table:
 | worker | phase | model requested→actual | tokens (% of run) | status | produced |
@@ -542,7 +557,7 @@ Merge status: <merged/branch ready/blocked>
 
 ## Escalation Rules
 
-When an executor issue reaches a frontier trigger, stop and ask the user to name the frontier lane. Do not auto-escalate from the executor tier (MiniMax M3) to Fable, Kimi 3, Opus, or Codex.
+When an executor issue reaches a frontier trigger, stop and ask the user to name the frontier lane. Do not auto-escalate from the executor tier (Luna Max) to Fable, Kimi 3, Opus, or Codex.
 
 Frontier triggers include:
 - Security, auth, payments, data-loss, legal/financial data, or production incident risk appears
@@ -624,7 +639,7 @@ Anthropic credentials are never forwarded to them.
 - **Schema (source of truth):** `schema/families.json`, `schema/tiers.json`, `schema/seats.json`, `schema/autonomy-levels.json`, `schema/acn-contract.json` — one machine-readable vocabulary for families, tiers, seats, autonomy, and the ACN contract.
 - **Families / tiers / seats:** See `references/families-tiers-seats.md` for the human view of the schema and how to add a family or alias.
 - **ACN contract:** See `references/acn-contract.md` for async parallel sub-agent fan-out — batch shape, per-child meta.json, the six shared rules, and the harness primitive map. Adapters: `adapters/hermes/`, `adapters/claude-code/`, `adapters/codex/`, `adapters/langgraph/`, plus the Pi adapter in `pi/`.
-- **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, MiniMax M3), the mechanical-vs-judgment validation split, and the escalation ladder.
+- **Model routing:** See `references/model-routing.md` for the per-phase tier routing table, provider configuration examples (Fable, Kimi 3, Luna Max), the mechanical-vs-judgment validation split, and the escalation ladder.
 - **Tier aliases:** See `references/tier-aliases.md` (and `scripts/tier-aliases.json`) for the friendly-name → `provider/model` (+ family, tier) map consumed by `scripts/bm`. Verify them against `pi --list-models` on the configured worker host.
 - **Autonomy levels:** See `references/autonomy-levels.md` for `low` / `medium` (default) / `high` autonomy — what surfaces, what runs silent, blocking-gate semantics below high, the per-phase usage report format, model-drift detection, and the per-harness enforcement map.
 - **Goal interview:** See `references/goal-interview.md` for gray-area identification, question rounds, assumptions, needs_decision gate integration, and harness mappings.

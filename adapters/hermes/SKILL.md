@@ -22,7 +22,7 @@ wire them together.
 |---|---|
 | Director / Lead (frontier tier) | The Hermes session itself - frontier model |
 | Watcher (adversarial review, frontier) | A second `delegate_task` on a frontier model only after the user explicitly names it |
-| Executor (economy tier) | `delegate_task` children pinned to MiniMax-M3 |
+| Executor (economy tier) | `delegate_task` children pinned to Luna Max (`vibeproxy/gpt-5.6-luna`) |
 | Loop engine (continues until done) | The agent's own phase loop (director prompts itself between subagent results) |
 | Anti-spin circuit breaker | Director judgment + the run's usage / wall-clock budget; abort on 3 identical blockers |
 | Worker-contract enforcer | `~/.hermes/config.yaml` `permissions` / `toolsets` denials + a starter worker contract in the prompt |
@@ -31,10 +31,11 @@ wire them together.
 | Durable goal record | Optional: write the acceptance contract to `<repo>/GOAL.md` (universal fallback) |
 | Self-improvement log | `<repo>/.learnings/BEASTMODE.md` (universal) |
 
-Automatic Hermes children use MiniMax-M3 only. If a failure or risk trigger
+Automatic Hermes children use Luna Max only. If a failure or risk trigger
 would normally call for a frontier watcher, stop and ask the user to name the
-model; never silently fall back to Codex, GPT, Claude, Kimi, or another
-frontier lane.
+model; never silently fall back to MiniMax, Codex, GPT, Claude, Kimi, or
+another frontier lane. A legacy MiniMax provider may still be selected only
+when the operator explicitly overrides `--economy` and the host can attest it.
 
 ## ACN - async parallel sub-agents
 
@@ -63,8 +64,8 @@ the child model. Edit `~/.hermes/config.yaml`:
 
 ```yaml
 delegation:
- provider: minimax
- model: MiniMax-M3
+ provider: vibeproxy
+ model: gpt-5.6-luna
  max_concurrent_children: 3
 ```
 

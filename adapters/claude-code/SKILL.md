@@ -68,6 +68,21 @@ rate-limited API OAuth pool. Reserve it for **watcher judgment** and
 route through a different lane (qwen, MiniMax via API, droid MiniMax)
 and pin the model explicitly so the run record proves the actual model.
 
+When the operator explicitly authorizes subscription-backed validation, use
+the single-seat switch below. It routes through `claude -p` and the signed-in
+claude.ai Pro/Max quota, not the Anthropic API OAuth pool:
+
+```bash
+bm "read-only review of the phase report and diff" \
+  --harness claude --frontier opus5 --claude-subscription \
+  --autonomy high --interview off
+```
+
+`--claude-subscription` requires exactly one Claude seat and fails closed for
+multi-seat fan-out. Keep Luna Max (`gpt-5.6-luna`, reasoning `max`) as the
+parallel economy/executor lane; reserve this Claude invocation for one
+watcher/verifier pass.
+
 ## Autonomy mapping
 
 | Level | What runs without surfacing | What always surfaces |

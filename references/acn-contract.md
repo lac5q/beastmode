@@ -33,7 +33,7 @@ fields (from `schema/acn-contract.json`):
 ```
 autonomy low | medium | high (default medium)
 director_model provider/model (e.g. kimi/kimi-k3)
-executor_model provider/model (e.g. minimax/MiniMax-M3)
+executor_model provider/model (default: openai-codex/gpt-5.6-luna)
 watcher_model provider/model (e.g. xai/grok-4.5)
 tasks [task, ...] (see below)
 concurrency int (default 3)
@@ -113,7 +113,7 @@ and the exact result digest, is authenticated with a parent-held key, and names
 a nonempty `source` such as `harness-journal` or `provider-response`:
 
 ```json
-{"id":"child-1","requested_model":"minimax/MiniMax-M3","actual_model":"minimax/MiniMax-M3","source":"harness-journal","run_id":"<parent-run-id>","result_digest":"<sha256>","signature":"<hmac-sha256>"}
+{"id":"child-1","requested_model":"openai-codex/gpt-5.6-luna","actual_model":"openai-codex/gpt-5.6-luna","source":"harness-journal","run_id":"<parent-run-id>","result_digest":"<sha256>","signature":"<hmac-sha256>"}
 ```
 
 The gate rejects absent or unauthenticated attestations, cross-run replay,

@@ -9,9 +9,9 @@ A family is a vendor / model lineage. Aliases inside a family inherit the same t
 | family | providers | notes |
 |---|---|---|
 | anthropic | `anthropic`, `claude-pro-lane` | Claude models; Pro lane routes via `claude -p` |
-| openai-codex | `openai-codex` | GPT/Codex frontier incl. terra/sol profiles |
+| openai-codex | `openai-codex` | GPT/Codex frontier incl. terra/sol profiles; Luna Max economy worker |
 | kimi | `kimi-coding` | k3 flagship, k2p7 fallback |
-| minimax | `minimax` | default economy |
+| minimax | `minimax` | legacy economy family; use Luna Max by default |
 | qwen | `qwen` | cross-family second opinion |
 | xai | `xai`, `xai-oauth` | grok |
 | zai | `zai` | glm validators |

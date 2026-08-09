@@ -6,7 +6,7 @@
     },
     "openai-codex": {
       "providers": ["openai-codex"],
-      "notes": "GPT/Codex frontier incl. terra/sol profiles"
+      "notes": "GPT/Codex frontier incl. terra/sol profiles; gpt-5.6-luna is the approved economy worker"
     },
     "kimi": {
       "providers": ["kimi-coding"],
@@ -14,7 +14,7 @@
     },
     "minimax": {
       "providers": ["minimax"],
-      "notes": "default economy"
+      "notes": "legacy economy family; explicit override only"
     },
     "qwen": {
       "providers": ["qwen"],

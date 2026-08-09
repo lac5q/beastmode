@@ -239,7 +239,10 @@ def main(argv: list[str] | None = None) -> int:
         args.run_dir
         or (state_base / "runs" / _run_dir_component(thread_id))
     )
-    executor_model = args.economy or "minimax/MiniMax-M3"
+    # Keep the graph's default aligned with the shell/Pi runners: every
+    # economy child is explicitly pinned to Luna Max unless the caller names
+    # another reviewed lane.
+    executor_model = args.economy or "openai-codex/gpt-5.6-luna"
     executor = WorktreeSubprocessExecutor(
         repo=project_root,
         command=command,
@@ -274,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         ],
         "requested_seats": {
             "frontier": args.frontier,
-            "economy": args.economy,
+            "economy": executor_model,
             "watcher": args.watcher,
         },
     }

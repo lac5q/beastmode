@@ -33,10 +33,11 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `terra` | `openai-codex` | `gpt-5.6-terra` | frontier | openai-codex | Lead profile; use `--thinking high`. |
 | `grok` | `xai-oauth` | `grok-4.5` | frontier | xai | Grok via OAuth (Hermes lane); cross-family watcher/validator. |
 | `glm` | `zai` | `glm-5.2` | frontier | zai | GLM validator lane. |
-| `minimax` | `minimax` | `MiniMax-M3` | economy | minimax | Default cheap execution tier. 1M ctx. |
-| `minimax-fast` | `minimax` | `MiniMax-M2.7-highspeed` | economy | minimax | Lower latency, smaller ctx. |
-| `qwen` | `qwen` | `qwen3.7-plus` | economy | qwen | Use when you need a second opinion from a different family. |
-| `gwen` | `qwen` | `qwen3.7-max` | economy | qwen | Larger Qwen variant. |
+| `luna-max` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Approved low-cost worker; reasoning `max`. Use for independent ACN slices. |
+| `minimax` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias for `luna-max`. |
+| `minimax-fast` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias; preserves Luna Max reasoning. |
+| `qwen` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
+| `gwen` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
 | `haiku` | `anthropic` | `claude-haiku-4-5` | economy | anthropic | Anthropic-native cheap tier. |
 
 ## JSON shape (used by `scripts/bm`)
@@ -45,7 +46,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 {
   "kimi3": { "provider": "kimi-coding", "model": "k3", "tier": "frontier" },
   "fable": { "provider": "anthropic",   "model": "claude-fable-5", "tier": "frontier" },
-  "minimax": { "provider": "minimax",   "model": "MiniMax-M3",    "tier": "economy" }
+  "luna-max": { "provider": "openai-codex", "model": "gpt-5.6-luna", "tier": "economy", "reasoning": "max" }
 }
 ```
 
@@ -56,16 +57,16 @@ add a row to one, add it to the other in the same PR.
 
 ## How `bm` uses it
 
-`bm "<goal>" --frontier kimi3 --economy minimax`:
+`bm "<goal>" --frontier kimi3 --economy luna-max`:
 
-1. Looks up `kimi3` → `kimi-coding/k3` (frontier), `minimax` → `minimax/MiniMax-M3` (economy).
+1. Looks up `kimi3` → `kimi-coding/k3` (frontier), `luna-max` → `openai-codex/gpt-5.6-luna` (economy, reasoning `max`).
 2. **Preflight check**: validates each resolved `provider/model` exists in
    `pi --list-models` on the local host. If any are missing, `bm` exits with
    code 2 and lists the available frontier/economy alternatives the user can
    pick from — instead of letting `pi` fail mid-goal. Skipped when
    `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs) or when `--on` is not local
    (the remote host owns availability).
-3. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,minimax/MiniMax-M3 ...`.
+3. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,openai-codex/gpt-5.6-luna ...`.
 4. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
 

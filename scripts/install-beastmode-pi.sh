@@ -152,8 +152,8 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy; d
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   case "$f" in
-    bm) HASH="b37766a103752a64dad69c4cae8c3da070a277e8d4458f6583f010547fe52f35" ;;
-    tier-aliases.json) HASH="f731437e1a6917ae8f21302c3e8d54cb2c82a9e937623993b031e935e12356b4" ;;
+    bm) HASH="b34e581005a620dc9b39ca8df5d64f17ed5c91a7f1ba2cf03f5d388364f87d08" ;;
+    tier-aliases.json) HASH="e24c2cda8132220c1d0bb38c3bfd9ad090f9020a26e7d731d446c69fd2dd43a6" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
     check-pi-agent-policy) HASH="865d7e81c6e447e35ce37142e68952d431641ea5f5a71da04ecbc4a056d03c5f" ;;
@@ -185,5 +185,5 @@ echo "  pi --skill ~/.agents/skills/beastmode-pi/SKILL.md"
 echo "  # or just start pi in any repo — skill auto-discovers"
 echo "  install -Dm600 $POLICY_DEST .pi/extensions/pi-permission-system/config.json"
 echo "  check-pi-agent-policy \"\$PWD\""
-echo "  bm '<goal>' --frontier kimi3 --economy minimax --on <remote-host> --autonomy medium"
+echo "  bm '<goal>' --frontier kimi3 --economy luna-max --on <remote-host> --autonomy medium"
 echo "  claude-pro \"<prompt>\"   # Claude Pro lane (claude.ai subscription quota)"

@@ -12,7 +12,7 @@ Exact search aliases: **beastmode**, **MofA**, **Mixture of Agents**, **memroos*
 
 Beastmode:
 
-- **Saves money** by routing implementation *and mechanical validation* to economy models (MiniMax M3, Qwen/Gwen) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for design, judgment, and review sign-off
+- **Saves money** by routing implementation *and mechanical validation* to the pinned Luna Max economy lane (`gpt-5.6-luna`) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for design, judgment, and review sign-off
 - **Improves quality** through mandatory acceptance contracts, adversarial review, and merge gates
 - **Gets better over time** via a self-improvement loop that records lessons and promotes repeated patterns into skills/config
 - **Works anywhere** — harness-agnostic, compatible with Ultraswarm, GSD, `delegate_task`, Claude Code subagents, manual git workflows, or `pi-coding-agent` (see `pi/SKILL.md`)
@@ -27,14 +27,14 @@ The routing rule underneath: a task goes to a cheap model exactly when its outpu
 ## Model Tiers
 
 - **Design tier (frontier):** Claude Fable, Kimi 3, Opus, frontier Codex/GPT — architecture, acceptance contracts, judgment review, escalations
-- **Execution tier (economy):** MiniMax M3, Qwen/Gwen — implementation, tests, docs, and mechanical validation (running verification commands, producing pass/fail reports)
+- **Execution tier (economy):** Luna Max (`gpt-5.6-luna`) by default — implementation, tests, docs, and mechanical validation (running verification commands, producing pass/fail reports)
 
 See `references/model-routing.md` for the per-phase routing table and escalation ladder.
 
 ## Two Variants
 
-- **Frontier-led:** Maximum judgment for product/creative/architecture decisions. Fable or Kimi 3 directs (optionally pairing the two — one designs, the other challenges), MiniMax M3/Qwen executes and validates.
-- **Codex-led:** Cost-efficient lead with strong gates. Codex plans and reviews, MiniMax M3/Qwen executes.
+- **Frontier-led:** Maximum judgment for product/creative/architecture decisions. Fable or Kimi 3 directs (optionally pairing the two — one designs, the other challenges), Luna Max executes and validates.
+- **Codex-led:** Cost-efficient lead with strong gates. Codex plans and reviews, Luna Max executes.
 
 ## Autonomy Levels
 
@@ -62,8 +62,8 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
    bm "<goal>" --harness claude|codex                   # Claude Code / Codex adapters
    bm "<goal>" --harness langgraph                      # optional StateGraph/checkpoint runtime
    bm "<goal>" --harness langgraph --executor-command '<child command>'
-   bm "<goal>" --gsd --frontier kimi3 --economy minimax # pick tiers, force GSD gating
-   bm "<goal>" --frontier kimi3 --economy minimax --watcher grok # cross-family watcher
+   bm "<goal>" --gsd --frontier kimi3 --economy luna-max # pick tiers, force GSD gating
+   bm "<goal>" --frontier kimi3 --economy luna-max --watcher grok # cross-family watcher
    bm "<validation goal>" --frontier sol --thinking medium # OAuth-backed Sol validator
    bm "<goal>" --on <remote-host>                       # dispatch to a fleet node
    bm "<goal>" --autonomy low|medium|high               # change how much surfaces

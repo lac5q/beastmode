@@ -20,7 +20,7 @@ them together.
 |---|---|
 | Director / Lead (frontier tier) | The pi session itself — frontier model stays in charge |
 | Watcher (adversarial review) | `pi-dynamic-workflows` `verify()` / `judgePanel()`, or the built-in `/adversarial-review` workflow |
-| Worker (economy tier) | `pi-dynamic-workflows` `agent()` with `tier: "small"`/`"medium"` or an external lane (Qwen / MiniMax API / Droid MiniMax) routed via `model:` |
+| Worker (economy tier) | `pi-dynamic-workflows` `agent()` with `tier: "small"`/`"medium"` pinned to Luna Max, or an explicitly selected external lane |
 | Loop engine (continues until done) | `@narumitw/pi-goal` — `/goal`, `goal_complete`, `goal_blocked` |
 | Anti-spin circuit breaker | `pi-loop-police` (passive, always on) |
 | Worker-contract enforcer | `@gotgenes/pi-permission-system` project config (path / external_directory / bash deny + ask surfaces) |
@@ -102,9 +102,10 @@ printf '%s\n' 'Reply with exactly: CLAUDE OK' | \
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
-smoke gate. Keep automatic worker and watcher routing on MiniMax-M3; use a
-frontier director or watcher only when the user explicitly names it. Prefer
-external CLI lanes for the bulk cheap-worker execution you already pay for.
+smoke gate. Keep automatic worker routing on Luna Max (`gpt-5.6-luna`,
+reasoning `max`); use a frontier director or watcher only when the user
+explicitly names it. Prefer external CLI lanes only when the operator
+explicitly selects one and its smoke gate passes.
 The verifier-first rule from the universal skill governs everything:
 if a cheap lane cannot produce a verifiable artifact cheaply, escalate to
 the frontier tier.
@@ -123,8 +124,9 @@ etc.) and that pool is rate-limited. Routing Claude work through
 The hard rule is enforced by:
 
 - `~/.pi/workflows/model-tiers.json` — every automatic tier maps to the
-  **approved cheap lane** (small/medium/big → MiniMax-M3). No automatic tier
-  maps to Codex or another frontier model. Any frontier/Codex worker must be
+  **approved cheap lane** (small/medium/big → `openai-codex/gpt-5.6-luna`). No
+  automatic tier maps to Claude or another frontier model. Any
+  frontier/Codex worker must be
   explicitly named by the user and pinned by exact `model:`.
 - A workflow author who explicitly writes
   `agent(prompt, { model: "anthropic/claude-opus-4-8" })` is bypassing the

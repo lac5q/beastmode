@@ -24,7 +24,7 @@ The per-phase table below is what this principle implies for a standard beastmod
 | Tier | Role | Example models | Cost profile |
 |------|------|---------------|--------------|
 | **Frontier (design)** | Architecture, product judgment, review sign-off | Claude Fable (`claude-fable-5`), Kimi 3, Claude Opus, frontier GPT/Codex | Expensive per token; used in short, high-leverage bursts |
-| **Economy (execution)** | Implementation, tests, docs, mechanical validation | MiniMax M3, Qwen 3.7 Plus / Gwen, Haiku-class | 10–50× cheaper; used for the bulk of tokens |
+| **Economy (execution)** | Implementation, tests, docs, mechanical validation | Luna Max (`gpt-5.6-luna`) by default; legacy MiniMax/Qwen/Haiku by explicit override | 10–50× cheaper; used for the bulk of tokens |
 
 Model names are examples, not requirements — beastmode routes to *tiers*. Substitute whatever frontier and economy models your environment provides. Verify exact model IDs with your provider/router (OpenRouter, direct APIs, local serving) before configuring; provider-specific IDs change frequently.
 
