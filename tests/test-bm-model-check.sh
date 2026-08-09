@@ -38,6 +38,16 @@ exit 0
 EOF
 chmod +x "$TMP/bin/pi"
 
+# Fake Hermes records the resolved provider/model arguments without contacting
+# a remote service. The provider preflight only needs a key in its config.
+cat > "$TMP/bin/hermes" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$BM_TEST_ARGS"
+EOF
+chmod +x "$TMP/bin/hermes"
+mkdir -p "$TMP/hermes-home/.hermes"
+printf '%s\n%s\n' 'vibeproxy:' 'openai-codex:' > "$TMP/hermes-home/.hermes/config.yaml"
+
 # Fake Claude for the explicit, single-seat subscription watcher test. It
 # never contacts Anthropic; it only proves bm forwards the opt-in path.
 cat > "$TMP/bin/claude" <<'EOF'
@@ -132,16 +142,39 @@ echo "$out" | grep -q "requested model(s) not available" \
   && fail "implicit Luna Max preflight failed"
 ok "implicit Luna Max economy seat passed preflight"
 
-# Test 8: the subscription lane is explicit and single-seat.
-echo "Test 8: Claude subscription watcher uses one pinned seat"
+# Test 8: Hermes translates a friendly Luna alias to its authenticated
+# provider namespace while preserving the model pin.
+echo "Test 8: Hermes friendly Luna alias uses vibeproxy"
+hermes_args="$TMP/hermes-args"
+out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
+  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes --economy luna-max 2>&1)"
+grep -q 'economy=vibeproxy/gpt-5.6-luna' "$hermes_args" \
+  || fail "friendly Luna alias did not translate to vibeproxy in the worker seat"
+ok "Hermes friendly Luna alias translated to vibeproxy"
+
+# Test 9: a qualified provider/model is an explicit operator choice and must
+# not be rewritten for Hermes.
+echo "Test 9: Hermes qualified Luna provider remains explicit"
+out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
+  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes \
+    --economy openai-codex/gpt-5.6-luna 2>&1)"
+grep -q 'economy=openai-codex/gpt-5.6-luna' "$hermes_args" \
+  || fail "explicit Hermes provider was rewritten"
+if grep -q 'economy=vibeproxy/gpt-5.6-luna' "$hermes_args"; then
+  fail "explicit qualified Hermes provider was rewritten to vibeproxy"
+fi
+ok "Hermes qualified provider remained explicit"
+
+# Test 10: the subscription lane is explicit and single-seat.
+echo "Test 10: Claude subscription watcher uses one pinned seat"
 out="$(PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "review the phase report" \
   --harness claude --frontier opus --claude-subscription --autonomy high --interview off 2>&1)"
 echo "$out" | grep -q "FAKE CLAUDE SUBSCRIPTION WATCHER" \
   || fail "Claude subscription watcher did not dispatch"
 ok "Claude subscription watcher dispatched"
 
-# Test 9: subscription mode rejects a second Claude seat.
-echo "Test 9: Claude subscription multi-seat fan-out rejected"
+# Test 11: subscription mode rejects a second Claude seat.
+echo "Test 11: Claude subscription multi-seat fan-out rejected"
 set +e
 out="$(PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "review the phase report" \
   --harness claude --frontier opus --economy haiku --claude-subscription \
@@ -153,8 +186,8 @@ echo "$out" | grep -q "exactly one Claude seat" \
   || fail "multi-seat rejection did not explain the seat limit"
 ok "Claude subscription multi-seat fan-out rejected"
 
-# Test 10: --on remote skips the local check (remote host owns availability).
-echo "Test 10: --on remote-host skips the local check"
+# Test 12: --on remote skips the local check (remote host owns availability).
+echo "Test 12: --on remote-host skips the local check"
 # Point ssh at a no-op so dispatch returns immediately without a real SSH.
 mkdir -p "$TMP/ssh-bin"
 cat > "$TMP/ssh-bin/ssh" <<'EOF'
@@ -168,8 +201,8 @@ echo "$out" | grep -q "requested model(s) not available" \
   && fail "local check ran during remote dispatch"
 ok "remote dispatch skipped the local check"
 
-# Test 11: a remote target cannot be parsed as an ssh option.
-echo "Test 11: --on rejects ssh option injection"
+# Test 13: a remote target cannot be parsed as an ssh option.
+echo "Test 13: --on rejects ssh option injection"
 set +e
 out="$(PATH="$TMP/bin:$TMP/ssh-bin:$PATH" run_bm "do a thing" --on=-oProxyCommand=bad 2>&1)"
 code=$?
@@ -178,10 +211,10 @@ set -e
 echo "$out" | grep -q "not an ssh option" || fail "did not explain rejected ssh option target"
 ok "ssh option target rejected"
 
-# Test 12: the optional LangGraph package is absent.  A -S interpreter keeps
+# Test 14: the optional LangGraph package is absent.  A -S interpreter keeps
 # the source tree importable while excluding every site-package, including
 # LangGraph itself.
-echo "Test 12: absent LangGraph runtime exits 2 with an install hint"
+echo "Test 14: absent LangGraph runtime exits 2 with an install hint"
 cat > "$TMP/bin/python-no-site" <<'EOF'
 #!/usr/bin/env bash
 exec /usr/bin/python3 -S "$@"

@@ -172,8 +172,12 @@ case "$HARNESS" in
       if [ -f "$cfg" ]; then
         # grep only the key (provider name); we don't decode the file contents.
         if awk -v p="$provider" '
-            /^[[:space:]]*[A-Za-z0-9._-]+:[[:space:]]*$/ {gsub(/[[:space:]]/,"",$0); sub(/:$/,"",$0); if($0==p){print "HIT"; exit}}
-            END{exit !0}' "$cfg" >/dev/null 2>&1; then
+            BEGIN { found=0 }
+            /^[[:space:]]*[A-Za-z0-9._-]+:[[:space:]]*$/ {
+              gsub(/[[:space:]]/,"",$0); sub(/:$/,"",$0)
+              if($0==p){ found=1; exit }
+            }
+            END { exit(found ? 0 : 1) }' "$cfg" >/dev/null 2>&1; then
           found=1
         fi
       fi

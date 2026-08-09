@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "2a5905a3cdc999ff709187b19a42a8c8dc9b3e95c1694a3d039eceb83774d3a0" \
+fetch_pinned "$URL" "$DEST" "55a5e1d9c36a38642f8bd879b5d5d504894ccc12460ca7a4feafe3aa626b1776" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
@@ -126,7 +126,7 @@ POLICY_DIR="${SKILL_DIR}/config"
 mkdir -p "$POLICY_DIR"
 POLICY_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/config/pi-permission-system.json"
 POLICY_DEST="${POLICY_DIR}/pi-permission-system.json"
-fetch_pinned "$POLICY_URL" "$POLICY_DEST" "4d0951fc415e0fad55d6807671d5b41803c58776a11198820b1714b7b72a276b" \
+fetch_pinned "$POLICY_URL" "$POLICY_DEST" "d1f70265fcf47a346b2566356d28b27ec8c407cccd857a611b47f0c297943667" \
   && chmod 600 "$POLICY_DEST" \
   && ok "permission policy template fetched and verified" \
   || { err "could not fetch or verify $POLICY_URL"; exit 1; }
@@ -148,15 +148,17 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
 bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy; do
+for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy lib/prompts.sh; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
+  mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="b34e581005a620dc9b39ca8df5d64f17ed5c91a7f1ba2cf03f5d388364f87d08" ;;
+    bm) HASH="d1f4c559ed13f7e5a903bfa5b97b3da89c55e63bde5299e5e5f6640593a3c875" ;;
     tier-aliases.json) HASH="e24c2cda8132220c1d0bb38c3bfd9ad090f9020a26e7d731d446c69fd2dd43a6" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
-    check-pi-agent-policy) HASH="865d7e81c6e447e35ce37142e68952d431641ea5f5a71da04ecbc4a056d03c5f" ;;
+    check-pi-agent-policy) HASH="49797e3f333a888a2116e46041fac1e8401560ba2aa98004e2138fd572e2af25" ;;
+    lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
     chmod +x "$DEST" 2>/dev/null || true

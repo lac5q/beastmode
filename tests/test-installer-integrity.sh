@@ -16,10 +16,10 @@ echo "ok: installer bootstrap is immutable and verified before execution"
 
 expected_hash() {
   local name="$1"
-  sed -n "s/^[[:space:]]*${name}) HASH=\"\([0-9a-f]\{64\}\)\" ;;/\1/p" "$INSTALLER"
+  sed -n "s|^[[:space:]]*${name}) HASH=\"\([0-9a-f]\{64\}\)\" ;*|\1|p" "$INSTALLER"
 }
 
-for name in bm claude-pro check-pi-agent-policy; do
+for name in bm claude-pro check-pi-agent-policy lib/prompts.sh; do
   expected="$(expected_hash "$name")"
   [ -n "$expected" ] || fail "installer has no pinned hash for $name"
   actual="$(sha256sum "$ROOT/scripts/$name" | awk '{print $1}')"

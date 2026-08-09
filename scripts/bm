@@ -53,6 +53,11 @@ FRONTIER=""
 # with --economy for a deliberate alternate lane.
 ECONOMY="luna-max"
 ECONOMY_EXPLICIT=0
+# Keep the input form separate from the resolved provider/model. Hermes uses
+# a different authenticated provider namespace for Luna, so a friendly alias
+# may be translated while an operator's explicit provider/model must remain
+# untouched.
+ECONOMY_INPUT_KIND="default"
 WATCHER=""
 CLAUDE_SUBSCRIPTION=0
 AUTONOMY="medium"
@@ -166,8 +171,18 @@ while [ $# -gt 0 ]; do
     --on=*)            ON="${1#*=}"; shift ;;
     --frontier)        FRONTIER="${2:-}"; shift 2 ;;
     --frontier=*)      FRONTIER="${1#*=}"; shift ;;
-    --economy)         ECONOMY="${2:-}"; ECONOMY_EXPLICIT=1; shift 2 ;;
-    --economy=*)       ECONOMY="${1#*=}"; ECONOMY_EXPLICIT=1; shift ;;
+    --economy)
+      ECONOMY="${2:-}"
+      ECONOMY_EXPLICIT=1
+      [[ "$ECONOMY" == */* ]] && ECONOMY_INPUT_KIND="qualified" || ECONOMY_INPUT_KIND="friendly"
+      shift 2
+      ;;
+    --economy=*)
+      ECONOMY="${1#*=}"
+      ECONOMY_EXPLICIT=1
+      [[ "$ECONOMY" == */* ]] && ECONOMY_INPUT_KIND="qualified" || ECONOMY_INPUT_KIND="friendly"
+      shift
+      ;;
     --watcher)         WATCHER="${2:-}"; shift 2 ;;
     --watcher=*)       WATCHER="${1#*=}"; shift ;;
     --claude-subscription) CLAUDE_SUBSCRIPTION=1; shift ;;
@@ -241,10 +256,11 @@ GOAL="${GOAL_PARTS[*]:-}"
 if [ -n "$FRONTIER" ] && ! FRONTIER="$(resolve_alias "$FRONTIER")"; then exit 2; fi
 if [ -n "$ECONOMY" ] && ! ECONOMY="$(resolve_alias "$ECONOMY")"; then exit 2; fi
 # Hermes names its authenticated Luna provider `vibeproxy`, while Pi/Codex
-# use the `openai-codex` namespace. Translate only the implicit default so the
-# request remains model-pinned without rewriting an operator's explicit
-# provider/model override.
-if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_EXPLICIT" = "0" ] \
+# use the `openai-codex` namespace. Translate the implicit default and
+# friendly aliases so the request remains model-pinned without rewriting an
+# operator's explicit provider/model override. A qualified input remains
+# explicit.
+if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
   && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
   ECONOMY="vibeproxy/gpt-5.6-luna"
 fi
