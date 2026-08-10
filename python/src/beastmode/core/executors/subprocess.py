@@ -617,6 +617,34 @@ def _filesystem_sandbox_available() -> bool:
     return sys.platform.startswith("linux") and shutil.which("bwrap") is not None
 
 
+def _validated_git_common_dir(repo: Path, raw_common_dir: str) -> Path:
+    """Return a Git admin path that stays inside the trusted repository."""
+    repo_root = Path(repo).resolve(strict=True)
+    git_root = repo_root / ".git"
+    if git_root.is_symlink() or not git_root.is_dir():
+        raise RuntimeError("trusted repository must have a real .git directory")
+    git_root = git_root.resolve(strict=True)
+    if raw_common_dir.strip() == "":
+        raise RuntimeError("git returned an empty common directory")
+    candidate = Path(raw_common_dir)
+    if not candidate.is_absolute():
+        candidate = repo_root / candidate
+    # Normalize lexical '..' segments before comparing with the resolved path;
+    # a symlink component must not turn a repository-looking path into a host
+    # path outside the approved Git admin root.
+    candidate = Path(os.path.abspath(str(candidate)))
+    resolved = candidate.resolve(strict=True)
+    if candidate != resolved:
+        raise RuntimeError("git common directory contains a symlink component")
+    try:
+        resolved.relative_to(git_root)
+    except ValueError as exc:
+        raise RuntimeError("git common directory escapes the trusted repository") from exc
+    if not resolved.is_dir():
+        raise RuntimeError("git common directory is not a directory")
+    return resolved
+
+
 def _filesystem_sandbox_command(
     command: Iterable[str],
     *,
@@ -640,9 +668,7 @@ def _filesystem_sandbox_command(
         env=parent_git_environment(),
         timeout=5,
     ).stdout.strip()
-    common_dir = Path(common)
-    if not common_dir.is_absolute():
-        common_dir = (repo / common_dir).resolve()
+    common_dir = _validated_git_common_dir(repo, common)
     config_path = common_dir / "config"
     args = [
         bwrap,

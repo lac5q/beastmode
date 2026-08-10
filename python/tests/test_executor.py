@@ -42,6 +42,22 @@ def test_resource_limit_reserves_existing_host_tasks_for_bwrap(monkeypatch) -> N
     assert executor_module._nproc_limit_for_bwrap(256) == 1_158
 
 
+def test_git_common_dir_is_contained_by_trusted_repository(tmp_path: Path) -> None:
+    executor_module = importlib.import_module("beastmode.core.executors.subprocess")
+    repo = _repo(tmp_path)
+    assert executor_module._validated_git_common_dir(repo, ".git") == (repo / ".git").resolve()
+
+    outside = tmp_path / "outside-git"
+    outside.mkdir()
+    with pytest.raises(RuntimeError, match="escapes the trusted repository"):
+        executor_module._validated_git_common_dir(repo, str(outside))
+
+    redirected = repo / "redirected-git"
+    redirected.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(RuntimeError, match="symlink component"):
+        executor_module._validated_git_common_dir(repo, str(redirected))
+
+
 def test_parent_worktree_creation_disables_repository_hooks(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     hook_dir = repo / "attacker-hooks"
