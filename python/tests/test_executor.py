@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import subprocess
@@ -32,6 +33,13 @@ def _repo(tmp_path: Path) -> Path:
     _git(repo, "add", "README.md")
     _git(repo, "commit", "-qm", "seed")
     return repo
+
+
+def test_resource_limit_reserves_existing_host_tasks_for_bwrap(monkeypatch) -> None:
+    executor_module = importlib.import_module("beastmode.core.executors.subprocess")
+    monkeypatch.setattr(executor_module, "_current_user_task_count", lambda: 900)
+
+    assert executor_module._nproc_limit_for_bwrap(256) == 1_158
 
 
 def test_parent_worktree_creation_disables_repository_hooks(tmp_path: Path) -> None:

@@ -172,3 +172,13 @@
 - Routing rule to change: never increase fan-out above three merely to compensate for unverifiable provenance; re-run the same bounded slices through an attesting wrapper, then gate.
 - Skill/config update needed: yes — Luna Max is now the explicit default economy seat; Claude subscription validation remains one watcher only.
 - Promoted to: `SKILL.md`, `scripts/bm`, `scripts/langgraph-runner`, and harness docs in commit `c266696` (local; public push held by pre-existing history guard finding).
+
+## BM-20260809 self-learning-loop-and-host-limits
+- Director/Lead: current Codex session; Executor: current session; Harness: manual/Python LangGraph.
+- Acceptance checks: focused executor/pipeline/learning tests; `python -m pytest --cov=src/beastmode`; `tests/run-all.sh`.
+- Result: pass after repair. The repository now records redacted, replay-idempotent issue entries for successful and blocked LangGraph exits, tracks recurring items for promotion review, and marks same-goal issues addressed only after a clean run. Coverage is enforced at 80%; the current suite is 146 tests at 86.18%.
+- What failed / drifted: the worktree executor applied `RLIMIT_NPROC=256` before Bubblewrap namespace setup while this host already had 876 tasks for the UID, producing `EAGAIN`; pytest fixtures also inherited umask `0002`, making security fixtures group-writable. The tests were environment-sensitive rather than exposing a sandbox bypass.
+- What worked: dynamic host-task headroom preserves the configured worker budget and trusted launcher slots; the test process pins umask `0022`; blocked exits now flow through `self_improve`; learning writes are path-confined, bounded, redacted, append-only, and replay-idempotent.
+- Routing rule to change: no model-routing change. Resource-limit failures must be diagnosed against host task counts before weakening Bubblewrap or removing the process ceiling.
+- Skill/config update needed: yes — keep the learning-loop and coverage gates documented; recurring issue promotion remains a separate approved maintenance task.
+- Promoted to: `python/src/beastmode/core/learning.py`, LangGraph pipeline/state/nodes, `references/langgraph-pipeline.md`, `SKILL.md`, `python/pyproject.toml`, and CI coverage configuration.

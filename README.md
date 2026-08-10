@@ -78,6 +78,26 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 
    See `scripts/bm` and `references/autonomy-levels.md`.
 
+## Editor goals via ACP
+
+The optional thin ACP adapter makes Beastmode goals launchable from ACP-aware
+editors without duplicating the orchestration runtime. It speaks ACP v1 over
+stdio and forwards `session/prompt` to the existing `bm` runner:
+
+```bash
+python -m pip install -e python/
+beastmode --acp
+# or: beastmode-acp
+```
+
+The default backend is `bm --autonomy {autonomy}`. Set
+`BEASTMODE_ACP_BACKEND_JSON` for a non-shell argv template; the adapter keeps
+editor text after `--` and never evaluates it as shell syntax. See
+[`adapters/acp/SKILL.md`](adapters/acp/SKILL.md) and the submission-shaped
+[`registry-entry.example.json`](adapters/acp/registry-entry.example.json).
+This is an editor/registry boundary only: Beastmode still owns permissions,
+model routing, worktrees, gates, provenance, and learning.
+
 ## Optional LangGraph runtime
 
 LangGraph support is additive. Existing shell and agent harnesses remain

@@ -157,6 +157,6 @@ def build_pipeline(
     if before_merge is not None:
         graph.add_edge("before_merge", "merge")
     graph.add_edge("merge", "self_improve")
+    graph.add_edge("blocked", "self_improve")
     graph.add_edge("self_improve", END)
-    graph.add_edge("blocked", END)
     return graph.compile(checkpointer=checkpointer, name="beastmode-pipeline")

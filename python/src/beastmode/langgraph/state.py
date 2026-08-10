@@ -63,7 +63,10 @@ class BeastmodeState(TypedDict, total=False):
     merge_decision: Any
     merge_report: dict[str, Any]
     status: str
+    self_improvement: str
     lane_batches: list[list[dict[str, Any]]]
     lane_index: int
     task: dict[str, Any]
     task_results: Annotated[list[dict[str, Any]], operator.add]
+    learning_report: dict[str, Any]
+    learning_resolutions: dict[str, str]

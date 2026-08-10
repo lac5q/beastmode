@@ -279,7 +279,7 @@ The faithful port. Same eight steps, same gates, same reports — as a graph.
 | `review` | frontier | Reads **report + diff**, never raw logs |
 | `gate_merge` | — | `interrupt()` below `high` |
 | `merge` | — | |
-| `self_improve` | economy | Appends to `.learnings/BEASTMODE.md`. **Notes only.** |
+| `self_improve` | economy | Appends redacted, replay-idempotent issue records to `.learnings/BEASTMODE.md` for success and blocked exits; recurring items queue promotion review. |
 
 **Edges**
 - `gate_provenance`: `ok` → `review`; `drift` | `unverifiable` → `dispatch`

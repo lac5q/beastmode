@@ -23,7 +23,7 @@ flowchart TD
     review -->|rejected| blocked
     gate_merge -->|approved| merge --> self_improve --> END
     gate_merge -->|rejected| design
-    blocked --> END
+    blocked --> self_improve --> END
 ```
 
 `gate_provenance` never duplicates the shell gate: it calls
@@ -48,3 +48,12 @@ same goal thread. `SqliteSaver` is the local default; PostgreSQL is opt-in.
 `stream_mode="custom"` emits phase, gate, and executor stdout/stderr events.
 Trace records are optional and vendor-neutral; they never decide whether a
 provenance gate passes.
+
+The terminal `self_improve` node runs after both successful merge preparation
+and blocked exits. It appends one replay-idempotent, redacted record to the
+contract's `.learnings/BEASTMODE.md` path. Records contain issue fingerprints,
+bounded evidence, next actions, recurring-issue promotion candidates, and
+same-goal resolutions observed by a later clean run. A failed write is returned
+as `self_improvement: unrecorded` rather than being reported as learning
+success; permanent skill/config changes remain a separate approved maintenance
+task.

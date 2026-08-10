@@ -71,8 +71,9 @@ jobs:
           python -m pip install --require-hashes -r python/requirements-ci.lock
           python -m pip install --no-deps -e python
 
-      - name: Test framework-neutral core
-        run: python -m pytest python/tests
+      - name: Test framework-neutral core with coverage gate
+        working-directory: python
+        run: python -m pytest tests --cov=src/beastmode --cov-report=term-missing
 
       - name: Enforce the framework-neutral core import boundary
         run: lint-imports --config python/pyproject.toml

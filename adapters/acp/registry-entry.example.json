@@ -1,0 +1,17 @@
+{
+  "id": "beastmode",
+  "name": "Beastmode Goals",
+  "version": "2.4.0",
+  "description": "Editor-friendly ACP goal adapter for the Beastmode orchestration runner.",
+  "repository": "https://github.com/lac5q/beastmode",
+  "website": "https://github.com/lac5q/beastmode",
+  "authors": ["Luis Calderon"],
+  "license": "MIT",
+  "icon": "https://raw.githubusercontent.com/lac5q/beastmode/main/adapters/acp/icon.svg",
+  "distribution": {
+    "uvx": {
+      "package": "beastmode==2.4.0",
+      "args": ["--acp"]
+    }
+  }
+}

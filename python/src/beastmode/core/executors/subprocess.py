@@ -1097,6 +1097,64 @@ def _effective_disk_budget(roots: Iterable[Path], configured: int) -> int:
     return max(1, min(configured, min(free_space) // 10))
 
 
+def _current_user_task_count() -> int:
+    """Count kernel tasks charged to the current UID for RLIMIT_NPROC headroom.
+
+    Bubblewrap creates its user namespace after ``prlimit`` has applied the
+    process ceiling.  Linux rejects that namespace creation with ``EAGAIN``
+    when the ceiling is below the caller's already-running task count.  Count
+    threads, rather than only ``/proc/<pid>`` entries, because the kernel's
+    process limit charges each task.
+    """
+    if not sys.platform.startswith("linux"):
+        return 0
+    uid = os.getuid()
+    total = 0
+    proc = Path("/proc")
+    try:
+        entries = tuple(proc.iterdir())
+    except OSError as exc:
+        raise RuntimeError("cannot inspect /proc for worker process limits") from exc
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        real_uid: int | None = None
+        threads = 1
+        try:
+            for line in (entry / "status").read_text(encoding="utf-8").splitlines():
+                if line.startswith("Uid:"):
+                    real_uid = int(line.split()[1])
+                elif line.startswith("Threads:"):
+                    threads = int(line.split()[1])
+        except (OSError, ValueError, IndexError):
+            # Processes can exit between iterdir() and reading status.
+            continue
+        if real_uid == uid:
+            total += max(threads, 1)
+    return total
+
+
+def _nproc_limit_for_bwrap(max_processes: int) -> int:
+    """Return a host-UID ceiling that leaves ``max_processes`` for the worker."""
+    current_tasks = _current_user_task_count()
+    # prlimit itself and Bubblewrap's setup need trusted launcher slots.  They
+    # are not part of the untrusted worker's process budget.
+    requested = current_tasks + max_processes + 2
+    try:
+        import resource as _resource
+
+        hard_limit = _resource.getrlimit(_resource.RLIMIT_NPROC)[1]
+        infinity = _resource.RLIM_INFINITY
+    except (ImportError, OSError):
+        hard_limit = -1
+        infinity = -1
+    if hard_limit not in {-1, infinity} and requested > hard_limit:
+        raise RuntimeError(
+            "worker process limit leaves no room for Bubblewrap namespace setup"
+        )
+    return requested
+
+
 def _with_resource_limits(
     command: Iterable[str],
     *,
@@ -1110,11 +1168,12 @@ def _with_resource_limits(
     prlimit = shutil.which("prlimit", path=_safe_system_path())
     if prlimit is None:
         raise RuntimeError("required prlimit resource enforcement is unavailable")
+    nproc_limit = _nproc_limit_for_bwrap(max_processes)
     return (
         prlimit,
         f"--fsize={max_file_bytes}:{max_file_bytes}",
         f"--as={max_memory_bytes}:{max_memory_bytes}",
-        f"--nproc={max_processes}:{max_processes}",
+        f"--nproc={nproc_limit}:{nproc_limit}",
         f"--cpu={max_cpu_seconds}:{max_cpu_seconds}",
         "--",
         *parts,

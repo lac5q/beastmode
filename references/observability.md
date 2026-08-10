@@ -72,7 +72,7 @@ beastmode-pipeline
 ├── validate_mechanical
 ├── gate_provenance
 ├── review → gate_merge → merge
-└── self_improve
+└── self_improve (also receives blocked exits)
 ```
 
 Subprocess CLIs are not LangSmith-aware. `WorktreeSubprocessExecutor` therefore

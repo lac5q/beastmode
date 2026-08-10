@@ -259,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     state = {
         "goal": args.goal,
+        "repo": str(project_root),
         "autonomy": args.autonomy,
         "director_model": args.frontier or "unconfigured/director",
         "executor_model": executor_model,

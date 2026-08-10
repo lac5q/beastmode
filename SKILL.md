@@ -423,7 +423,10 @@ Never merge on executor self-report alone. The lead or Codex watcher must verify
 
 ### Step 7: Self-Improving Checkpoint
 
-After every phase, append a learning entry before continuing.
+After every phase, append a learning entry before continuing. The shipped
+LangGraph pipeline performs the terminal write automatically for both
+successful merge preparation and blocked exits; manual and other harness lanes
+still use the template below.
 
 **Preferred locations (in order):**
 1. Project-local `.learnings/BEASTMODE.md`
@@ -450,7 +453,11 @@ After every phase, append a learning entry before continuing.
 
 **Promotion rules:**
 
-The self-improvement loop writes **notes only** during a beastmode run. Any lasting change to agent behavior belongs in a separate user-approved maintenance task after the run is complete.
+The self-improvement loop writes **notes and actionable issue records** during
+a beastmode run. LangGraph records bounded, redacted evidence with stable issue
+fingerprints, next actions, recurring-issue promotion candidates, and same-goal
+resolutions. Any lasting change to agent behavior still belongs in a separate
+user-approved maintenance task after the run is complete.
 
 - Same routing mistake twice → record a proposed routing-rule change
 - Same QA gap twice → record a proposed addition to the acceptance contract checklist

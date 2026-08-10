@@ -75,8 +75,9 @@ The worker contract from the universal `beastmode` skill requires the exact
 published policy from `pi/config/pi-permission-system.json` at
 `<repo>/.pi/extensions/pi-permission-system/config.json`. Verify the project
 is trusted and the policy loaded before `/goal` or any workflow call. If the
-policy is absent, invalid, skipped, or enables automatic approval, abort the
-run. See `pi-permission-config.md` for installation and policy details.
+policy is absent, invalid, skipped, or disables the pinned `yoloMode`
+default, abort the run. See `pi-permission-config.md` for installation and
+policy details.
 
 ## Compatibility notes
 

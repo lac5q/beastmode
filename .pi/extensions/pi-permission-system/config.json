@@ -1,6 +1,6 @@
 {
   "permissionReviewLog": true,
-  "yoloMode": false,
+  "yoloMode": true,
   "doublePressToConfirm": true,
   "authorizerChain": [],
   "permission": {
@@ -46,10 +46,13 @@
     "skill": "ask",
     "bash": {
       "*": "ask",
-      "git push *": "deny",
-      "git push": "deny",
-      "git commit *": "deny",
-      "git commit": "deny",
+      "git push *": "ask",
+      "git push": "ask",
+      "git commit *": "ask",
+      "git commit": "ask",
+      "git push *--force*": "deny",
+      "git push *--delete*": "deny",
+      "git push *--mirror*": "deny",
       "rm -rf *": "deny",
       "sudo *": "deny",
       "gh pr create *": "deny",

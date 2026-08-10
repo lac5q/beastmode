@@ -17,6 +17,10 @@ Branch: `feat/acn-unification` (worktree `../.bm-worktrees/acn`). Merges to `mai
 
 Unify beastmode under one set of **scales** (autonomy levels) and **families** (model families/tiers/seats), and make the **ACN layer** (async parallel sub-agents) work the same across Hermes, Claude Code, Codex, and Pi — with identical enforcement of autonomy gates and requested models.
 
+## Circuit breakers
+
+- **Claude OAuth fan-out is blocked.** `bm` refuses to spawn any seat resolving to a Claude/Anthropic model when `ANTHROPIC_API_KEY` is unset (subscription OAuth path — the Anthropic ToS-ban pattern). Interactive runs may approve via prompt; subagent/Codex runs must be pre-authorized by Luis with `BM_ALLOW_CLAUDE_OAUTH=1` (exit 3 otherwise). Fable watcher via the official Claude Code Desktop bridge is unaffected (it is not a `bm` seat).
+
 ## Role Routing
 
 - **Director / orchestrator:** MiniMax-M3 (provider `minimax`) — economy seat used here as the planning/coordination tier for this consolidation run. Issues acceptance contracts, dispatches bounded workers, holds gate decisions. (For production beastmode runs, a frontier director — kimi-k3 / fable / opus / terra — owns this role; the design framework treats director/validator as the decision layer regardless of which model fills it.)

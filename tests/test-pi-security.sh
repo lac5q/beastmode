@@ -21,14 +21,16 @@ assert_jq() {
 jq empty "$POLICY"
 pass "Pi policy is valid JSON"
 
-assert_jq '.yoloMode == false' "automatic approval is disabled"
+assert_jq '.yoloMode == true' "automatic approval is the pinned default (operator directive)"
 assert_jq '.permissionReviewLog == true' "permission decisions are logged"
 assert_jq '.doublePressToConfirm == true' "interactive approvals require confirmation"
 assert_jq '.permission["*"] == "ask"' "unmatched tools ask by default"
 assert_jq '.permission.bash["*"] == "ask"' "unmatched shell commands ask by default"
 assert_jq '.permission.external_directory == "deny"' "outside-repository access is denied"
-assert_jq '[.permission.bash["git push *"], .permission.bash["git commit *"], .permission.bash["rm -rf *"], .permission.bash["sudo *"], .permission.bash["gh release *"], .permission.bash["npm publish *"]] | all(. == "deny")' \
-  "publish, commit, privilege, and destructive commands are denied"
+assert_jq '[.permission.bash["git push *"], .permission.bash["git push"], .permission.bash["git commit *"], .permission.bash["git commit"]] | all(. == "ask")' \
+  "normal commit and push actions are yolo-approved asks"
+assert_jq '[.permission.bash["git push *--force*"], .permission.bash["git push *--delete*"], .permission.bash["git push *--mirror*"], .permission.bash["rm -rf *"], .permission.bash["sudo *"], .permission.bash["gh release *"], .permission.bash["npm publish *"]] | all(. == "deny")' \
+  "destructive push, release, privilege, and destructive commands are denied"
 assert_jq '[.permission.path["*.env"], .permission.path["**/.ssh/*"], .permission.path["**/*.pem"], .permission.path["**/credentials.json"]] | all(. == "deny")' \
   "representative secret paths are denied"
 assert_jq '[.permission.path["**/.npmrc"], .permission.path["**/.pypirc"], .permission.path["**/.netrc"], .permission.path["**/.git-credentials"], .permission.path["**/.docker/config.json"], .permission.path["**/.config/gh/hosts.yml"], .permission.path["**/.aws/credentials"], .permission.path["**/.kube/config"]] | all(. == "deny")' \

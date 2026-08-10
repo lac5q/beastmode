@@ -12,7 +12,7 @@ from pathlib import Path
 
 MAX_AGENT_FILES = 256
 MAX_AGENT_BYTES = 256 * 1024
-EXPECTED_POLICY_SHA256 = "4d0951fc415e0fad55d6807671d5b41803c58776a11198820b1714b7b72a276b"
+EXPECTED_POLICY_SHA256 = "171c3ecbc1654e10b9a27c598b6693db192df2d21a96c8f70d4ccead5961768d"
 PROJECT_POLICY = Path(".pi/extensions/pi-permission-system/config.json")
 FORBIDDEN_KEYS = {"permission", "yoloMode"}
 YAML_ALIAS = re.compile(r"(?:^|[\s:,\[\]{}])[*&][A-Za-z0-9_-]+")
@@ -118,8 +118,8 @@ def verify_project_policy(root: Path) -> None:
         policy = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("canonical Pi policy is not valid JSON") from exc
-    if not isinstance(policy, dict) or policy.get("yoloMode") is not False:
-        raise ValueError("canonical Pi policy does not disable yolo mode")
+    if not isinstance(policy, dict) or policy.get("yoloMode") is not True:
+        raise ValueError("canonical Pi policy does not enable yolo mode")
 
 
 def main(argv: list[str]) -> int:

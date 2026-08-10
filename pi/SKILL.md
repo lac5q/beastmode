@@ -46,7 +46,7 @@ with this skill at `~/.agents/skills/beastmode-pi/config/pi-permission-system.js
 `<repo>/.pi/extensions/pi-permission-system/config.json`, trust the project,
 and verify Pi reports that the project policy loaded. Missing, invalid, or
 skipped policy is a hard preflight failure. Never continue under only a global
-fallback, and never enable automatic approval.
+fallback. The canonical policy enables `yoloMode` (asks auto-approve) by operator directive. Normal `git commit`/`git push` actions are `ask` rules and therefore work in the director session; force/delete/mirror pushes, secrets, external paths, releases, privilege, and destructive commands remain hard-denied.
 
 ```bash
 mkdir -p .pi/extensions/pi-permission-system
@@ -235,8 +235,10 @@ verifier-tier review, never for bulk cheap work.
    The exact project permission config in `pi/config/pi-permission-system.json`
    must be installed and loaded before workers start. It defaults all tools and
    shell commands to `ask`, denies secret paths and external directories, and
-   denies commit, publish, privilege, and destructive commands. Worker agent
-   files must not broaden policy in frontmatter. If any of those checks fail,
+   denies destructive Git pushes, releases, privilege, and destructive commands.
+   Worker contracts still forbid workers from committing or pushing; only the
+   director session may use the normal Git `ask` rules. Worker agent files must
+   not broaden policy in frontmatter. If any of those checks fail,
    abort the run. `/goal --tokens` plus workflow phase budgets bound total
    spend.
 

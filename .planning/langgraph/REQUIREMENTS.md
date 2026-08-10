@@ -111,7 +111,7 @@ port that loses any of them is a regression, not a feature.
 | Cross-session project memory (PRD, priority list) | LangGraph `Store` (cross-thread), not the checkpointer | **Medium** | Only needed for the "forever" graph (P7) |
 | Session restart / context re-pack | a re-pack node + `Command(goto=...)` | **Medium** | Replaces "restart the session and recompact" |
 | Phase usage report | `usage_metadata` accumulated by a reducer, rendered by `acn-report` | **High** | |
-| Self-improvement entry | node appends to `.learnings/BEASTMODE.md` | **High** | Notes only |
+| Self-improvement entry | terminal node appends redacted, idempotent issue records to `.learnings/BEASTMODE.md` on success and blocked exits | **High** | Notes and actionable records; skill promotion remains separately approved |
 | Living flowchart | `graph.get_graph().draw_mermaid()` | **High** | Free. Also the answer to "prompt a graph and drop it in" — the graph becomes an inspectable artifact |
 | Multi-day unattended evolution | checkpointer + **external supervisor** | **Medium** | See §5.5 — checkpoints are not durable execution |
 

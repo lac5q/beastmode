@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "55a5e1d9c36a38642f8bd879b5d5d504894ccc12460ca7a4feafe3aa626b1776" \
+fetch_pinned "$URL" "$DEST" "3e82892022c947827afb17ee8db6b9c89fb5c4556b498c14307e09506aa8123d" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
@@ -126,7 +126,7 @@ POLICY_DIR="${SKILL_DIR}/config"
 mkdir -p "$POLICY_DIR"
 POLICY_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/config/pi-permission-system.json"
 POLICY_DEST="${POLICY_DIR}/pi-permission-system.json"
-fetch_pinned "$POLICY_URL" "$POLICY_DEST" "d1f70265fcf47a346b2566356d28b27ec8c407cccd857a611b47f0c297943667" \
+fetch_pinned "$POLICY_URL" "$POLICY_DEST" "171c3ecbc1654e10b9a27c598b6693db192df2d21a96c8f70d4ccead5961768d" \
   && chmod 600 "$POLICY_DEST" \
   && ok "permission policy template fetched and verified" \
   || { err "could not fetch or verify $POLICY_URL"; exit 1; }
@@ -157,7 +157,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
     tier-aliases.json) HASH="e24c2cda8132220c1d0bb38c3bfd9ad090f9020a26e7d731d446c69fd2dd43a6" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
-    check-pi-agent-policy) HASH="49797e3f333a888a2116e46041fac1e8401560ba2aa98004e2138fd572e2af25" ;;
+    check-pi-agent-policy) HASH="26e63ea0371c7965bdcb04f22341bfcec9e8cdaac824b6c7f95310b0bd76c48e" ;;
     lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then

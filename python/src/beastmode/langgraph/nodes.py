@@ -10,6 +10,7 @@ from langgraph.runtime import Runtime
 
 from beastmode.core.contract import AcceptanceContract
 from beastmode.core.executors import SubprocessExecutor
+from beastmode.core.learning import record_learning
 from beastmode.core.observability import redact_text, redact_value
 from beastmode.core.schema import concurrency_default, required_batch_fields, required_task_fields
 from beastmode.core.seats import preflight_seat, resolve_alias
@@ -424,7 +425,30 @@ def merge(
 
 
 def self_improve(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:
-    return {"phase": "self_improve", "self_improvement": "note-only"}
+    """Record issues, next actions, and evidence-calibrated resolutions."""
+    repo = state.get("repo")
+    if not isinstance(repo, (str, Path)):
+        report = {
+            "recorded": False,
+            "reason": "pipeline state did not provide an explicit repository root",
+        }
+        return {
+            "phase": "self_improve",
+            "self_improvement": "unrecorded",
+            "learning_report": report,
+        }
+    try:
+        report = record_learning(state, repo=Path(repo))
+    except (OSError, ValueError) as exc:
+        report = {
+            "recorded": False,
+            "reason": redact_text(exc, limit=512),
+        }
+    return {
+        "phase": "self_improve",
+        "self_improvement": "recorded" if report.get("recorded") is True else "unrecorded",
+        "learning_report": report,
+    }
 
 
 def blocked(state: Mapping[str, Any], runtime: Runtime[BeastmodeContext]) -> dict[str, Any]:

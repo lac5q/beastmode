@@ -1,17 +1,18 @@
 # Permission Config Starter (pi-permission-system)
 
 A project-level `@gotgenes/pi-permission-system` config that encodes the
-universal Beastmode worker contract. The published policy is deny/ask by
-default: ordinary reads inside the repository are allowed, mutations and
-shell commands require confirmation, and secrets, external paths, publishing,
-commits, and destructive commands are denied.
+universal Beastmode worker contract. The published policy allows ordinary
+reads inside the repository and auto-approves routine asks via `yoloMode: true`.
+Normal director commits and pushes are `ask` rules, while force/delete/mirror
+pushes, secrets, external paths, publishing, and destructive commands remain
+hard-denied.
 
 The canonical JSON is `pi/config/pi-permission-system.json`. Install that
 exact file at `<repo>/.pi/extensions/pi-permission-system/config.json` before
 starting a Beastmode Pi run. Project config overrides global config only after
 Pi marks the project trusted. If the file is absent, invalid, skipped because
-the project is untrusted, or reports automatic approval enabled, stop the run;
-prose is not a permission boundary.
+the project is untrusted, or diverges from the pinned policy digest, stop the
+run; prose is not a permission boundary.
 
 From the repository root:
 
@@ -31,7 +32,7 @@ skipped.
 ```json
 {
   "permissionReviewLog": true,
-  "yoloMode": false,
+  "yoloMode": true,
   "doublePressToConfirm": true,
   "authorizerChain": [],
   "permission": {
@@ -77,10 +78,13 @@ skipped.
     "skill": "ask",
     "bash": {
       "*": "ask",
-      "git push *": "deny",
-      "git push": "deny",
-      "git commit *": "deny",
-      "git commit": "deny",
+      "git push *": "ask",
+      "git push": "ask",
+      "git commit *": "ask",
+      "git commit": "ask",
+      "git push *--force*": "deny",
+      "git push *--delete*": "deny",
+      "git push *--mirror*": "deny",
       "rm -rf *": "deny",
       "sudo *": "deny",
       "gh pr create *": "deny",
@@ -113,16 +117,22 @@ The `path` surface matches both the path as referenced and its canonical
 
 ## Tuning for the run mode
 
-**Interactive director session (default).** The human director may approve
-ordinary `ask` actions after inspecting them. Publishing, commits, destructive
-commands, secret paths, and external paths remain `deny`; use a separately
-reviewed, temporary policy for an intentional release instead of weakening the
-published worker policy.
+**Interactive director session (default).** Ordinary `ask` actions
+auto-approve under `yoloMode`; the director reviews the permission log instead
+of answering live prompts. Normal commits and pushes are available to the
+director, while force/delete/mirror pushes, releases, destructive commands,
+secret paths, and external paths remain `deny`.
 
-**Fully unattended director session.** Replace any remaining `ask` with
-`deny`. Never enable automatic approval. The run will be evidence-only
-close-out when a human decision would have been required; that is the correct
-behavior (no watcher, no validated merge — per the universal skill).
+**Worker session.** Worker contracts still forbid commits and pushes. The
+director owns staging, commit, push, and merge; the policy's normal Git `ask`
+rules exist for that director release step.
+
+**Fully unattended director session.** The published default already
+auto-approves `ask` via `yoloMode`. If a stricter unattended posture is
+required, replace `ask` with `deny` in a separately reviewed, temporary policy.
+The run will be evidence-only close-out when a human decision would have been
+required; that is the correct behavior (no watcher, no validated merge — per
+the universal skill).
 
 **Per-agent overrides.** Pi agent frontmatter has higher precedence than the
 project config. `bm` therefore fails preflight when a repository agent under

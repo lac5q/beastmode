@@ -499,6 +499,30 @@ def test_preflight_failure_routes_directly_to_blocked(tmp_path: Path) -> None:
     assert result["status"] == "blocked"
 
 
+def test_blocked_run_records_learning_entry(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    graph = build_pipeline(dependencies=OK_DEPENDENCIES, checkpointer=InMemorySaver())
+    result = graph.invoke(
+        {
+            "goal": "record this blocked run",
+            "repo": str(repo),
+            "executor_model": "missing/model",
+            "tasks": [{"id": "a", "goal": "blocked", "allowed_paths": [], "verify_cmds": []}],
+        },
+        config={"configurable": {"thread_id": "learning-blocked"}},
+        context=BeastmodeContext(autonomy="high", run_dir=None),
+    )
+
+    assert result["status"] == "blocked"
+    assert result["self_improvement"] == "recorded"
+    assert result["learning_report"]["issue_count"] >= 1
+    assert (repo / ".learnings" / "BEASTMODE.md").is_file()
+
+
 def test_reviewer_rejection_blocks_merge() -> None:
     dependencies = PipelineDependencies(
         executor=_ok_executor,
