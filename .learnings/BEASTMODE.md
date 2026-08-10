@@ -182,3 +182,13 @@
 - Routing rule to change: no model-routing change. Resource-limit failures must be diagnosed against host task counts before weakening Bubblewrap or removing the process ceiling.
 - Skill/config update needed: yes — keep the learning-loop and coverage gates documented; recurring issue promotion remains a separate approved maintenance task.
 - Promoted to: `python/src/beastmode/core/learning.py`, LangGraph pipeline/state/nodes, `references/langgraph-pipeline.md`, `SKILL.md`, `python/pyproject.toml`, and CI coverage configuration.
+
+## BM-20260809-release-deploy
+- Director/Lead: current session; Executor: current session after MiniMax, Qwen, and Droid smoke gates were unavailable; Harness: manual.
+- Acceptance checks: `tests/run-all.sh` (12/12), `python/tests` (150 passed), import-linter, Studio smoke, package build/wheel smoke, public artifact guard on exact commits and complete history, GitNexus change detection, clean local checkout.
+- Result: partial deployment. Commits `65296f2`, `00a387a`, and `bceb6bb` are pushed to `origin/main`; maeve-u1 is clean and at `bceb6bb`. main-mac deployment remains blocked by SSH/Tailscale authentication from this session.
+- What worked: local `bm` resolves to the current checkout, the editable Python package is current, all Pi companion packages are installed, and generated build/test artifacts and local Codex capture refs were removed.
+- What failed / drifted: direct MiniMax returned HTTP 402; Qwen and Droid smoke gates returned no exact response. User-global skill/marker copies on maeve-u1 remain stale because the project permission boundary denies external-directory writes; the canonical repository policy and runner remain current.
+- Routing rule to change: no model-routing change. Host deployment needs a preflight that proves SSH/Tailscale authentication and user-global write authorization before claiming rollout.
+- Skill/config update needed: no; this is host-specific handoff state.
+- Promoted to: none.
