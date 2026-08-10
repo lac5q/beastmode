@@ -29,7 +29,7 @@ assert_jq '.permission.bash["*"] == "ask"' "unmatched shell commands ask by defa
 assert_jq '.permission.external_directory == "deny"' "outside-repository access is denied"
 assert_jq '[.permission.bash["git push *"], .permission.bash["git push"], .permission.bash["git commit *"], .permission.bash["git commit"]] | all(. == "ask")' \
   "normal commit and push actions are yolo-approved asks"
-assert_jq '[.permission.bash["git push *--force*"], .permission.bash["git push *--delete*"], .permission.bash["git push *--mirror*"], .permission.bash["rm -rf *"], .permission.bash["sudo *"], .permission.bash["gh release *"], .permission.bash["npm publish *"]] | all(. == "deny")' \
+assert_jq '[.permission.bash["git push *--force*"], .permission.bash["git push *--delete*"], .permission.bash["git push *--mirror*"], .permission.bash["git push *-f*"], .permission.bash["git push *-F*"], .permission.bash["git push *-d*"], .permission.bash["git push *:*"], .permission.bash["git push *+*"], .permission.bash["rm -rf *"], .permission.bash["sudo *"], .permission.bash["gh release *"], .permission.bash["npm publish *"]] | all(. == "deny")' \
   "destructive push, release, privilege, and destructive commands are denied"
 assert_jq '[.permission.path["*.env"], .permission.path["**/.ssh/*"], .permission.path["**/*.pem"], .permission.path["**/credentials.json"]] | all(. == "deny")' \
   "representative secret paths are denied"

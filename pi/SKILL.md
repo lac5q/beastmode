@@ -46,7 +46,7 @@ with this skill at `~/.agents/skills/beastmode-pi/config/pi-permission-system.js
 `<repo>/.pi/extensions/pi-permission-system/config.json`, trust the project,
 and verify Pi reports that the project policy loaded. Missing, invalid, or
 skipped policy is a hard preflight failure. Never continue under only a global
-fallback. The canonical policy enables `yoloMode` (asks auto-approve) by operator directive. Normal `git commit`/`git push` actions are `ask` rules and therefore work in the director session; force/delete/mirror pushes, secrets, external paths, releases, privilege, and destructive commands remain hard-denied.
+fallback. The canonical policy enables `yoloMode` (asks auto-approve) by operator directive. Normal `git commit`/`git push` actions are `ask` rules and therefore work in the director session; force/delete/mirror pushes, short destructive flags and refspecs, secrets, external paths, releases, privilege, and destructive commands remain hard-denied. `scripts/bm` passes Pi `--approve` on every headless launch so the project-local policy is loaded instead of silently falling back to a global policy.
 
 ```bash
 mkdir -p .pi/extensions/pi-permission-system

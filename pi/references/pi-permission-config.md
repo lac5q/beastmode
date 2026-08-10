@@ -4,15 +4,16 @@ A project-level `@gotgenes/pi-permission-system` config that encodes the
 universal Beastmode worker contract. The published policy allows ordinary
 reads inside the repository and auto-approves routine asks via `yoloMode: true`.
 Normal director commits and pushes are `ask` rules, while force/delete/mirror
-pushes, secrets, external paths, publishing, and destructive commands remain
-hard-denied.
+pushes, short destructive flags, destructive refspecs, secrets, external paths,
+publishing, and destructive commands remain hard-denied.
 
 The canonical JSON is `pi/config/pi-permission-system.json`. Install that
 exact file at `<repo>/.pi/extensions/pi-permission-system/config.json` before
 starting a Beastmode Pi run. Project config overrides global config only after
 Pi marks the project trusted. If the file is absent, invalid, skipped because
 the project is untrusted, or diverges from the pinned policy digest, stop the
-run; prose is not a permission boundary.
+run; `scripts/bm` passes `--approve` on every headless launch so the project
+policy is loaded for that run; prose is not a permission boundary.
 
 From the repository root:
 
@@ -85,6 +86,11 @@ skipped.
       "git push *--force*": "deny",
       "git push *--delete*": "deny",
       "git push *--mirror*": "deny",
+      "git push *-f*": "deny",
+      "git push *-F*": "deny",
+      "git push *-d*": "deny",
+      "git push *:*": "deny",
+      "git push *+*": "deny",
       "rm -rf *": "deny",
       "sudo *": "deny",
       "gh pr create *": "deny",
@@ -107,6 +113,9 @@ first and specific overrides after. The universal and bash fallbacks are
 A `path` deny cannot be overridden by a per-tool allow — that is what makes
 it the right place to protect secrets from every tool at once.
 
+The destructive push rules cover long and short options plus force/delete
+refspecs; normal `git push origin branch` remains an ask rule.
+
 The credential-filename denies are intentionally narrow. Ordinary source,
 configuration, package manifests, and worker commands remain available; only
 files conventionally used to hold package, VCS, container, cloud, and cluster
@@ -120,8 +129,9 @@ The `path` surface matches both the path as referenced and its canonical
 **Interactive director session (default).** Ordinary `ask` actions
 auto-approve under `yoloMode`; the director reviews the permission log instead
 of answering live prompts. Normal commits and pushes are available to the
-director, while force/delete/mirror pushes, releases, destructive commands,
-secret paths, and external paths remain `deny`.
+director, while force/delete/mirror pushes, short destructive forms and
+refspecs, releases, destructive commands, secret paths, and external paths
+remain `deny`.
 
 **Worker session.** Worker contracts still forbid commits and pushes. The
 director owns staging, commit, push, and merge; the policy's normal Git `ask`

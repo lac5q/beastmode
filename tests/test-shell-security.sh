@@ -96,6 +96,8 @@ ok "high autonomy does not bypass Hermes or Claude permissions"
 
 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
   "$ROOT/scripts/bm" "inspect" --harness pi --frontier gpt5.6 --autonomy high >/dev/null
+grep -Fxq -- '--approve' "$args" \
+  || fail "Pi launcher did not force project trust for headless runs"
 grep -Fxq -- '--exclude-tools' "$args" \
   || fail "Pi high autonomy did not keep a read-only tool surface"
 grep -Fxq 'bash,edit,write' "$args" \

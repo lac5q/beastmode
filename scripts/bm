@@ -358,7 +358,10 @@ INTERVIEW_PROMPT=""
 [ "$INTERVIEW_MODE" != "off" ] && INTERVIEW_PROMPT="$(bm_interview_prompt "$INTERVIEW_MODE")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
 SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
-PI_ARGS=(--skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $INTERVIEW_PROMPT $SEAT_PROMPT")
+# Headless Beastmode must explicitly trust the project-local skill and policy
+# on every run.  This is a trust/loading invariant, not a permission bypass;
+# the canonical project policy still governs tools, paths, and bash commands.
+PI_ARGS=(--approve --skill ~/.agents/skills/beastmode-pi/SKILL.md --print --no-session --thinking "$THINKING" --append-system-prompt "$PHASE_PROMPT $MODEL_FAILURE_PROMPT $GATE_PROMPT $INTERVIEW_PROMPT $SEAT_PROMPT")
 if [ -n "$FRONTIER" ]; then
   PI_ARGS+=(--model "$FRONTIER")
 elif [ -n "$ECONOMY" ]; then
@@ -376,7 +379,6 @@ for seat_model in "$FRONTIER" "$ECONOMY"; do
   MODELS_CSV="${MODELS_CSV:+$MODELS_CSV,}$seat_model"
 done
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$MODELS_CSV")
-[ "$AUTONOMY" = "low" ]  && PI_ARGS+=(--approve)
 # High autonomy must still let the director inspect the repository. Disabling
 # every built-in tool made headless Luna runs unverifiable: the model could
 # neither read source nor search the worktree, while the workflow extensions

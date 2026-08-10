@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "3e82892022c947827afb17ee8db6b9c89fb5c4556b498c14307e09506aa8123d" \
+fetch_pinned "$URL" "$DEST" "4e4ef3a9fc0ee648a9696475632744a980ea796e55e78aef01fc5fa923794643" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
@@ -126,7 +126,7 @@ POLICY_DIR="${SKILL_DIR}/config"
 mkdir -p "$POLICY_DIR"
 POLICY_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/config/pi-permission-system.json"
 POLICY_DEST="${POLICY_DIR}/pi-permission-system.json"
-fetch_pinned "$POLICY_URL" "$POLICY_DEST" "171c3ecbc1654e10b9a27c598b6693db192df2d21a96c8f70d4ccead5961768d" \
+fetch_pinned "$POLICY_URL" "$POLICY_DEST" "3d372bb505d2da0af466b6ced70175598c282b2c7c4825a449f68a45a2f15053" \
   && chmod 600 "$POLICY_DEST" \
   && ok "permission policy template fetched and verified" \
   || { err "could not fetch or verify $POLICY_URL"; exit 1; }
@@ -153,11 +153,11 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="d1f4c559ed13f7e5a903bfa5b97b3da89c55e63bde5299e5e5f6640593a3c875" ;;
+    bm) HASH="19d9373dbba8887c1d3b4b324b3c4264bc04dadf57089de19fcd3c637dbd7cb7" ;;
     tier-aliases.json) HASH="e24c2cda8132220c1d0bb38c3bfd9ad090f9020a26e7d731d446c69fd2dd43a6" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
-    check-pi-agent-policy) HASH="26e63ea0371c7965bdcb04f22341bfcec9e8cdaac824b6c7f95310b0bd76c48e" ;;
+    check-pi-agent-policy) HASH="0173f561520831381738f955fb8fb2eda9c33ab2ecc4637f263a1ca579deac23" ;;
     lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
