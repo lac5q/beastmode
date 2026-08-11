@@ -78,6 +78,14 @@ available alternatives so you can pick a working alias without losing the
 goal to a mid-run crash. Skip with `BM_SKIP_MODEL_CHECK=1` (CI / scripted
 runs where `pi` may not be installed).
 
+For Pi, the friendly `luna-max` seat stays on the canonical authenticated
+`openai-codex/gpt-5.6-luna` provider. Do not infer that an installed
+`pi-vibeproxy` extension is authenticated: a provider can appear in
+`pi --list-models` and still reject the run at dispatch time. A host that has
+independently verified VibeProxy authentication may opt in with
+`BM_PI_LUNA_PROVIDER=vibeproxy`; qualified `--economy provider/model` inputs
+remain untouched.
+
 Telegram supervision is optional. `/telegram-setup` is interactive and needs a
 bot token from `@BotFather`; if it was never completed, skip telegram silently
 rather than blocking a run on it.

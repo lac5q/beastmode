@@ -166,16 +166,27 @@ echo "$out" | grep -q "requested model(s) not available" \
   && fail "implicit Luna Max preflight failed"
 ok "implicit Luna Max economy seat passed preflight"
 
-# Test 8: Pi translates its friendly Luna worker seat to the reachable
-# VibeProxy Chat Completions provider while preserving the Luna model pin.
-echo "Test 8: Pi friendly Luna alias uses vibeproxy"
+# Test 8: Pi keeps its friendly Luna worker seat on the canonical authenticated
+# openai-codex provider unless a fleet host explicitly opts into another lane.
+echo "Test 8: Pi friendly Luna alias uses openai-codex"
 pi_args="$TMP/pi-args"
 out="$(BM_SKIP_MODEL_CHECK=0 BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" \
   --autonomy low --interview off 2>&1)"
 grep -Fxq -- '--model' "$pi_args" || fail "Pi invocation omitted the model pin"
+grep -Fxq 'openai-codex/gpt-5.6-luna' "$pi_args" \
+  || fail "Pi friendly Luna seat did not use openai-codex"
+ok "Pi friendly Luna alias retained openai-codex"
+
+# Test 8a: a host with an authenticated managed extension can explicitly opt
+# the friendly Pi alias into vibeproxy without changing the model pin.
+echo "Test 8a: Pi Luna provider override uses vibeproxy"
+pi_args="$TMP/pi-vibeproxy-args"
+out="$(BM_SKIP_MODEL_CHECK=0 BM_PI_LUNA_PROVIDER=vibeproxy \
+  BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" \
+  --autonomy low --interview off 2>&1)"
 grep -Fxq 'vibeproxy/gpt-5.6-luna' "$pi_args" \
-  || fail "Pi friendly Luna seat did not use vibeproxy"
-ok "Pi friendly Luna alias translated to vibeproxy"
+  || fail "Pi Luna provider override did not use vibeproxy"
+ok "Pi Luna provider override preserved"
 
 # Test 8b: high autonomy advances gates automatically but must not strip the
 # implementation tools from the Pi worker. The project permission policy is

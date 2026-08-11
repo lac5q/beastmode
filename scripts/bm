@@ -271,15 +271,14 @@ if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
   && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
   ECONOMY="vibeproxy/gpt-5.6-luna"
 fi
-# Pi hosts in this fleet have the managed pi-vibeproxy extension.  Its
-# OpenAI-compatible Chat Completions route is reachable from Main-Mac and
-# Maeve, while the ChatGPT Responses endpoint used by openai-codex can hang
-# behind those hosts' egress path.  Keep the model pin (GPT-5.6 Luna, max
-# reasoning) but use the reachable provider for the implicit/friendly worker
-# seat.  A qualified provider/model remains an explicit operator choice.
+# Pi's authenticated Luna seat is exposed through the openai-codex provider on
+# the current fleet.  Keep that canonical alias by default and allow an
+# operator to opt into vibeproxy only on a host where its managed extension is
+# known to be authenticated.  A qualified provider/model remains an explicit
+# operator choice.
 if [ "$HARNESS" = "pi" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
   && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
-  PI_LUNA_PROVIDER="${BM_PI_LUNA_PROVIDER:-vibeproxy}"
+  PI_LUNA_PROVIDER="${BM_PI_LUNA_PROVIDER:-openai-codex}"
   case "$PI_LUNA_PROVIDER" in
     vibeproxy|openai-codex) ;;
     *)
