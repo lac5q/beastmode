@@ -7,6 +7,7 @@
   "opus":         { "provider": "anthropic",   "model": "claude-opus-4-7",    "tier": "frontier", "family": "anthropic" },
   "opus5":        { "provider": "anthropic",   "model": "claude-opus-4-8",    "tier": "frontier", "family": "anthropic" },
   "sonnet":       { "provider": "anthropic",   "model": "claude-sonnet-4-6",  "tier": "frontier", "family": "anthropic" },
+  "sonnet5":      { "provider": "anthropic",   "model": "claude-sonnet-5",    "tier": "frontier", "family": "anthropic" },
   "gpt5.5":       { "provider": "openai-codex", "model": "gpt-5.5",           "tier": "frontier", "family": "openai-codex" },
   "gpt5.6":       { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "frontier", "family": "openai-codex" },
   "sol":          { "provider": "openai-codex", "model": "gpt-5.6-sol",       "tier": "frontier", "family": "openai-codex" },

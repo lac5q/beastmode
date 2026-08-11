@@ -613,11 +613,16 @@ case "$HARNESS" in
     # bytes never become argv or shell source, and the wrapper scrubs ambient
     # Anthropic API credentials before invoking the signed-in CLI lane.
     CLAUDE_MODEL="${CLAUDE_MODEL:-${FRONTIER#*/}}"
-    if [ -n "$CLAUDE_MODEL" ]; then
-      printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro" --model "$CLAUDE_MODEL"
-    else
-      printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro"
-    fi
+    # --thinking is a beastmode-wide scale; the Claude CLI's --effort has no
+    # sub-`low` step, so the two floor levels collapse onto `low` rather than
+    # being dropped silently.
+    case "$THINKING" in
+      none|minimal) CLAUDE_EFFORT="low" ;;
+      *)            CLAUDE_EFFORT="$THINKING" ;;
+    esac
+    CLAUDE_ARGS=(--effort "$CLAUDE_EFFORT")
+    [ -n "$CLAUDE_MODEL" ] && CLAUDE_ARGS+=(--model "$CLAUDE_MODEL")
+    printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro" "${CLAUDE_ARGS[@]}"
     ;;
   codex)
     # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.
