@@ -121,7 +121,7 @@ Beastmode's execution fan-out is **ACN**: async parallel sub-agents. Every suppo
 |---|---|---|
 | **Hermes** | `delegate_task` background + batch (default 3 concurrent, live transcripts, `/agents` overlay, orchestrator children) | `adapters/hermes/SKILL.md` |
 | **Pi** | `pi-dynamic-workflows` `agent()` / `parallel()` / worktrees | `pi/SKILL.md` |
-| **Claude Code** | Task subagents, `/batch` worktrees, parallel `claude -p` | `adapters/claude-code/SKILL.md` |
+| **Claude Code** | Task subagents, `/batch` worktrees, one `claude -p` watcher | `adapters/claude-code/SKILL.md` |
 | **Codex** | parallel `codex exec` + worktrees, external cheap lanes | `adapters/codex/SKILL.md` |
 | **LangGraph** | `StateGraph` + `Send` fan-out, checkpointed `interrupt()` gates, subprocess executors | `adapters/langgraph/SKILL.md` |
 
@@ -138,18 +138,27 @@ The shared rules (all harnesses):
 
 ### Luna Max throughput and Claude subscription validation
 
-`luna-max` is the approved low-cost worker alias: `openai-codex/gpt-5.6-luna`
-with `reasoning=max`. Use ACN's default concurrency of three for independent
+`luna-max` resolves to `openai-codex/gpt-5.6-luna` with `reasoning=max`.
+
+Grok is budget-gated. The `bm` launcher treats `40%` weekly remaining as a
+hard floor and fails closed to `luna-max` for any explicit Grok seat unless
+`BEASTMODE_GROK_WEEKLY_REMAINING_PCT` and its Unix timestamp companion
+`BEASTMODE_GROK_WEEKLY_REMAINING_AT` are set from a current provider dashboard
+reading at or above that floor. Readings older than seven days, absent values,
+and malformed values intentionally use Luna Max. The age window can be
+shortened with `BEASTMODE_GROK_MAX_READING_AGE_SECONDS`.
+Use ACN's default concurrency of three for independent
 Luna slices, with a pinned model and a per-child `meta.json`; do not create
 duplicate slices just to increase the count. Close each batch with one
 mechanical report and one judgment watcher.
 
-Claude Pro/Max validation is a separate, explicit lane. Run one watcher only
-through `bm --harness claude --frontier fable|opus|opus5
---claude-subscription`, which invokes `claude -p --permission-mode plan` and
-uses the signed-in subscription quota. The switch rejects non-Claude harnesses
-and multi-seat Claude fan-out, so subscription quota is never consumed by
-bulk workers.
+Claude Pro/Max validation is a separate, single-seat lane. When the active
+director seat resolves to the `anthropic` family, `bm` automatically routes it
+through `claude -p --permission-mode plan` and the signed-in subscription
+lane; it does not fall back to API OAuth. Multiple Anthropic seats fail closed
+so the subscription lane cannot become bulk worker fan-out. The explicit
+`--claude-subscription` flag remains available when a caller wants that
+single-seat choice visible in the command line.
 
 ## Choosing Your Harness
 
@@ -163,7 +172,7 @@ Parses `--harness hermes|pi|claude|codex|langgraph` (default `pi`), `--gsd`,
 `--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
 aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
 `kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `luna-max` →
-`openai-codex/gpt-5.6-luna`, `grok` → `xai-oauth/grok-4.5`, etc. Override per-repo
+`openai-codex/gpt-5.6-luna`, `grok` → `xai/grok-4.5`, etc. Override per-repo
 with the user-global `~/.beastmode/tier-aliases.json`. Repository-local
 aliases are ignored unless the operator explicitly sets
 `BM_TRUST_REPO_ALIASES=1` after review. See `scripts/bm` and
@@ -239,7 +248,7 @@ forfeits that.
 
 **Use when:** You're in Claude Code and want to spawn subagents for routine work.
 
-> **v2.2:** Use the adapter at `adapters/claude-code/SKILL.md` (Task, `/batch` worktrees, parallel `claude -p`, permission-mode autonomy mapping) via `bm "<goal>" --harness claude`.
+> **v2.2:** Use the adapter at `adapters/claude-code/SKILL.md` (Task, `/batch` worktrees, one `claude -p` watcher, permission-mode autonomy mapping) via `bm "<goal>" --harness claude`.
 
 **Example:**
 ```bash

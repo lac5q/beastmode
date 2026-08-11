@@ -6,17 +6,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# This suite uses fake harnesses and never contacts Anthropic. Explicitly
-# authorize its synthetic Claude seat so the production subscription breaker
-# does not mask the shell-argument assertions; the breaker itself is tested in
-# test-bm-model-check.sh.
-export BM_ALLOW_CLAUDE_OAUTH=1
+# This suite uses fake harnesses and never contacts Anthropic. Anthropic
+# routing is intentionally tested without any API-OAuth bypass environment.
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "ok: $*"; }
 
 mkdir -p "$TMP/bin" "$TMP/repo/.beastmode" \
   "$TMP/repo/.pi/extensions/pi-permission-system"
+git -C "$TMP/repo" init -q
 cp "$ROOT/pi/config/pi-permission-system.json" \
   "$TMP/repo/.pi/extensions/pi-permission-system/config.json"
 cat > "$TMP/bin/pi" <<'EOF'
@@ -35,6 +33,9 @@ exit 0
 EOF
 cat > "$TMP/bin/claude" <<'EOF'
 #!/usr/bin/env bash
+if [ -n "${BM_CLAUDE_ENV:-}" ]; then
+  env | grep -E '^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL|BM_ALLOW_CLAUDE_OAUTH)=' > "$BM_CLAUDE_ENV" || true
+fi
 printf '%s\n' "$@" > "$BM_TEST_ARGS"
 exit 0
 EOF
@@ -63,7 +64,7 @@ args="$TMP/args"
   BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
     "$ROOT/scripts/bm" "inspect" --frontier opus >/dev/null
 )
-grep -Fxq 'anthropic/claude-opus-4-7' "$args" \
+grep -Fxq 'claude-opus-4-7' "$args" \
   || fail "repository alias overrode the shipped frontier alias without explicit trust"
 ok "repository aliases cannot downgrade a model by default"
 
@@ -98,14 +99,10 @@ BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
   "$ROOT/scripts/bm" "inspect" --harness pi --frontier gpt5.6 --autonomy high >/dev/null
 grep -Fxq -- '--approve' "$args" \
   || fail "Pi launcher did not force project trust for headless runs"
-grep -Fxq -- '--exclude-tools' "$args" \
-  || fail "Pi high autonomy did not keep a read-only tool surface"
-grep -Fxq 'bash,edit,write' "$args" \
-  || fail "Pi high autonomy did not exclude mutation-capable built-ins"
-if grep -Fxq -- '--no-builtin-tools' "$args"; then
-  fail "Pi high autonomy disabled repository read tools"
+if grep -Fxq -- '--exclude-tools' "$args" || grep -Fxq -- '--no-builtin-tools' "$args"; then
+  fail "Pi high autonomy disabled implementation or repository tools"
 fi
-ok "Pi high autonomy keeps evidence access without mutation tools"
+ok "Pi high autonomy retains implementation tools under project policy"
 
 codex_env="$TMP/codex.env"
 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" BM_TEST_ENV="$codex_env" PATH="$TMP/bin:$PATH" \
@@ -154,6 +151,26 @@ set -e
 grep -q 'prompts are accepted only on stdin' <<< "$claude_injection_out" \
   || fail "claude-pro flag rejection was not explicit"
 ok "claude-pro rejects option-shaped prompt injection"
+
+set +e
+claude_model_out="$(printf '%s' 'inspect' | BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/claude-pro" --model '../opus' 2>&1)"
+claude_model_rc=$?
+set -e
+[ "$claude_model_rc" -eq 2 ] || fail "claude-pro accepted a path-shaped model id"
+grep -q 'bare Claude model id or alias' <<< "$claude_model_out" \
+  || fail "claude-pro model-format rejection was not explicit"
+ok "claude-pro rejects path-shaped model identifiers"
+
+claude_env="$TMP/claude.env"
+printf '%s' 'inspect' | BM_CLAUDE_ENV="$claude_env" \
+  ANTHROPIC_API_KEY='should-not-forward' \
+  ANTHROPIC_AUTH_TOKEN='should-not-forward' \
+  ANTHROPIC_BASE_URL='https://custom.invalid' \
+  BM_ALLOW_CLAUDE_OAUTH=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/claude-pro" >/dev/null
+[ ! -s "$claude_env" ] || fail "claude-pro forwarded ambient Anthropic credentials or API-OAuth authorization"
+ok "claude-pro scrubs ambient Anthropic API credentials and endpoint overrides"
 
 set +e
 cache_out="$(ANTHROPIC_AUTH_TOKEN='do-not-forward' \

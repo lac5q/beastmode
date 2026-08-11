@@ -11,7 +11,7 @@
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
 #   bm "<goal>" --autonomy low|medium|high   # default medium
 #   bm "<goal>" --interview full|batched|assumptions|off # goal interview mode
-#   bm "<goal>" --claude-subscription       # authorize one Claude Pro/Max watcher
+#   bm "<goal>" --claude-subscription       # explicitly assert one Claude subscription seat
 #   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
 #      --attestor-command /trusted/attest --validator-command /trusted/validate \
 #      --reviewer-command /trusted/review
@@ -152,6 +152,13 @@ PY
   return 2
 }
 
+is_anthropic_seat() {
+  case "$1" in
+    anthropic/*|claude-pro-lane/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 usage() {
   sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
   exit 2
@@ -264,12 +271,123 @@ if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
   && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
   ECONOMY="vibeproxy/gpt-5.6-luna"
 fi
+# Pi hosts in this fleet have the managed pi-vibeproxy extension.  Its
+# OpenAI-compatible Chat Completions route is reachable from Main-Mac and
+# Maeve, while the ChatGPT Responses endpoint used by openai-codex can hang
+# behind those hosts' egress path.  Keep the model pin (GPT-5.6 Luna, max
+# reasoning) but use the reachable provider for the implicit/friendly worker
+# seat.  A qualified provider/model remains an explicit operator choice.
+if [ "$HARNESS" = "pi" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
+  && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
+  PI_LUNA_PROVIDER="${BM_PI_LUNA_PROVIDER:-vibeproxy}"
+  case "$PI_LUNA_PROVIDER" in
+    vibeproxy|openai-codex) ;;
+    *)
+      echo "bm: BM_PI_LUNA_PROVIDER must be vibeproxy or openai-codex (got: $PI_LUNA_PROVIDER)" >&2
+      exit 2
+      ;;
+  esac
+  ECONOMY="$PI_LUNA_PROVIDER/gpt-5.6-luna"
+fi
 if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
 
-# Claude Pro/Max is an explicit, single-seat watcher path. It uses
-# `claude -p` and the signed-in subscription quota, not the Anthropic API
-# OAuth pool. Keep this opt-in and fail closed if a caller turns it into a
-# multi-seat fan-out or uses a different harness.
+# Grok is a deliberately budgeted frontier lane.  There is no portable
+# provider API for a weekly remaining percentage, so the operator can expose
+# the latest dashboard reading as BEASTMODE_GROK_WEEKLY_REMAINING_PCT plus its
+# Unix timestamp in BEASTMODE_GROK_WEEKLY_REMAINING_AT.  Fail closed when
+# either value is absent or stale: an explicit Grok seat is replaced with the
+# pinned Luna Max economy model unless we can prove at least the 40% weekly
+# floor from a reading no older than seven days.  This keeps an abandoned
+# quota value from silently burning the remaining Grok allowance.
+GROK_MIN_WEEKLY_REMAINING_PCT="${BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT:-40}"
+GROK_WEEKLY_REMAINING_PCT="${BEASTMODE_GROK_WEEKLY_REMAINING_PCT:-}"
+GROK_WEEKLY_REMAINING_AT="${BEASTMODE_GROK_WEEKLY_REMAINING_AT:-}"
+GROK_MAX_READING_AGE_SECONDS="${BEASTMODE_GROK_MAX_READING_AGE_SECONDS:-604800}"
+if ! [[ "$GROK_MIN_WEEKLY_REMAINING_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]] || \
+  ! awk -v value="$GROK_MIN_WEEKLY_REMAINING_PCT" 'BEGIN { exit !(value >= 0 && value <= 100) }'; then
+  echo "bm: BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT must be a number from 0 to 100" >&2
+  exit 2
+fi
+if [ -n "$GROK_WEEKLY_REMAINING_PCT" ] && \
+  { ! [[ "$GROK_WEEKLY_REMAINING_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]] || \
+    ! awk -v value="$GROK_WEEKLY_REMAINING_PCT" 'BEGIN { exit !(value >= 0 && value <= 100) }'; }; then
+  echo "bm: BEASTMODE_GROK_WEEKLY_REMAINING_PCT must be a number from 0 to 100" >&2
+  exit 2
+fi
+if ! [[ "$GROK_MAX_READING_AGE_SECONDS" =~ ^[0-9]+$ ]]; then
+  echo "bm: BEASTMODE_GROK_MAX_READING_AGE_SECONDS must be a non-negative integer" >&2
+  exit 2
+fi
+if [ -n "$GROK_WEEKLY_REMAINING_AT" ] && ! [[ "$GROK_WEEKLY_REMAINING_AT" =~ ^[0-9]+$ ]]; then
+  echo "bm: BEASTMODE_GROK_WEEKLY_REMAINING_AT must be a Unix timestamp" >&2
+  exit 2
+fi
+if [[ "$FRONTIER" == xai/grok-4.5 || "$ECONOMY" == xai/grok-4.5 || "$WATCHER" == xai/grok-4.5 ]]; then
+  grok_budget_ok=0
+  if [ -n "$GROK_WEEKLY_REMAINING_PCT" ] && [ -n "$GROK_WEEKLY_REMAINING_AT" ] && \
+    awk -v remaining="$GROK_WEEKLY_REMAINING_PCT" -v minimum="$GROK_MIN_WEEKLY_REMAINING_PCT" 'BEGIN { exit !(remaining >= minimum) }'; then
+    GROK_NOW="$(date +%s)"
+    GROK_READING_AGE=$((GROK_NOW - GROK_WEEKLY_REMAINING_AT))
+    if [ "$GROK_READING_AGE" -ge 0 ] && [ "$GROK_READING_AGE" -le "$GROK_MAX_READING_AGE_SECONDS" ]; then
+      grok_budget_ok=1
+    fi
+  fi
+  if [ "$grok_budget_ok" -eq 0 ]; then
+    LUNA_BUDGET_MODEL="$(resolve_alias "luna-max")"
+    echo "bm: Grok weekly budget is below ${GROK_MIN_WEEKLY_REMAINING_PCT}% or unverified/stale; switching every Grok seat to ${LUNA_BUDGET_MODEL}" >&2
+    [ "$FRONTIER" = "xai/grok-4.5" ] && FRONTIER="$LUNA_BUDGET_MODEL"
+    [ "$ECONOMY" = "xai/grok-4.5" ] && ECONOMY="$LUNA_BUDGET_MODEL"
+    [ "$WATCHER" = "xai/grok-4.5" ] && WATCHER="$LUNA_BUDGET_MODEL"
+  fi
+fi
+
+# Anthropic's active director seat is a Claude Code CLI lane. Keep the
+# subscription-backed path single-seat and read-only: it must never become a
+# bulk worker fan-out or silently fall back to the Anthropic API OAuth pool.
+ANTHROPIC_SEAT_COUNT=0
+ANTHROPIC_SEAT_ROLE=""
+CLAUDE_MODEL=""
+CLAUDE_PRINT_MODE=0
+for seat_role in frontier economy watcher; do
+  case "$seat_role" in
+    frontier) seat="$FRONTIER" ;;
+    economy)  seat="$ECONOMY" ;;
+    watcher)  seat="$WATCHER" ;;
+  esac
+  [ -z "$seat" ] && continue
+  if is_anthropic_seat "$seat"; then
+    ANTHROPIC_SEAT_COUNT=$((ANTHROPIC_SEAT_COUNT + 1))
+    ANTHROPIC_SEAT_ROLE="${ANTHROPIC_SEAT_ROLE:+$ANTHROPIC_SEAT_ROLE,}$seat_role"
+  fi
+done
+
+if [ "$ANTHROPIC_SEAT_COUNT" -gt 1 ]; then
+  echo "bm: found $ANTHROPIC_SEAT_COUNT Anthropic seats ($ANTHROPIC_SEAT_ROLE); the Claude -p subscription lane accepts exactly one seat" >&2
+  echo "bm: keep economy work on Luna Max and run any additional Claude review as a separate, deliberate invocation" >&2
+  exit 2
+fi
+
+if [ "$ANTHROPIC_SEAT_COUNT" -eq 1 ]; then
+  if is_anthropic_seat "$FRONTIER"; then
+    CLAUDE_MODEL="${FRONTIER#*/}"
+  elif [ -z "$FRONTIER" ] && is_anthropic_seat "$ECONOMY"; then
+    CLAUDE_MODEL="${ECONOMY#*/}"
+  else
+    echo "bm: an Anthropic seat is configured as $ANTHROPIC_SEAT_ROLE, but the active director is non-Anthropic" >&2
+    echo "bm: put the Claude model in --frontier or run the Claude review separately through claude -p" >&2
+    exit 2
+  fi
+  CLAUDE_PRINT_MODE=1
+  if [ "$HARNESS" != "claude" ]; then
+    echo "bm: Anthropic seat detected; routing the director through claude -p --permission-mode plan (single seat)" >&2
+    HARNESS="claude"
+  fi
+fi
+
+# Claude Pro/Max remains an explicit assertion for callers that want the
+# subscription lane called out in their command line. Automatic Anthropic
+# routing above already selects the same lane; do not export a generic API
+# OAuth bypass flag into the child process.
 if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
   if [ "$HARNESS" != "claude" ]; then
     echo "bm: --claude-subscription requires --harness claude" >&2
@@ -278,9 +396,8 @@ if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
   claude_seats=0
   for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
     [ -z "$seat" ] && continue
-    case "$seat" in
-      anthropic/*|*claude*) claude_seats=$((claude_seats + 1)) ;;
-    esac
+    is_anthropic_seat "$seat" || continue
+    claude_seats=$((claude_seats + 1))
   done
   if [ "$claude_seats" -ne 1 ]; then
     echo "bm: --claude-subscription requires exactly one Claude seat, got $claude_seats" >&2
@@ -290,28 +407,17 @@ if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
     echo "bm: --claude-subscription requires --frontier fable|opus|opus5 to pin the watcher model" >&2
     exit 2
   fi
-  export BM_ALLOW_CLAUDE_OAUTH=1
 fi
 
-# Circuit breaker: never fan out a Claude seat on subscription OAuth (the
-# ToS-ban pattern). OAuth path = ANTHROPIC_API_KEY unset. Interactive runs may
-# approve via prompt; non-interactive (subagent/Codex) must be pre-authorized
-# with BM_ALLOW_CLAUDE_OAUTH=1 by Luis. ponytail: one gate covers all seats.
+# Circuit breaker: if an Anthropic seat ever reaches an API-style harness,
+# never ask an interactive user to approve subscription OAuth as a fallback.
+# Automatic routing above should make this unreachable for the normal path.
 for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
   [ -z "$seat" ] && continue
-  case "$seat" in
-    anthropic/*|*claude*) ;;
-    *) continue ;;
-  esac
-  [ -n "${ANTHROPIC_API_KEY:-}" ] && continue          # API-key billing: fine
-  [ "${BM_ALLOW_CLAUDE_OAUTH:-0}" = "1" ] && continue  # pre-authorized by Luis
-  if [ -t 0 ] && [ -t 1 ]; then
-    printf 'bm: BREAKER: seat "%s" is a Claude model on subscription OAuth (no ANTHROPIC_API_KEY).\n' "$seat" >&2
-    printf 'bm: Fan-out of Claude seats on OAuth risks the Anthropic ToS ban. Authorize this run? [y/N] ' >&2
-    read -r _bm_oauth_ok
-    case "$_bm_oauth_ok" in y|Y|yes) continue ;; esac
-  fi
-  echo "bm: BREAKER: blocked Claude OAuth seat '$seat'. Luis must re-run with BM_ALLOW_CLAUDE_OAUTH=1 after approval." >&2
+  is_anthropic_seat "$seat" || continue
+  [ "$CLAUDE_PRINT_MODE" = "1" ] && continue
+  [ -n "${ANTHROPIC_API_KEY:-}" ] && continue          # API-key billing: explicit API lane
+  echo "bm: BREAKER: blocked Claude OAuth seat '$seat'; Anthropic seats must use the single-seat claude -p plan lane" >&2
   exit 3
 done
 
@@ -379,13 +485,11 @@ for seat_model in "$FRONTIER" "$ECONOMY"; do
   MODELS_CSV="${MODELS_CSV:+$MODELS_CSV,}$seat_model"
 done
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$MODELS_CSV")
-# High autonomy must still let the director inspect the repository. Disabling
-# every built-in tool made headless Luna runs unverifiable: the model could
-# neither read source nor search the worktree, while the workflow extensions
-# remained loaded. Keep the read/search built-ins and fail closed on mutation;
-# the project permission policy continues to govern bash/MCP and all external
-# paths.
-[ "$AUTONOMY" = "high" ] && PI_ARGS+=(--exclude-tools bash,edit,write)
+# Autonomy controls phase-gate progression, not tool availability. The
+# project-local permission policy already auto-approves ordinary repository
+# edits and commands while denying secrets, external paths, destructive Git,
+# privilege escalation, and publishing. Excluding bash/edit/write here made
+# high-autonomy Luna workers read-only and unable to implement their contract.
 
 # Remote dispatch: hand the goal to the selected remote host over SSH and tail the goal log.
 # ponytail: foreground SSH so the user sees the live goal stream. If they want
@@ -464,8 +568,23 @@ case "$HARNESS" in
     exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
     ;;
   pi)
+    # `bm` is commonly launched from a shell home directory (especially via
+    # SSH).  Resolve a trusted repository before the permission preflight and
+    # before Pi starts, rather than checking a relative `.pi/` path in `$PWD`.
+    # An explicit BM_PROJECT_ROOT is preferred; otherwise use the enclosing
+    # Git worktree.  Fail closed when neither is available.
+    PI_PROJECT_ROOT="${BM_PROJECT_ROOT:-}"
+    if [ -z "$PI_PROJECT_ROOT" ]; then
+      PI_PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+    fi
+    if [ -z "$PI_PROJECT_ROOT" ] || [ ! -d "$PI_PROJECT_ROOT" ]; then
+      echo "bm: Pi requires a trusted Git worktree; run from the repo or set BM_PROJECT_ROOT" >&2
+      exit 2
+    fi
+    PI_PROJECT_ROOT="$(cd -- "$PI_PROJECT_ROOT" && pwd -P)"
+    cd -- "$PI_PROJECT_ROOT"
     PI_POLICY_CHECK="$SCRIPT_DIR/check-pi-agent-policy"
-    if [ ! -x "$PI_POLICY_CHECK" ] || ! "$PI_POLICY_CHECK" "$PWD"; then
+    if [ ! -x "$PI_POLICY_CHECK" ] || ! "$PI_POLICY_CHECK" "$PI_PROJECT_ROOT"; then
       echo "bm: Pi agent permission preflight failed" >&2
       exit 2
     fi
@@ -491,16 +610,15 @@ case "$HARNESS" in
     exec hermes "${H_ARGS[@]}"
     ;;
   claude)
-    # Claude Code: print-mode one-shot. Adapter: adapters/claude-code/SKILL.md.
-    # ponytail: the claude CLI takes a bare model id, not provider/model —
-    # `--frontier opus` resolves to anthropic/claude-opus-4-7 and the CLI
-    # rejects the provider half. Strip it here, the way the hermes branch
-    # already splits provider from model, instead of asking the caller to
-    # remember which harness wants which form.
-    C_ARGS=(-p "$FULL_PROMPT")
-    [ -n "$FRONTIER" ] && C_ARGS+=(--model "${FRONTIER#*/}")
-    # Claude's normal permission controls remain active at every autonomy.
-    exec claude "${C_ARGS[@]}"
+    # Claude Code: always use the read-only stdin/plan-mode wrapper. Prompt
+    # bytes never become argv or shell source, and the wrapper scrubs ambient
+    # Anthropic API credentials before invoking the signed-in CLI lane.
+    CLAUDE_MODEL="${CLAUDE_MODEL:-${FRONTIER#*/}}"
+    if [ -n "$CLAUDE_MODEL" ]; then
+      printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro" --model "$CLAUDE_MODEL"
+    else
+      printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro"
+    fi
     ;;
   codex)
     # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.

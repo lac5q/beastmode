@@ -20,7 +20,7 @@ the canonical `beastmode` skill (v2.5.0) — load it first and follow it.
 |---|---|
 | Director (frontier) | The Claude Code session itself — frontier, e.g. opus or fable |
 | Watcher (frontier) | A second frontier session, prefer cross-family via an external lane |
-| Executor (economy) | Task subagents, or parallel `claude -p --model <economy>` lanes |
+| Executor (economy) | Task subagents, or explicitly pinned non-Anthropic economy lanes |
 | Loop engine | Director self-prompts between subagent results |
 | Anti-spin | Director judgment + usage budget; abort on 3 identical blockers |
 | Worker-contract enforcer | Claude permission defaults plus a starter worker contract in the prompt; autonomy never weakens permissions |
@@ -35,11 +35,10 @@ Task tool plus parallel `claude -p` invocations.
 Task spawns an in-session subagent (multiple Task calls in one turn run
 sequentially). `/batch` fans worktree-isolated tasks out across separate
 sessions for large parallel changes; each task gets its own branch and
-worktree. Multiple background tmux / `claude -p` processes are the
-parallel-of-parallel lane: each runs in its own shell, writes its own
-out-file, director consolidates — one process per task keeps
-prompt-cache locality. The director (this session) is always the merge
-gate; workers never apply their own patches back without explicit approval.
+worktree. Other economy workers may run in parallel background shells, but
+the subscription-backed `claude -p` lane is one director/watcher seat only.
+The director (this session) is always the merge gate; workers never apply
+their own patches back without explicit approval.
 
 ## MODEL PINNING (hard rule)
 
@@ -68,9 +67,13 @@ rate-limited API OAuth pool. Reserve it for **watcher judgment** and
 route through a different lane (qwen, MiniMax via API, droid MiniMax)
 and pin the model explicitly so the run record proves the actual model.
 
-When the operator explicitly authorizes subscription-backed validation, use
-the single-seat switch below. It routes through `claude -p` and the signed-in
-claude.ai Pro/Max quota, not the Anthropic API OAuth pool:
+The `bm` runner automatically selects this single-seat lane when the active
+director seat belongs to the Anthropic family. It fails closed on multiple
+Anthropic seats and does not use API OAuth as a fallback.
+
+When the operator wants the subscription choice explicit in the command line,
+use the single-seat switch below. It routes through `claude -p` and the
+signed-in claude.ai Pro/Max quota, not the Anthropic API OAuth pool:
 
 ```bash
 bm "read-only review of the phase report and diff" \
@@ -149,7 +152,8 @@ gate; exit 1 means drift or unverifiable.
    verification commands / manual QA / escalation triggers /
    self-improvement log path.
 4. Fan out with Task for in-session subagents, `/batch` for worktree
-   fan-out, parallel `claude -p` for independent cross-session lanes.
+   fan-out, parallel non-Anthropic economy lanes, and one `claude -p` watcher
+   or verifier pass when the Anthropic family is selected.
    Pass the worker contract verbatim; append the task-specific objective
    last.
 5. Wait for children. Read each child's `actual_model` against the

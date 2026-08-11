@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "4e4ef3a9fc0ee648a9696475632744a980ea796e55e78aef01fc5fa923794643" \
+fetch_pinned "$URL" "$DEST" "a018b6f3b1086608a3056dbfbd0461e56dfb0fc171eb32ff85616886ece62fb7" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
@@ -153,10 +153,10 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="19d9373dbba8887c1d3b4b324b3c4264bc04dadf57089de19fcd3c637dbd7cb7" ;;
-    tier-aliases.json) HASH="e24c2cda8132220c1d0bb38c3bfd9ad090f9020a26e7d731d446c69fd2dd43a6" ;;
+    bm) HASH="9726fcb97994ce678bfdc16fc85ca80fd41f40c087aa57764ee048c9fb8b8060" ;;
+    tier-aliases.json) HASH="7780db7a654e43ed684f31ceadbc2131d3a7e56bda2d9cef0a6684c15f409078" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
-    claude-pro) HASH="d2b21f17837ebcbdbdd9d5b516a1aa704c5d6d1eac854bee0a2ebac1828e95d2" ;;
+    claude-pro) HASH="4dd470df5b749259bf12d9efe00b27641b30c8452f571c2b410f88d51888b608" ;;
     check-pi-agent-policy) HASH="0173f561520831381738f955fb8fb2eda9c33ab2ecc4637f263a1ca579deac23" ;;
     lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
   esac

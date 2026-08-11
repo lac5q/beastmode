@@ -47,6 +47,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -z "$MODEL" || "$MODEL" == -* || "$MODEL" == */* || "$MODEL" =~ [[:space:][:cntrl:]] ]]; then
+  echo "claude-pro: --model must be a bare Claude model id or alias" >&2
+  exit 2
+fi
+
 PROMPT="$(cat)"
 
 if [[ -z "$PROMPT" ]]; then
@@ -56,4 +61,9 @@ fi
 
 # This wrapper is a watcher/verifier lane. Plan mode keeps it useful for
 # read-only judgment while failing closed instead of granting unattended tools.
+# The signed-in Claude Code lane must not inherit an API token, custom API
+# endpoint, or Beastmode's legacy API-OAuth authorization marker. Clearing
+# these values prevents an Anthropic seat from silently taking an API path.
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL BM_ALLOW_CLAUDE_OAUTH
+
 printf '%s' "$PROMPT" | claude -p --permission-mode plan --model "$MODEL"

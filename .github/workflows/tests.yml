@@ -1,13 +1,16 @@
 name: tests
 
 # Beastmode's whole premise is that nothing is validated until a gate says so.
-# Running that gate on every push is the least the repo can do for itself.
+# Running that gate on every push and once nightly catches both code regressions
+# and environment-sensitive launcher drift before a downstream rollout.
 
 on:
   push:
     branches: ["**"]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "43 10 * * *"
 
 permissions:
   contents: read

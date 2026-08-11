@@ -31,7 +31,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `gpt5.6` | `openai-codex` | `gpt-5.6-luna` | frontier | openai-codex | Latest Codex frontier (luna profile). |
 | `sol` | `openai-codex` | `gpt-5.6-sol` | frontier | openai-codex | Validator profile; use `--thinking medium`. |
 | `terra` | `openai-codex` | `gpt-5.6-terra` | frontier | openai-codex | Lead profile; use `--thinking high`. |
-| `grok` | `xai-oauth` | `grok-4.5` | frontier | xai | Grok via OAuth (Hermes lane); cross-family watcher/validator. |
+| `grok` | `xai` | `grok-4.5` | frontier | xai | Grok via the installed xAI OAuth/API provider; cross-family watcher/validator. |
 | `glm` | `zai` | `glm-5.2` | frontier | zai | GLM validator lane. |
 | `luna-max` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Approved low-cost worker; reasoning `max`. Use for independent ACN slices. |
 | `minimax` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias for `luna-max`. |
@@ -69,6 +69,12 @@ add a row to one, add it to the other in the same PR.
 3. Invokes: `pi --model kimi-coding/k3 --models kimi-coding/k3,openai-codex/gpt-5.6-luna ...`.
 4. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
+
+Anthropic aliases (`fable`, `opus`, `opus5`, `sonnet`, and `haiku`) are the
+exception to the Pi invocation above: when one is the active director seat,
+`bm` uses the single-seat `claude -p --permission-mode plan` lane, supplies the
+prompt on stdin, and rejects multiple Anthropic seats instead of using an API
+OAuth fallback.
 
 Reasoning effort is independent of the model alias. For the Terra lead and
 Sol validator split, run the lead through Hermes as Terra/high, then run the

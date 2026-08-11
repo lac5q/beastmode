@@ -48,6 +48,12 @@ and verify Pi reports that the project policy loaded. Missing, invalid, or
 skipped policy is a hard preflight failure. Never continue under only a global
 fallback. The canonical policy enables `yoloMode` (asks auto-approve) by operator directive. Normal `git commit`/`git push` actions are `ask` rules and therefore work in the director session; force/delete/mirror pushes, short destructive flags and refspecs, secrets, external paths, releases, privilege, and destructive commands remain hard-denied. `scripts/bm` passes Pi `--approve` on every headless launch so the project-local policy is loaded instead of silently falling back to a global policy.
 
+High autonomy changes phase-gate progression only. It must not pass
+`--exclude-tools bash,edit,write` (or an equivalent restriction) to Pi: doing
+so turns the Luna implementation lane into a read-only reviewer. The canonical
+project policy is the mutation boundary and already denies destructive or
+secret-bearing operations.
+
 ```bash
 mkdir -p .pi/extensions/pi-permission-system
 umask 077
@@ -104,8 +110,10 @@ printf '%s\n' 'Reply with exactly: CLAUDE OK' | \
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
 smoke gate. Keep automatic worker routing on Luna Max (`gpt-5.6-luna`,
 reasoning `max`); use a frontier director or watcher only when the user
-explicitly names it. Prefer external CLI lanes only when the operator
-explicitly selects one and its smoke gate passes.
+explicitly names it. Anthropic director seats are the deliberate exception:
+`bm` automatically selects the single-seat `claude -p --permission-mode plan`
+lane for them. Other external CLI lanes still require explicit operator
+selection and a passing smoke gate.
 The verifier-first rule from the universal skill governs everything:
 if a cheap lane cannot produce a verifiable artifact cheaply, escalate to
 the frontier tier.
@@ -144,7 +152,8 @@ printf '%s' "$prompt" | claude -p --model opus --permission-mode plan
 stdout. Always omit the positional prompt and supply prompt bytes on stdin;
 never interpolate prompt text into a shell command. `plan` mode keeps this
 watcher lane read-only. Do not use wrappers or flags that bypass permission
-checks. The lane draws from
+checks, and do not forward ambient Anthropic API credentials or custom
+endpoints into the subscription lane. The lane draws from
 the claude.ai Pro/Max subscription quota, which is separate from and not
 rate-coupled to the API OAuth credential.
 
@@ -152,8 +161,9 @@ If you find yourself wanting Claude inside a workflow subagent — for example
 because you want it to fan out in parallel — escalate to the universal
 beastmode framework first: the verifier-first rule plus parallel cheap
 lanes almost always covers the case without paying Claude frontier prices
-on every worker. Reserve `claude -p` for watcher-tier judgment and
-verifier-tier review, never for bulk cheap work.
+on every worker. Reserve `claude -p` for the single director/watcher judgment
+or verifier pass, never for bulk cheap work; multiple Anthropic seats are
+rejected by `bm`.
 
 ## Operating loop
 

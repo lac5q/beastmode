@@ -41,6 +41,8 @@ python -m pip install -e 'python[langgraph]'
 export LANGSMITH_TRACING=true
 export LANGSMITH_API_KEY='set-this-in-your-secret-manager'
 export LANGSMITH_PROJECT=beastmode
+# Required for organization-scoped or multi-workspace service keys:
+export LANGSMITH_WORKSPACE_ID='workspace-id'
 ```
 
 For a self-hosted deployment, add its endpoint:
@@ -166,7 +168,9 @@ scripts/acn-trace /path/to/run-dir \
 so it does not add a dependency to the install-free shell lane. It creates one
 `beastmode.run` parent and one `beastmode.child` per receipt, with filterable
 `beastmode`, `phase:*`, `seat:*`, `drift`, and `unverifiable` tags. Use
-`--dry-run` to inspect the sanitized payload without contacting LangSmith.
+`--workspace-id` or `LANGSMITH_WORKSPACE_ID` for a service key that can access
+multiple workspaces; the value is sent as LangSmith's `x-tenant-id` header.
+Use `--dry-run` to inspect the sanitized payload without contacting LangSmith.
 
 The command exits zero when tracing is disabled or credentials are absent and
 reports a clean skip. A submission failure is reported as an observability

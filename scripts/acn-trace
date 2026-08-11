@@ -63,6 +63,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--autonomy", default="unknown")
     parser.add_argument("--endpoint", help="LangSmith API endpoint")
     parser.add_argument(
+        "--workspace-id",
+        help="LangSmith workspace/tenant ID; defaults to LANGSMITH_WORKSPACE_ID",
+    )
+    parser.add_argument(
         "--api-key-env",
         help="explicit environment variable used only with a reviewed custom endpoint",
     )
@@ -145,6 +149,20 @@ def _endpoint(value: str | None) -> str:
 
 def _project(value: str | None) -> str:
     return _label(value or os.environ.get("LANGSMITH_PROJECT") or os.environ.get("LANGCHAIN_PROJECT"), fallback="beastmode")
+
+
+def _workspace_id(value: str | None) -> str:
+    workspace = _safe(
+        value
+        or os.environ.get("LANGSMITH_WORKSPACE_ID")
+        or os.environ.get("LANGCHAIN_WORKSPACE_ID"),
+        limit=128,
+    ).strip()
+    if not workspace:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", workspace):
+        raise ValueError("LangSmith workspace ID contains unsupported characters")
+    return workspace
 
 
 def _iso(timestamp: float) -> str:
@@ -299,15 +317,24 @@ def _parent_payload(
     return payload
 
 
-def _post(endpoint: str, api_key: str, payload: dict, timeout: float) -> None:
+def _post(
+    endpoint: str,
+    api_key: str,
+    payload: dict,
+    timeout: float,
+    workspace_id: str = "",
+) -> None:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-api-key": api_key,
+    }
+    if workspace_id:
+        headers["x-tenant-id"] = workspace_id
     request = Request(
         f"{endpoint}/runs",
         data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "x-api-key": api_key,
-        },
+        headers=headers,
         method="POST",
     )
     # Do not follow redirects: forwarding x-api-key to a different origin
@@ -356,6 +383,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         endpoint = _endpoint(args.endpoint)
         api_key = _api_key(endpoint=endpoint, explicit_env=args.api_key_env)
+        workspace_id = _workspace_id(args.workspace_id)
     except ValueError as exc:
         print(f"acn-trace: {acn_meta.safe_report_text(exc)}", file=sys.stderr)
         return 2
@@ -395,9 +423,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        _post(endpoint, api_key, parent, args.timeout)
+        _post(endpoint, api_key, parent, args.timeout, workspace_id)
         for child in children:
-            _post(endpoint, api_key, child, args.timeout)
+            _post(endpoint, api_key, child, args.timeout, workspace_id)
     except (HTTPError, URLError, OSError, RuntimeError, ValueError) as exc:
         print(
             "acn-trace: LangSmith submission failed (gate verdict remains offline): "

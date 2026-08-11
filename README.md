@@ -78,6 +78,11 @@ See `references/autonomy-levels.md` for the full table and pi-flag mapping.
 
    See `scripts/bm` and `references/autonomy-levels.md`.
 
+   Anthropic director aliases (`fable`, `opus`, `opus5`, `sonnet`, and
+   `haiku`) automatically use the single-seat `claude -p` plan-mode lane.
+   Multiple Anthropic seats fail closed; Beastmode does not use API OAuth as a
+   subscription fallback.
+
 ## Editor goals via ACP
 
 The optional thin ACP adapter makes Beastmode goals launchable from ACP-aware
@@ -166,7 +171,7 @@ The provenance gate is fail-closed in both directions: a child whose independent
 - `SKILL.md` — The complete beastmode framework (start here)
 - `schema/` — Machine source of truth: `families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`
 - `adapters/hermes/SKILL.md` — Hermes ACN adapter (`delegate_task` background/batch)
-- `adapters/claude-code/SKILL.md` — Claude Code adapter (Task, `/batch`, parallel `claude -p`)
+- `adapters/claude-code/SKILL.md` — Claude Code adapter (Task, `/batch`, one `claude -p` watcher)
 - `adapters/codex/SKILL.md` — Codex adapter (parallel `codex exec`, external worker lanes; supersedes beastmode-cloud / beastmode-qwen-cloud)
 - `adapters/langgraph/SKILL.md` — LangGraph adapter (`StateGraph`, `Send`, checkpointed gates)
 - `python/` — optional installable package (`pip install 'beastmode[langgraph]'`)

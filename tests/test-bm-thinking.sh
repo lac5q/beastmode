@@ -15,6 +15,7 @@ provider      model                                      context  max-out  think
 openai-codex  gpt-5.6-sol                                200K     64K      yes       no
 openai-codex  gpt-5.6-terra                              200K     64K      yes       no
 openai-codex  gpt-5.6-luna                              1M       128K     yes       yes
+vibeproxy     gpt-5.6-luna                              1M       128K     yes       yes
 TABLE
   exit 0
 fi
