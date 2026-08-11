@@ -217,3 +217,62 @@ if [ "$rc" -ne 1 ]; then
   exit 1
 fi
 echo "public-artifact-guard rejects npm token bytes in distributions"
+
+# ---- private endpoint hosts ----
+# A self-hosted proxy base URL must never reach the public repo. The guard is
+# deny-by-default on hosts, so this fixture uses a made-up domain rather than
+# any real private endpoint -- committing a real one to assert on would be the
+# leak the guard exists to prevent.
+HOST_REPO="$TMP/host-repo"
+mkdir -p "$HOST_REPO"
+git -C "$HOST_REPO" init -q
+git -C "$HOST_REPO" config user.name "Beastmode Test"
+git -C "$HOST_REPO" config user.email "beastmode-test@example.invalid"
+mkdir -p "$HOST_REPO/scripts"
+cp "$ROOT/scripts/public-artifact-guard" "$HOST_REPO/scripts/public-artifact-guard"
+chmod +x "$HOST_REPO/scripts/public-artifact-guard"
+
+# Allowlisted public hosts must still pass.
+printf '%s\n' 'see https://github.com/lac5q/beastmode and https://registry.npmjs.org/' \
+  > "$HOST_REPO/notes.md"
+git -C "$HOST_REPO" add -A
+git -C "$HOST_REPO" commit -qm "public hosts only"
+set +e
+"$HOST_REPO/scripts/public-artifact-guard" >/dev/null 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 0 ]; then
+  echo "public-artifact-guard false-positived on allowlisted public hosts (got $rc)" >&2
+  exit 1
+fi
+echo "public-artifact-guard allows public hosts"
+
+# A private proxy base URL must fail closed. The scheme and host are kept as
+# separate literals and joined at runtime: a complete "https://<host>" literal
+# in this file would be a blob in THIS repo, and the guard would rightly flag
+# its own test fixture.
+PRIV_SCHEME='https://'
+PRIV_HOST='someproxy.internal-example-host.com'
+printf 'baseUrl: %s%s/v1\n' "$PRIV_SCHEME" "$PRIV_HOST" > "$HOST_REPO/notes.md"
+git -C "$HOST_REPO" add -A
+git -C "$HOST_REPO" commit -qm "private endpoint"
+set +e
+"$HOST_REPO/scripts/public-artifact-guard" >/dev/null 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 1 ]; then
+  echo "public-artifact-guard missed a private endpoint host (got $rc)" >&2
+  exit 1
+fi
+echo "public-artifact-guard rejects private endpoint hosts"
+
+# The failure must not print the host unless explicitly asked, so public CI
+# logs never republish it.
+set +e
+leak="$("$HOST_REPO/scripts/public-artifact-guard" 2>&1)"
+set -e
+if printf '%s' "$leak" | grep -q "$PRIV_HOST"; then
+  echo "public-artifact-guard leaked the private host into its own output" >&2
+  exit 1
+fi
+echo "public-artifact-guard does not echo the private host"

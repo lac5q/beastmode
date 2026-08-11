@@ -27,6 +27,10 @@
     "zai": {
       "providers": ["zai"],
       "notes": "glm validators"
+    },
+    "google": {
+      "providers": ["vibeproxy"],
+      "notes": "Gemini via an operator-run proxy provider; the base URL is host-local config, never repo content"
     }
   }
 }

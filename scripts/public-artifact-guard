@@ -85,6 +85,12 @@ TARGET="$("$GIT_BIN" rev-parse --verify "${TREEISH}^{commit}" 2>/dev/null)" || {
 # Character-class splits keep this source from matching its own signatures.
 CREDENTIAL_PATTERN='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|github_[p]at_[A-Za-z0-9_]{20,}|n[p]m_[A-Za-z0-9]{20,}|pyp[i]-[A-Za-z0-9_-]{20,}|glpa[t]-[A-Za-z0-9_-]{20,}|h[f]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|sk-[p]roj-[A-Za-z0-9_-]{16,}|sk-[a]nt-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{20,}|pass(word|wd)[[:space:]]*[:=][[:space:]]*[^[:space:]\"]{8,}'
 PRIVATE_PATH_PATTERN='/(h[o]me|U[s]ers)/[[:alnum:]_.-]+|C:[\\/]+U[s]ers[\\/]+[[:alnum:]_.-]+'
+# Endpoint hosts are deny-by-default: anything not listed here counts as a
+# private endpoint (self-hosted proxy, tenant subdomain, internal service).
+# Listing a host is a deliberate publishing decision, which is the point — a
+# private base URL cannot reach the public repo by accident. RFC 2606/6761
+# reserved names are permitted so fixtures and docs can use them freely.
+PUBLIC_HOST_PATTERN='(127\.0\.0\.1|0\.0\.0\.0|localhost|api\.anthropic\.com|api\.minimax\.io|api\.smith\.langchain\.com|changelog\.langchain\.com|docs\.claude\.com|docs\.langchain\.com|reference\.langchain\.com|fast\.io|github\.com|raw\.githubusercontent\.com|objects\.githubusercontent\.com|pypi\.org|files\.pythonhosted\.org|registry\.npmjs\.org|www\.diagrid\.io|www\.jahanzaib\.ai|www\.w3\.org|example\.(com|net|org)|([A-Za-z0-9-]+\.)*(invalid|test|example|localhost))'
 BLOCKED_PATH_PATTERN='(^|/)(\.env($|\.)|\.npmrc$|\.pypirc$|\.netrc$|\.git-credentials$|.*\.(pem|key|p12|pfx|sqlite|sqlite3)$|auth\.json$|credentials\.json$|application_default_credentials\.json$|\.docker/config\.json$|\.config/gh/hosts\.yml$|\.aws/(credentials|config)$|\.kube/config$|[^/]*kubeconfig[^/]*$)'
 
 TMP="$(mktemp -d)"
@@ -101,6 +107,23 @@ git_to_file() {
     printf '%s\n' "public-artifact-guard: Git enumeration failed or exceeded its bound" >&2
     exit 2
   fi
+}
+
+# Returns 0 when every endpoint host in "$TMP/blob" is allowlisted, 1 otherwise.
+# The offending host is deliberately NOT printed: this guard runs in CI for a
+# public repository, so echoing it would publish the very value being blocked.
+# Set BEASTMODE_GUARD_SHOW_HOST=1 for a local run when you need to find it.
+scan_blob_hosts() {
+  local host
+  host="$(LC_ALL=C grep -aoE 'https?://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?' "$TMP/blob" 2>/dev/null \
+    | sed -E 's|^https?://||' \
+    | LC_ALL=C grep -avxE "$PUBLIC_HOST_PATTERN" \
+    | head -n 1 || true)"
+  [ -z "$host" ] && return 0
+  if [ "${BEASTMODE_GUARD_SHOW_HOST:-0}" = "1" ]; then
+    printf 'public-artifact-guard: non-public endpoint host: %s\n' "$host" >&2
+  fi
+  return 1
 }
 
 scan_paths() {
@@ -155,6 +178,11 @@ scan_blob_ids() {
       1) ;;
       *) printf '%s\n' "public-artifact-guard: blob scanner failed" >&2; exit 2 ;;
     esac
+    if ! scan_blob_hosts; then
+      printf '%s\n' "public-artifact-guard: non-public endpoint host found in repository blob" >&2
+      printf '%s\n' "public-artifact-guard: re-run locally with BEASTMODE_GUARD_SHOW_HOST=1 to identify it" >&2
+      return 1
+    fi
   done < "$input"
 }
 

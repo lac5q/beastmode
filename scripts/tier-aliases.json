@@ -19,5 +19,6 @@
   "minimax-fast": { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
   "qwen":         { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
   "gwen":         { "provider": "openai-codex", "model": "gpt-5.6-luna",      "tier": "economy",  "family": "openai-codex", "reasoning": "max", "deprecated_alias": true },
-  "haiku":        { "provider": "anthropic",   "model": "claude-haiku-4-5",   "tier": "economy",  "family": "anthropic" }
+  "haiku":        { "provider": "anthropic",   "model": "claude-haiku-4-5",   "tier": "economy",  "family": "anthropic" },
+  "gemini-flash": { "provider": "vibeproxy",   "model": "gemini-3.6-flash-high", "tier": "economy", "family": "google" }
 }

@@ -15,8 +15,15 @@ A family is a vendor / model lineage. Aliases inside a family inherit the same t
 | qwen | `qwen` | cross-family second opinion |
 | xai | `xai`, `xai-oauth` | grok |
 | zai | `zai` | glm validators |
+| google | `vibeproxy` | Gemini via an operator-run proxy provider |
 
 Source: `schema/families.json`.
+
+Proxy-backed providers (`vibeproxy`) are named here by provider only. Their base
+URL is host-local configuration — `~/.pi/agent/models.json`, mode `600` — and
+must never appear in this repository. `scripts/public-artifact-guard` enforces
+that: endpoint hosts are deny-by-default, so any host outside its allowlist
+fails the guard on both `HEAD` and full history.
 
 ## Tiers
 

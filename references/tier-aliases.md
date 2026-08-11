@@ -40,6 +40,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `qwen` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
 | `gwen` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
 | `haiku` | `anthropic` | `claude-haiku-4-5` | economy | anthropic | Anthropic-native cheap tier. |
+| `gemini-flash` | `vibeproxy` | `gemini-3.6-flash-high` | economy | google | Opt-in worker lane. Requires the `vibeproxy` provider in host-local `~/.pi/agent/models.json`; see below. |
 
 ## JSON shape (used by `scripts/bm`)
 
@@ -89,6 +90,44 @@ level passes through unchanged:
 ```bash
 bm "<goal>" --harness claude --frontier sonnet5 --thinking high
 ```
+
+## Proxy-backed worker lanes
+
+`gemini-flash` resolves to `vibeproxy/gemini-3.6-flash-high`. The alias carries
+the provider name and model id only — the proxy's base URL is **host-local
+configuration and must never be committed**. Configure it per host in
+`~/.pi/agent/models.json` (mode `600`), which is where `pi` reads providers
+from; confirm with `pi --list-models`. Nothing about the endpoint belongs in
+this repo, and `scripts/public-artifact-guard` fails closed on any endpoint host
+outside its allowlist.
+
+The default economy seat is unchanged — automatic worker routing stays on Luna
+Max. This lane is an explicit opt-in:
+
+```bash
+bm "<goal>" --frontier kimi3 --economy gemini-flash
+```
+
+Aliases resolve **before** `--on` dispatch, so a remote host receives the fully
+qualified `vibeproxy/gemini-3.6-flash-high` and does not need its own alias
+table — only the same host-local provider entry:
+
+```bash
+bm "<goal>" --frontier kimi3 --economy gemini-flash --on <tailscale-host>
+```
+
+### Known constraint: this lane reports drift under the provenance gate
+
+The `-high` suffix is a *reasoning-effort selector*, not a distinct served
+model. The proxy applies high reasoning (the response carries
+`reasoning_tokens`) but reports `model: gemini-3.6-flash` — the base id, without
+the suffix. Requested and actual therefore differ by construction.
+
+That is precisely what `scripts/lib/acn_meta.py` is built to catch, so every ACN
+child pinned to this alias resolves to `drift` and blocks `validated`. Until the
+proxy echoes back the requested id, treat `gemini-flash` as a **direct/manual
+lane**, not an ACN fan-out worker. Do not "fix" this by loosening the drift gate:
+the gate is behaving correctly, and weakening it would blind every other lane.
 
 ## How to verify on a new host
 
