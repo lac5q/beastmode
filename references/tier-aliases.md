@@ -27,6 +27,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `opus` | `anthropic` | `claude-opus-4-7` | frontier | anthropic | 1M ctx; current production Opus. |
 | `opus5` | `anthropic` | `claude-opus-4-8` | frontier | anthropic | Bleeding edge; quotas tighter. |
 | `sonnet` | `anthropic` | `claude-sonnet-4-6` | frontier | anthropic | Cheaper frontier option for tight budgets. |
+| `sonnet5` | `anthropic` | `claude-sonnet-5` | frontier | anthropic | Current Sonnet, 1M ctx. Pair with `--thinking high`. |
 | `gpt5.5` | `openai-codex` | `gpt-5.5` | frontier | openai-codex | Default Codex-tier frontier. |
 | `gpt5.6` | `openai-codex` | `gpt-5.6-luna` | frontier | openai-codex | Latest Codex frontier (luna profile). |
 | `sol` | `openai-codex` | `gpt-5.6-sol` | frontier | openai-codex | Validator profile; use `--thinking medium`. |
@@ -70,15 +71,24 @@ add a row to one, add it to the other in the same PR.
 4. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
 
-Anthropic aliases (`fable`, `opus`, `opus5`, `sonnet`, and `haiku`) are the
-exception to the Pi invocation above: when one is the active director seat,
-`bm` uses the single-seat `claude -p --permission-mode plan` lane, supplies the
-prompt on stdin, and rejects multiple Anthropic seats instead of using an API
-OAuth fallback.
+Anthropic aliases (`fable`, `opus`, `opus5`, `sonnet`, `sonnet5`, and `haiku`)
+are the exception to the Pi invocation above: when one is the active director
+seat, `bm` uses the single-seat `claude -p --permission-mode plan` lane,
+supplies the prompt on stdin, and rejects multiple Anthropic seats instead of
+using an API OAuth fallback. This holds for *any* `--harness`; an Anthropic seat
+under `--harness pi` is re-routed to `claude -p` rather than the API pool.
 
 Reasoning effort is independent of the model alias. For the Terra lead and
 Sol validator split, run the lead through Hermes as Terra/high, then run the
 validation goal with `bm "<validation goal>" --frontier sol --thinking medium`.
+
+On the Claude lane, `--thinking` maps onto the CLI's `--effort`. That scale has
+no sub-`low` step, so `none` and `minimal` both resolve to `low`; every other
+level passes through unchanged:
+
+```bash
+bm "<goal>" --harness claude --frontier sonnet5 --thinking high
+```
 
 ## How to verify on a new host
 

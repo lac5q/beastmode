@@ -153,10 +153,10 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="937834accd4b061c6de25d40153449514747e2f4e6cd7e8bf3cd7ba55b837294" ;;
-    tier-aliases.json) HASH="7780db7a654e43ed684f31ceadbc2131d3a7e56bda2d9cef0a6684c15f409078" ;;
+    bm) HASH="ece33bb5c0e222b7a2bfcb78ab48389948de03fbf6b0488e920c807465251ace" ;;
+    tier-aliases.json) HASH="0d1496a649ae41da492a99dc56ba10b8f8e07c89417b6d459755d613637399e5" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
-    claude-pro) HASH="4dd470df5b749259bf12d9efe00b27641b30c8452f571c2b410f88d51888b608" ;;
+    claude-pro) HASH="68dadf141030bf3c3c6b00c332a5528582d2532e1d8aa06ed67fae66b364ef15" ;;
     check-pi-agent-policy) HASH="0173f561520831381738f955fb8fb2eda9c33ab2ecc4637f263a1ca579deac23" ;;
     lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
   esac

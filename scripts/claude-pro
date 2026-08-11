@@ -9,6 +9,7 @@
 # Usage:
 #   printf '%s' "<prompt>" | claude-pro
 #   printf '%s' "<prompt>" | claude-pro --model opus
+#   printf '%s' "<prompt>" | claude-pro --model sonnet --effort high
 #   cat prompt.txt | claude-pro           # multi-line prompt via stdin
 #
 # This is the beastmode Claude external lane. See
@@ -24,6 +25,9 @@ fi
 
 # Default model: opus. Override with --model.
 MODEL="opus"
+# Reasoning effort is opt-in: empty means "let the CLI pick its own default",
+# which preserves the behaviour of callers that never pass --effort.
+EFFORT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +38,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --model=*)
       MODEL="${1#--model=}"
+      shift
+      ;;
+    --effort)
+      [[ $# -ge 2 ]] || { echo "claude-pro: --effort requires an argument" >&2; exit 2; }
+      EFFORT="$2"
+      shift 2
+      ;;
+    --effort=*)
+      EFFORT="${1#--effort=}"
       shift
       ;;
     -h|--help)
@@ -52,6 +65,13 @@ if [[ -z "$MODEL" || "$MODEL" == -* || "$MODEL" == */* || "$MODEL" =~ [[:space:]
   exit 2
 fi
 
+# Closed enum: the Claude Code CLI accepts exactly these levels. Validating
+# against a fixed set also keeps the value from ever being read as a flag.
+if [[ -n "$EFFORT" && ! "$EFFORT" =~ ^(low|medium|high|xhigh|max)$ ]]; then
+  echo "claude-pro: --effort must be low|medium|high|xhigh|max (got: $EFFORT)" >&2
+  exit 2
+fi
+
 PROMPT="$(cat)"
 
 if [[ -z "$PROMPT" ]]; then
@@ -66,4 +86,7 @@ fi
 # these values prevents an Anthropic seat from silently taking an API path.
 unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL BM_ALLOW_CLAUDE_OAUTH
 
-printf '%s' "$PROMPT" | claude -p --permission-mode plan --model "$MODEL"
+CLAUDE_ARGS=(-p --permission-mode plan --model "$MODEL")
+[[ -n "$EFFORT" ]] && CLAUDE_ARGS+=(--effort "$EFFORT")
+
+printf '%s' "$PROMPT" | claude "${CLAUDE_ARGS[@]}"
