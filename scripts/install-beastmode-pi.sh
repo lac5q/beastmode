@@ -153,7 +153,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="ece33bb5c0e222b7a2bfcb78ab48389948de03fbf6b0488e920c807465251ace" ;;
+    bm) HASH="72431758b5f70d6959a5e316ed025300a9686e2340a606efe3a5f1b8bac69455" ;;
     tier-aliases.json) HASH="0d1496a649ae41da492a99dc56ba10b8f8e07c89417b6d459755d613637399e5" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="68dadf141030bf3c3c6b00c332a5528582d2532e1d8aa06ed67fae66b364ef15" ;;

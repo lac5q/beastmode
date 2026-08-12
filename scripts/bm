@@ -95,6 +95,23 @@ done
 SCRIPT_DIR="$(cd -P -- "$(dirname -- "$BM_SOURCE")" && pwd)"
 SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
 
+# ---------------------------------------------------------------------------
+# Beastmode self-management. Delegate the lifecycle verbs to the installer
+# that ships next to `bm` (same snapshot). These are reserved only when they
+# are the very first token, so a goal can never be hijacked by them.
+# ---------------------------------------------------------------------------
+case "${1:-}" in
+  install|upgrade|uninstall|status|doctor|version)
+    BM_INSTALLER="$SCRIPT_DIR/install-beastmode.sh"
+    if [ ! -x "$BM_INSTALLER" ]; then
+      echo "bm: missing $BM_INSTALLER (is this a partial checkout?)" >&2
+      exit 2
+    fi
+    BM_CMD="$1"; shift
+    exec "$BM_INSTALLER" "$BM_CMD" "$@"
+    ;;
+esac
+
 resolve_alias() {
   local alias="$1"
   [ -z "$alias" ] && { echo ""; return; }
