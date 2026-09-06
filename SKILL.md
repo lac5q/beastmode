@@ -12,7 +12,7 @@ description: >
 version: 2.5.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
-related_skills: [ultraswarm, gsd, subagent-driven-development, self-improvement]
+related_skills: [ultraswarm, gsd, ponytail, subagent-driven-development, self-improvement]
 agents: [hermes, codex, openclaw, claude-code, fable, kimi, minimax]
 ---
 
@@ -112,6 +112,7 @@ Use beastmode for complex tasks that need:
 9. **Codex and frontier escalation are explicit-only.** Automatic/background work uses the pinned Luna Max economy lane. Codex, GPT frontier profiles, Claude, Kimi, Fable, or any other frontier lane may run only when the user explicitly names that model/lane for the bounded task. If a worker fails or a risk trigger appears, stop, report the evidence, and ask before switching lanes. Never silently fall back, escalate, or inherit a frontier session default.
 10. **Public GitHub release is security-gated.** Before every public push, merge, or deployment, run the repository security scan and inspect its completed coverage/findings artifacts. Never publish credentials, tokens, private keys, local auth files, or sensitive environment values. An unresolved security blocker stops the release.
 11. **No silent assumptions.** Material ambiguity is either asked (per the autonomy interview matrix in schema/autonomy-levels.json) or recorded as an explicit Assumption in the acceptance contract and surfaced at the next gate. Workers never interview the user — they return needs_decision items in their meta/report and the director surfaces them at the gate.
+12. **Executor code follows Ponytail.** Shortest correct diff after tracing the real flow. Load the `ponytail` skill. No speculative abstractions, no scaffolding for later. Director keeps architecture, security, and merge.
 
 ## The ACN Layer (Async Parallel Sub-agents)
 
