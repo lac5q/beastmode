@@ -58,7 +58,8 @@ try:
     port = parsed.port
 except ValueError as exc:
     p.error(f"invalid --base-url: {exc}")
-if not parsed.scheme or not parsed.hostname or parsed.username or parsed.password:
+has_userinfo = parsed.username or parsed.password
+if not parsed.scheme or not parsed.hostname or has_userinfo:
     p.error("--base-url must be an absolute URL without embedded credentials")
 if parsed.query or parsed.fragment:
     p.error("--base-url must not contain a query string or fragment")
