@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "39c6a25a48c7a3e25cd8296d90ea729097ca97284b3420a8753a28eec40c7a03",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T21:37:00.106310Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1521410,
+  "pid_recorded_at_utc": "2026-09-11T21:35:22.945342Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "4c6fac5e16a919e843a753117527b1f5a8b3b0224bf5a0650670dff366daef23",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 08: ordered record event reconciliation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys as_of and events. as_of is\nan integer from 0 through 1000000 inclusive; booleans are not integers.\nevents is an array of at most 80 event objects. Every event has the five\ncommon keys id, source, seq, at, and op. id is a non-empty string of at most\n16 Unicode code points. source is exactly primary or replica. seq is an\ninteger from 1 through 1000000. at is an integer from 0 through 1000000.\nop is exactly set, patch, or delete. For each (source, id) pair, seq values\nmust be unique. Future events still must be well-formed and still participate\nin this uniqueness rule.\n\nA set event has exactly one additional key, value. A value has exactly name\nand qty: name is a non-empty string of at most 32 code points and qty is an\ninteger from 0 through 10000; booleans are not integers. A patch event also\nhas exactly one additional key, value, but its value is a non-empty object\nwhose keys are a subset of name and qty, with the same field rules. A delete\nevent has no value key. Any missing or extra key, wrong type, duplicate\nsequence, out-of-range value, or other violation returns exactly\n{\"error\":\"invalid\"}. The input object and all nested objects reject unknown\nkeys. There are no implicit defaults.\n\nIgnore events with at > as_of after validating them. For each remaining ID,\nsort its events by (at, seq, source_rank), where source_rank is 0 for primary\nand 1 for replica. Apply them in that order. set replaces the complete current\nrecord. patch changes only the named fields if the ID is currently live; a\npatch for an absent or deleted ID is ignored. delete removes the current\nrecord. A later set can create a record again.\n\nReturn exactly {\"records\": [...]}. Each surviving record is\n{\"id\": id, \"name\": name, \"qty\": qty}, and records are sorted by ID using\nPython/Unicode string ordering. An empty result has \"records\": [].\n\nThe stated event, string, and integer limits are the complete evaluation size\nenvelope and permit bounded in-memory processing.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"a\",\n          \"name\": \"AA\",\n          \"qty\": 7\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 2,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"a\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"A\",\n            \"qty\": 5\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"a\",\n          \"op\": \"patch\",\n          \"seq\": 1,\n          \"source\": \"replica\",\n          \"value\": {\n            \"qty\": 7\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"a\",\n          \"op\": \"patch\",\n          \"seq\": 2,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"AA\"\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"b\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"B\",\n            \"qty\": 1\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"b\",\n          \"op\": \"delete\",\n          \"seq\": 2,\n          \"source\": \"primary\"\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"x\",\n          \"name\": \"Replica\",\n          \"qty\": 2\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 1,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"replica\",\n          \"value\": {\n            \"name\": \"Replica\",\n            \"qty\": 2\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"Primary\",\n            \"qty\": 3\n          }\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": []\n    },\n    \"input\": {\n      \"as_of\": 0,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"future\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"F\",\n            \"qty\": 1\n          }\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"as_of\": 3,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"X\",\n            \"qty\": 1\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"x\",\n          \"op\": \"delete\",\n          \"seq\": 1,\n          \"source\": \"primary\"\n        }\n      ]\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\n```python\n_COMMON_KEYS = frozenset((\"id\", \"source\", \"seq\", \"at\", \"op\"))\n_RECORD_KEYS = frozenset((\"name\", \"qty\"))\n_TOP_LEVEL_KEYS = frozenset((\"as_of\", \"events\"))\n\n\ndef _invalid():\n    return {\"error\": \"invalid\"}\n\n\ndef _exact_keys(obj, expected):\n    if not isinstance(obj, dict) or len(obj) != len(expected):\n        return False\n    if not all(isinstance(key, str) for key in obj):\n        return False\n    return set(obj) == expected\n\n\ndef _valid_int(value, minimum, maximum):\n    return (\n        isinstance(value, int)\n        and not isinstance(value, bool)\n        and minimum <= value <= maximum\n    )\n\n\ndef _valid_string(value, maximum):\n    return isinstance(value, str) and 0 < len(value) <= maximum\n\n\ndef solve(payload):\n    if not _exact_keys(payload, _TOP_LEVEL_KEYS):\n        return _invalid()\n\n    as_of = payload[\"as_of\"]\n    events = payload[\"events\"]\n\n    if not _valid_int(as_of, 0, 1_000_000):\n        return _invalid()\n    if not isinstance(events, list) or len(events) > 80:\n        return _invalid()\n\n    grouped = {}\n    seen_sequences = {}\n\n    for event in events:\n        if not isinstance(event, dict):\n            return _invalid()\n        if not all(key in event for key in _COMMON_KEYS):\n            return _invalid()\n\n        operation = event[\"op\"]\n        if operation not in (\"set\", \"patch\", \"delete\"):\n            return _invalid()\n\n        expected_keys = (\n            _COMMON_KEYS\n            if operation == \"delete\"\n            else _COMMON_KEYS | frozenset((\"value\",))\n        )\n        if not _exact_keys(event, expected_keys):\n            return _invalid()\n\n        identifier = event[\"id\"]\n        source = event[\"source\"]\n        sequence = event[\"seq\"]\n        at = event[\"at\"]\n\n        if not _valid_string(identifier, 16):\n            return _invalid()\n        if source not in (\"primary\", \"replica\"):\n            return _invalid()\n        if not _valid_int(sequence, 1, 1_000_000):\n            return _invalid()\n        if not _valid_int(at, 0, 1_000_000):\n            return _invalid()\n\n        sequence_key = (source, identifier)\n        sequences = seen_sequences.setdefault(sequence_key, set())\n        if sequence in sequences:\n            return _invalid()\n        sequences.add(sequence)\n\n        event_value = None\n\n        if operation == \"set\":\n            value = event[\"value\"]\n            if not _exact_keys(value, _RECORD_KEYS):\n                return _invalid()\n\n            name = value[\"name\"]\n            quantity = value[\"qty\"]\n            if not _valid_string(name, 32):\n                return _invalid()\n            if not _valid_int(quantity, 0, 10_000):\n                return _invalid()\n\n            event_value = (name, quantity)\n\n        elif operation == \"patch\":\n            value = event[\"value\"]\n            if not isinstance(value, dict) or not value:\n                return _invalid()\n            if not all(\n                isinstance(key, str) and key in _RECORD_KEYS for key in value\n            ):\n                return _invalid()\n\n            name = value.get(\"name\")\n            quantity = value.get(\"qty\")\n\n            if \"name\" in value and not _valid_string(name, 32):\n                return _invalid()\n            if \"qty\" in value and not _valid_int(quantity, 0, 10_000):\n                return _invalid()\n\n            event_value = (name, quantity)\n\n        if at <= as_of:\n            source_rank = 0 if source == \"primary\" else 1\n            grouped.setdefault(identifier, []).append(\n                (at, sequence, source_rank, operation, event_value)\n            )\n\n    live = {}\n\n    for identifier, identifier_events in grouped.items():\n        identifier_events.sort(key=lambda item: item[:3])\n\n        for _, _, _, operation, value in identifier_events:\n            if operation == \"set\":\n                live[identifier] = [value[0], value[1]]\n            elif operation == \"patch\":\n                if identifier in live:\n                    if value[0] is not None:\n                        live[identifier][0] = value[0]\n                    if value[1] is not None:\n                        live[identifier][1] = value[1]\n            else:\n                live.pop(identifier, None)\n\n    return {\n        \"records\": [\n            {\"id\": identifier, \"name\": live[identifier][0], \"qty\": live[identifier][1]}\n            for identifier in sorted(live)\n        ]\n    }\n```\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a09265-8fae-7813-ac09-cabc3a4da736",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 21,
+    "call_index": 84,
+    "repetition": 1,
+    "stage": "self_revision",
+    "task_id": "task08"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T21:35:22.485328Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task08",
+  "thread_id": "01a09265-8fae-7813-ac09-cabc3a4da736",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 25650,
+    "output_tokens": 3155,
+    "reasoning_tokens": null
+  }
+}

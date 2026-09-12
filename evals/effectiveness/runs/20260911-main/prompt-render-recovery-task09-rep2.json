@@ -1,0 +1,11 @@
+{
+  "task_id": "task09",
+  "repetition": 2,
+  "stage": "beast_initial",
+  "error": "driver rejected literal closing braces in public nested JSON",
+  "model_launched_before_error": false,
+  "recovery": "identical ordered string replacement from frozen template through guarded harness CLI",
+  "prompt_sha256": "0946ceaec2479ea617dada8e1b3eb6a10cf0914523cf09476c3416b8c0687d57",
+  "frozen_inputs_verified": true,
+  "remaining_placeholder_names": []
+}

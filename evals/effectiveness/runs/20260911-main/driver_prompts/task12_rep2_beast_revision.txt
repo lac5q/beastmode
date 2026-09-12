@@ -1,0 +1,403 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 12: dependency-closed two-resource allocation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly the keys cpu, memory, and jobs. cpu
+and memory are integers from 0 through 64 inclusive; booleans are not
+integers. jobs is an array of at most 16 job objects. Every job has exactly
+id, cpu, memory, priority, and deps. id is a unique non-empty string of at
+most 16 Unicode code points. A job's cpu and memory are integers from 1
+through 32. priority is an integer from 1 through 1000. deps is an array of
+at most 16 distinct string IDs, and every dependency names another job in the
+same input. A self-dependency or any directed dependency cycle is invalid.
+Missing or extra keys, wrong types, duplicate IDs or dependencies, unknown
+dependencies, out-of-range values, or any other violation returns exactly
+{"error":"invalid"}. The stated limits are the complete evaluation size
+envelope.
+
+Choose a subset of jobs whose total cpu is at most cpu and whose total memory
+is at most memory. If a job is selected, every direct and transitive
+dependency must also be selected. Maximize total priority. If several
+dependency-closed subsets have the same priority, choose the one with the
+smaller sum of cpu plus memory. If they still tie, sort each subset's IDs by
+Python/Unicode string ordering and choose the lexicographically smaller ID
+list. The empty subset is always allowed.
+
+Return exactly {"selected": [...], "used": {"cpu": integer, "memory":
+integer}, "priority": integer}. selected is sorted by ID, used contains the
+resource sums, and priority is the sum for the selected jobs. No other output
+fields are allowed. Zero capacities or no jobs therefore return an empty
+selection with zero usage and priority.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "priority": 13,
+      "selected": [
+        "a",
+        "c"
+      ],
+      "used": {
+        "cpu": 4,
+        "memory": 3
+      }
+    },
+    "input": {
+      "cpu": 4,
+      "jobs": [
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "a",
+          "memory": 1,
+          "priority": 5
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 2,
+          "priority": 4
+        },
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "c",
+          "memory": 2,
+          "priority": 8
+        }
+      ],
+      "memory": 4
+    }
+  },
+  {
+    "expected": {
+      "priority": 15,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": {
+        "cpu": 3,
+        "memory": 3
+      }
+    },
+    "input": {
+      "cpu": 3,
+      "jobs": [
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "a",
+          "memory": 2,
+          "priority": 5
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 1,
+          "priority": 10
+        },
+        {
+          "cpu": 3,
+          "deps": [],
+          "id": "c",
+          "memory": 3,
+          "priority": 14
+        }
+      ],
+      "memory": 3
+    }
+  },
+  {
+    "expected": {
+      "priority": 8,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": {
+        "cpu": 2,
+        "memory": 2
+      }
+    },
+    "input": {
+      "cpu": 2,
+      "jobs": [
+        {
+          "cpu": 1,
+          "deps": [],
+          "id": "a",
+          "memory": 1,
+          "priority": 4
+        },
+        {
+          "cpu": 1,
+          "deps": [],
+          "id": "b",
+          "memory": 1,
+          "priority": 4
+        },
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "c",
+          "memory": 2,
+          "priority": 8
+        }
+      ],
+      "memory": 2
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "cpu": 4,
+      "jobs": [
+        {
+          "cpu": 1,
+          "deps": [
+            "b"
+          ],
+          "id": "a",
+          "memory": 1,
+          "priority": 1
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 1,
+          "priority": 1
+        }
+      ],
+      "memory": 4
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 12
+
+Acceptance: exact maximum-priority dependency-closed subset under both resource budgets. Break ties by lower total cpu+memory, then lexicographically smaller sorted IDs. Validate all graph constraints even when zero budgets force the empty solution.
+
+Validate exact object field sets, all bounded non-bool integer values, unique bounded IDs, dependency array size/distinct strings, known references and no self-dependency. Build all IDs before resolving deps. Run a whole-graph cycle check before optimization; disconnected cycles are invalid too.
+
+There are at most16 jobs, so enumerating all65536 masks is bounded and exact. Sort jobs by ID and precompute each direct dependency bitmask. For each subset, compute resource sums and priority (low-bit recurrence can reuse sums). Reject if either budget is exceeded. For every selected job require all its dependency bits in the same mask. Satisfying this for every selected job enforces transitive closure. Do not prune a mask merely because a smaller mask lacked a dependency: adding the missing job can make a superset valid. Compare feasible masks by highest priority, lower cpu+memory, then selected-ID tuple. Empty mask is a valid fallback with zero values.
+
+Precomputing resource/priority arrays or checking budgets before closure keeps runtime bounded; a direct1-million-job-check enumeration is also plausible under the stated limits. Do not substitute greedy selection or independently optimize cpu and memory. Review probes: valuable job needs costly prerequisite, two parents sharing a dependency counted once, one budget binding, equal priority/resource sum with differing cpu/memory splits, ID tie, unknown dep/cycle, shuffled IDs, empty jobs and zero budget.
+
+
+INITIAL IMPLEMENTATION
+```python
+def solve(payload):
+    def exact_keys(value, expected):
+        return (
+            type(value) is dict
+            and len(value) == len(expected)
+            and all(key in value for key in expected)
+        )
+
+    def invalid():
+        return {"error": "invalid"}
+
+    if not exact_keys(payload, ("cpu", "memory", "jobs")):
+        return invalid()
+
+    capacity_cpu = payload["cpu"]
+    capacity_memory = payload["memory"]
+    jobs = payload["jobs"]
+
+    if type(capacity_cpu) is not int or not 0 <= capacity_cpu <= 64:
+        return invalid()
+    if type(capacity_memory) is not int or not 0 <= capacity_memory <= 64:
+        return invalid()
+    if type(jobs) is not list or len(jobs) > 16:
+        return invalid()
+
+    job_ids = []
+    job_cpus = []
+    job_memories = []
+    job_priorities = []
+    raw_deps = []
+    seen_ids = set()
+
+    for job in jobs:
+        if not exact_keys(job, ("id", "cpu", "memory", "priority", "deps")):
+            return invalid()
+
+        job_id = job["id"]
+        job_cpu = job["cpu"]
+        job_memory = job["memory"]
+        job_priority = job["priority"]
+        deps = job["deps"]
+
+        if type(job_id) is not str or not job_id or len(job_id) > 16:
+            return invalid()
+        if job_id in seen_ids:
+            return invalid()
+        seen_ids.add(job_id)
+
+        if type(job_cpu) is not int or not 1 <= job_cpu <= 32:
+            return invalid()
+        if type(job_memory) is not int or not 1 <= job_memory <= 32:
+            return invalid()
+        if type(job_priority) is not int or not 1 <= job_priority <= 1000:
+            return invalid()
+        if type(deps) is not list or len(deps) > 16:
+            return invalid()
+
+        dep_set = set()
+        for dep in deps:
+            if type(dep) is not str or dep in dep_set:
+                return invalid()
+            dep_set.add(dep)
+
+        job_ids.append(job_id)
+        job_cpus.append(job_cpu)
+        job_memories.append(job_memory)
+        job_priorities.append(job_priority)
+        raw_deps.append(deps)
+
+    count = len(jobs)
+    id_to_index = {job_id: i for i, job_id in enumerate(job_ids)}
+    dependencies = []
+
+    for i, deps in enumerate(raw_deps):
+        indices = []
+        for dep in deps:
+            if dep not in id_to_index:
+                return invalid()
+            dep_index = id_to_index[dep]
+            if dep_index == i:
+                return invalid()
+            indices.append(dep_index)
+        dependencies.append(indices)
+
+    state = [0] * count
+
+    def visit(node):
+        if state[node] == 1:
+            return False
+        if state[node] == 2:
+            return True
+
+        state[node] = 1
+        for dependency in dependencies[node]:
+            if not visit(dependency):
+                return False
+        state[node] = 2
+        return True
+
+    for node in range(count):
+        if not visit(node):
+            return invalid()
+
+    order = sorted(range(count), key=lambda i: job_ids[i])
+    old_to_new = {old: new for new, old in enumerate(order)}
+
+    sorted_ids = [job_ids[old] for old in order]
+    sorted_cpus = [job_cpus[old] for old in order]
+    sorted_memories = [job_memories[old] for old in order]
+    sorted_priorities = [job_priorities[old] for old in order]
+
+    direct_dependency_masks = [0] * count
+    for new_index, old_index in enumerate(order):
+        mask = 0
+        for dependency in dependencies[old_index]:
+            mask |= 1 << old_to_new[dependency]
+        direct_dependency_masks[new_index] = mask
+
+    limit = 1 << count
+    cpu_sums = [0] * limit
+    memory_sums = [0] * limit
+    priority_sums = [0] * limit
+    dependency_unions = [0] * limit
+
+    best_mask = 0
+    best_priority = 0
+    best_cost = 0
+    best_ids = ()
+
+    for mask in range(1, limit):
+        low_bit = mask & -mask
+        index = low_bit.bit_length() - 1
+        previous = mask ^ low_bit
+
+        used_cpu = cpu_sums[previous] + sorted_cpus[index]
+        used_memory = memory_sums[previous] + sorted_memories[index]
+        total_priority = priority_sums[previous] + sorted_priorities[index]
+        required = dependency_unions[previous] | direct_dependency_masks[index]
+
+        cpu_sums[mask] = used_cpu
+        memory_sums[mask] = used_memory
+        priority_sums[mask] = total_priority
+        dependency_unions[mask] = required
+
+        if used_cpu > capacity_cpu or used_memory > capacity_memory:
+            continue
+        if required & ~mask:
+            continue
+
+        cost = used_cpu + used_memory
+
+        if total_priority > best_priority:
+            better = True
+        elif total_priority < best_priority:
+            better = False
+        elif cost < best_cost:
+            better = True
+        elif cost > best_cost:
+            better = False
+        else:
+            candidate_ids = tuple(
+                sorted_ids[i] for i in range(count) if mask & (1 << i)
+            )
+            better = candidate_ids < best_ids
+
+        if better:
+            best_mask = mask
+            best_priority = total_priority
+            best_cost = cost
+            best_ids = tuple(
+                sorted_ids[i] for i in range(count) if mask & (1 << i)
+            )
+
+    used_cpu = cpu_sums[best_mask]
+    used_memory = memory_sums[best_mask]
+
+    return {
+        "selected": list(best_ids),
+        "used": {
+            "cpu": used_cpu,
+            "memory": used_memory,
+        },
+        "priority": best_priority,
+    }
+```
+
+DIRECTOR CONTRACT REVIEW
+# Director review: task12 repetition 2
+
+Reviewed only the public specification, frozen director plan, and this Beastmode initial candidate. No baseline candidates or held-out cases/results consulted.
+
+No necessary correction identified. Exact object keys and integer types exclude unknown fields and booleans; all bounds, duplicate IDs/dependencies, unknown references and self-edges are validated before optimization. DFS checks cycles in every component, including when capacities are zero. Sorting jobs correctly remaps dependency indices. Every subset computes resource/priority sums and the union of direct requirements independently of whether smaller masks were feasible. Requiring that union to lie inside the subset enforces transitive closure because every selected prerequisite contributes its own dependencies. Both capacity constraints and the priority, combined-resource-cost, then Unicode ID-list tie-breakers are applied correctly. Empty selection retains zero arrays and totals. Enumeration is bounded by 16 jobs and does not mutate input.
+
+Recheck against the public contract and return complete final code. Preserve these semantics; no speculative rewrite is requested.
+
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

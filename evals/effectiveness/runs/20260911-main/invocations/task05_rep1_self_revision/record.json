@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "0f181ffad33ba236d168067b45fe433b51ee07c997d8d278725ef0052dfb3394",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:43:43.846144Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1172462,
+  "pid_recorded_at_utc": "2026-09-11T19:42:20.404048Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "ac1bd815e7e9a596327ae865882cd19ae356d26bf40dd0e169387b42ddeeb6d3",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 05: inventory event reducer\n\nImplement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.\n\nThe valid input is an object with `stock` and `events`. `stock` is an object with at most 40 SKU keys; each key is a non-empty ASCII string of at most 32 characters matching `[A-Za-z0-9_.-]+`, and each value is an integer from `0` through `1000000`. `events` is an array of at most 100 objects. Every event has a non-empty string `id` (at most 40 characters), an `op` in `receive`, `reserve`, `release`, `ship`, a SKU present in the initial stock, and a positive integer `qty <= 1000000`. Booleans do not count as integers. Any malformed top-level value, stock entry, or event returns exactly `{\"error\":\"invalid\"}`; this includes an unknown SKU or operation. Unknown object keys are ignored.\n\nBegin with each SKU's `stock` value and a reserved quantity of zero. Process events in input order. Validate every event's required shape before duplicate-ID handling, so a malformed duplicate still returns `{\"error\":\"invalid\"}`. An event ID is considered seen on its first valid occurrence. A later valid event with the same ID is put in `ignored` and changes nothing, even if its fields differ. For a first occurrence, `receive` adds quantity to stock; `reserve` moves quantity from stock to reserved; `release` moves quantity from reserved back to stock; and `ship` removes quantity from reserved. A validly shaped operation that would make a quantity negative is put in `rejected` and changes nothing. Other first occurrences are put in `applied` after changing state. Each list preserves event order, and duplicate occurrences appear in `ignored` in their occurrence order.\n\nReturn exactly `stock`, `reserved`, `applied`, `rejected`, and `ignored`. State maps contain every initial SKU, including zero values. Object key order is irrelevant.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"applied\": [\n        \"r1\",\n        \"s1\"\n      ],\n      \"ignored\": [\n        \"r1\"\n      ],\n      \"rejected\": [\n        \"bad\"\n      ],\n      \"reserved\": {\n        \"A\": 1,\n        \"B\": 0\n      },\n      \"stock\": {\n        \"A\": 6,\n        \"B\": 2\n      }\n    },\n    \"input\": {\n      \"events\": [\n        {\n          \"id\": \"r1\",\n          \"op\": \"reserve\",\n          \"qty\": 4,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"s1\",\n          \"op\": \"ship\",\n          \"qty\": 3,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"r1\",\n          \"op\": \"reserve\",\n          \"qty\": 1,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"bad\",\n          \"op\": \"release\",\n          \"qty\": 1,\n          \"sku\": \"B\"\n        }\n      ],\n      \"stock\": {\n        \"A\": 10,\n        \"B\": 2\n      }\n    }\n  },\n  {\n    \"expected\": {\n      \"applied\": [\n        \"in\",\n        \"hold\",\n        \"return\",\n        \"send\"\n      ],\n      \"ignored\": [],\n      \"rejected\": [],\n      \"reserved\": {\n        \"x\": 0\n      },\n      \"stock\": {\n        \"x\": 2\n      }\n    },\n    \"input\": {\n      \"events\": [\n        {\n          \"id\": \"in\",\n          \"op\": \"receive\",\n          \"qty\": 5,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"hold\",\n          \"op\": \"reserve\",\n          \"qty\": 5,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"return\",\n          \"op\": \"release\",\n          \"qty\": 2,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"send\",\n          \"op\": \"ship\",\n          \"qty\": 3,\n          \"sku\": \"x\"\n        }\n      ],\n      \"stock\": {\n        \"x\": 0\n      }\n    }\n  },\n  {\n    \"expected\": {\n      \"applied\": [],\n      \"ignored\": [],\n      \"rejected\": [],\n      \"reserved\": {},\n      \"stock\": {}\n    },\n    \"input\": {\n      \"events\": [],\n      \"stock\": {}\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\n```python\ndef solve(payload):\n    def is_integer(value):\n        return isinstance(value, int) and not isinstance(value, bool)\n\n    def valid_stock_key(value):\n        if not isinstance(value, str) or not value or len(value) > 32:\n            return False\n        return all(\n            (\"A\" <= char <= \"Z\")\n            or (\"a\" <= char <= \"z\")\n            or (\"0\" <= char <= \"9\")\n            or char in \"_.-\"\n            for char in value\n        )\n\n    if not isinstance(payload, dict):\n        return {\"error\": \"invalid\"}\n\n    if \"stock\" not in payload or \"events\" not in payload:\n        return {\"error\": \"invalid\"}\n\n    raw_stock = payload[\"stock\"]\n    raw_events = payload[\"events\"]\n\n    if not isinstance(raw_stock, dict) or len(raw_stock) > 40:\n        return {\"error\": \"invalid\"}\n\n    stock = {}\n    for sku, quantity in raw_stock.items():\n        if (\n            not valid_stock_key(sku)\n            or not is_integer(quantity)\n            or quantity < 0\n            or quantity > 1000000\n        ):\n            return {\"error\": \"invalid\"}\n        stock[sku] = quantity\n\n    if not isinstance(raw_events, list) or len(raw_events) > 100:\n        return {\"error\": \"invalid\"}\n\n    reserved = {sku: 0 for sku in stock}\n    applied = []\n    rejected = []\n    ignored = []\n    seen = set()\n\n    for event in raw_events:\n        if not isinstance(event, dict):\n            return {\"error\": \"invalid\"}\n\n        required = (\"id\", \"op\", \"sku\", \"qty\")\n        if any(key not in event for key in required):\n            return {\"error\": \"invalid\"}\n\n        event_id = event[\"id\"]\n        operation = event[\"op\"]\n        sku = event[\"sku\"]\n        quantity = event[\"qty\"]\n\n        if (\n            not isinstance(event_id, str)\n            or not event_id\n            or len(event_id) > 40\n            or operation not in {\"receive\", \"reserve\", \"release\", \"ship\"}\n            or not isinstance(sku, str)\n            or sku not in stock\n            or not is_integer(quantity)\n            or quantity <= 0\n            or quantity > 1000000\n        ):\n            return {\"error\": \"invalid\"}\n\n        if event_id in seen:\n            ignored.append(event_id)\n            continue\n\n        seen.add(event_id)\n\n        if operation == \"receive\":\n            stock[sku] += quantity\n            applied.append(event_id)\n        elif operation == \"reserve\":\n            if stock[sku] < quantity:\n                rejected.append(event_id)\n            else:\n                stock[sku] -= quantity\n                reserved[sku] += quantity\n                applied.append(event_id)\n        elif operation == \"release\":\n            if reserved[sku] < quantity:\n                rejected.append(event_id)\n            else:\n                reserved[sku] -= quantity\n                stock[sku] += quantity\n                applied.append(event_id)\n        else:\n            if reserved[sku] < quantity:\n                rejected.append(event_id)\n            else:\n                reserved[sku] -= quantity\n                applied.append(event_id)\n\n    return {\n        \"stock\": stock,\n        \"reserved\": reserved,\n        \"applied\": applied,\n        \"rejected\": rejected,\n        \"ignored\": ignored,\n    }\n```\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091fe-110f-7851-95c5-34fbdf7e3241",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 10,
+    "call_index": 40,
+    "repetition": 1,
+    "stage": "self_revision",
+    "task_id": "task05"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T19:42:20.122010Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task05",
+  "thread_id": "01a091fe-110f-7851-95c5-34fbdf7e3241",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 21445,
+    "output_tokens": 2329,
+    "reasoning_tokens": null
+  }
+}

@@ -1,0 +1,137 @@
+def _is_int(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _has_keys(obj, expected):
+    return isinstance(obj, dict) and set(obj.keys()) == expected
+
+
+def _valid_range_int(value, low, high):
+    return _is_int(value) and low <= value <= high
+
+
+def _valid_tag(tag):
+    if not isinstance(tag, str) or not 1 <= len(tag) <= 12:
+        return False
+    if not ("a" <= tag[0] <= "z"):
+        return False
+    return all(
+        ("a" <= char <= "z")
+        or ("0" <= char <= "9")
+        or char in "_-"
+        for char in tag[1:]
+    )
+
+
+def _valid_value(value):
+    if not _has_keys(value, {"name", "tags"}):
+        return False
+
+    name = value["name"]
+    tags = value["tags"]
+
+    if not isinstance(name, str) or not 1 <= len(name) <= 32:
+        return False
+    if not isinstance(tags, list) or len(tags) > 8:
+        return False
+    if not all(_valid_tag(tag) for tag in tags):
+        return False
+    return len(set(tags)) == len(tags)
+
+
+def _valid_record(record):
+    if not isinstance(record, dict):
+        return False
+
+    common = {"id", "version", "updated_at", "deleted"}
+    if "deleted" not in record:
+        return False
+
+    deleted = record["deleted"]
+
+    if deleted is True:
+        if not _has_keys(record, common):
+            return False
+    elif deleted is False:
+        if not _has_keys(record, common | {"value"}):
+            return False
+        if not _valid_value(record["value"]):
+            return False
+    else:
+        return False
+
+    return (
+        isinstance(record["id"], str)
+        and 1 <= len(record["id"]) <= 16
+        and _valid_range_int(record["version"], 1, 1000000)
+        and _valid_range_int(record["updated_at"], 0, 1000000)
+    )
+
+
+def solve(payload):
+    if not _has_keys(payload, {"as_of", "base", "incoming"}):
+        return {"error": "invalid"}
+
+    as_of = payload["as_of"]
+    base = payload["base"]
+    incoming = payload["incoming"]
+
+    if not _valid_range_int(as_of, 0, 1000000):
+        return {"error": "invalid"}
+
+    if (
+        not isinstance(base, list)
+        or not isinstance(incoming, list)
+        or len(base) > 50
+        or len(incoming) > 50
+    ):
+        return {"error": "invalid"}
+
+    base_ids = set()
+    for record in base:
+        if not _valid_record(record) or record["id"] in base_ids:
+            return {"error": "invalid"}
+        base_ids.add(record["id"])
+
+    incoming_ids = set()
+    for record in incoming:
+        if not _valid_record(record) or record["id"] in incoming_ids:
+            return {"error": "invalid"}
+        incoming_ids.add(record["id"])
+
+    best = {}
+
+    for source_rank, records in ((0, base), (1, incoming)):
+        for record in records:
+            if record["updated_at"] > as_of:
+                continue
+
+            key = (
+                record["version"],
+                record["updated_at"],
+                source_rank,
+            )
+            record_id = record["id"]
+
+            if record_id not in best or key > best[record_id][0]:
+                best[record_id] = (key, record)
+
+    result = []
+    for record_id in sorted(best):
+        record = best[record_id][1]
+        if record["deleted"]:
+            continue
+
+        result.append(
+            {
+                "id": record["id"],
+                "version": record["version"],
+                "updated_at": record["updated_at"],
+                "value": {
+                    "name": record["value"]["name"],
+                    "tags": sorted(record["value"]["tags"]),
+                },
+            }
+        )
+
+    return {"records": result}

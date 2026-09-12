@@ -1,0 +1,193 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 12: dependency-closed two-resource allocation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly the keys cpu, memory, and jobs. cpu
+and memory are integers from 0 through 64 inclusive; booleans are not
+integers. jobs is an array of at most 16 job objects. Every job has exactly
+id, cpu, memory, priority, and deps. id is a unique non-empty string of at
+most 16 Unicode code points. A job's cpu and memory are integers from 1
+through 32. priority is an integer from 1 through 1000. deps is an array of
+at most 16 distinct string IDs, and every dependency names another job in the
+same input. A self-dependency or any directed dependency cycle is invalid.
+Missing or extra keys, wrong types, duplicate IDs or dependencies, unknown
+dependencies, out-of-range values, or any other violation returns exactly
+{"error":"invalid"}. The stated limits are the complete evaluation size
+envelope.
+
+Choose a subset of jobs whose total cpu is at most cpu and whose total memory
+is at most memory. If a job is selected, every direct and transitive
+dependency must also be selected. Maximize total priority. If several
+dependency-closed subsets have the same priority, choose the one with the
+smaller sum of cpu plus memory. If they still tie, sort each subset's IDs by
+Python/Unicode string ordering and choose the lexicographically smaller ID
+list. The empty subset is always allowed.
+
+Return exactly {"selected": [...], "used": {"cpu": integer, "memory":
+integer}, "priority": integer}. selected is sorted by ID, used contains the
+resource sums, and priority is the sum for the selected jobs. No other output
+fields are allowed. Zero capacities or no jobs therefore return an empty
+selection with zero usage and priority.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "priority": 13,
+      "selected": [
+        "a",
+        "c"
+      ],
+      "used": {
+        "cpu": 4,
+        "memory": 3
+      }
+    },
+    "input": {
+      "cpu": 4,
+      "jobs": [
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "a",
+          "memory": 1,
+          "priority": 5
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 2,
+          "priority": 4
+        },
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "c",
+          "memory": 2,
+          "priority": 8
+        }
+      ],
+      "memory": 4
+    }
+  },
+  {
+    "expected": {
+      "priority": 15,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": {
+        "cpu": 3,
+        "memory": 3
+      }
+    },
+    "input": {
+      "cpu": 3,
+      "jobs": [
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "a",
+          "memory": 2,
+          "priority": 5
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 1,
+          "priority": 10
+        },
+        {
+          "cpu": 3,
+          "deps": [],
+          "id": "c",
+          "memory": 3,
+          "priority": 14
+        }
+      ],
+      "memory": 3
+    }
+  },
+  {
+    "expected": {
+      "priority": 8,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": {
+        "cpu": 2,
+        "memory": 2
+      }
+    },
+    "input": {
+      "cpu": 2,
+      "jobs": [
+        {
+          "cpu": 1,
+          "deps": [],
+          "id": "a",
+          "memory": 1,
+          "priority": 4
+        },
+        {
+          "cpu": 1,
+          "deps": [],
+          "id": "b",
+          "memory": 1,
+          "priority": 4
+        },
+        {
+          "cpu": 2,
+          "deps": [],
+          "id": "c",
+          "memory": 2,
+          "priority": 8
+        }
+      ],
+      "memory": 2
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "cpu": 4,
+      "jobs": [
+        {
+          "cpu": 1,
+          "deps": [
+            "b"
+          ],
+          "id": "a",
+          "memory": 1,
+          "priority": 1
+        },
+        {
+          "cpu": 1,
+          "deps": [
+            "a"
+          ],
+          "id": "b",
+          "memory": 1,
+          "priority": 1
+        }
+      ],
+      "memory": 4
+    }
+  }
+]
+
+Produce your complete implementation.

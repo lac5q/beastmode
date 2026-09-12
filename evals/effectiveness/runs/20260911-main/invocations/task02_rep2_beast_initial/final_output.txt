@@ -1,0 +1,140 @@
+```python
+import heapq
+
+
+def solve(payload):
+    def valid_int(value):
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    invalid = {"error": "invalid"}
+
+    if not isinstance(payload, dict):
+        return invalid
+    if "lanes" not in payload or "tasks" not in payload:
+        return invalid
+
+    lanes = payload["lanes"]
+    tasks = payload["tasks"]
+
+    if not valid_int(lanes) or not 1 <= lanes <= 80:
+        return invalid
+    if not isinstance(tasks, list) or len(tasks) > 80:
+        return invalid
+
+    ids = []
+    durations = {}
+    dependencies = {}
+    seen = set()
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            return invalid
+        if "id" not in task or "duration" not in task or "deps" not in task:
+            return invalid
+
+        task_id = task["id"]
+        duration = task["duration"]
+        deps = task["deps"]
+
+        if (
+            not isinstance(task_id, str)
+            or not task_id
+            or len(task_id) > 40
+            or task_id in seen
+        ):
+            return invalid
+        if not valid_int(duration) or not 1 <= duration <= 100000:
+            return invalid
+        if not isinstance(deps, list):
+            return invalid
+
+        dep_seen = set()
+        for dep in deps:
+            if not isinstance(dep, str) or dep in dep_seen:
+                return invalid
+            dep_seen.add(dep)
+
+        seen.add(task_id)
+        ids.append(task_id)
+        durations[task_id] = duration
+        dependencies[task_id] = deps
+
+    children = {task_id: [] for task_id in ids}
+    indegree = {task_id: len(dependencies[task_id]) for task_id in ids}
+
+    for task_id in ids:
+        for dep in dependencies[task_id]:
+            if dep not in seen or dep == task_id:
+                return invalid
+            children[dep].append(task_id)
+
+    topo_ready = [task_id for task_id in ids if indegree[task_id] == 0]
+    heapq.heapify(topo_ready)
+    topo_order = []
+
+    topo_indegree = indegree.copy()
+    while topo_ready:
+        task_id = heapq.heappop(topo_ready)
+        topo_order.append(task_id)
+        for child in children[task_id]:
+            topo_indegree[child] -= 1
+            if topo_indegree[child] == 0:
+                heapq.heappush(topo_ready, child)
+
+    if len(topo_order) != len(ids):
+        return invalid
+
+    critical = {}
+    for task_id in reversed(topo_order):
+        downstream = 0
+        for child in children[task_id]:
+            if critical[child] > downstream:
+                downstream = critical[child]
+        critical[task_id] = durations[task_id] + downstream
+
+    remaining = indegree.copy()
+    ready = [
+        (-critical[task_id], task_id)
+        for task_id in ids
+        if remaining[task_id] == 0
+    ]
+    heapq.heapify(ready)
+
+    running = []
+    order = []
+    start = {}
+    finish = {}
+    now = 0
+
+    while ready or running:
+        while ready and len(running) < lanes:
+            _, task_id = heapq.heappop(ready)
+            start[task_id] = now
+            finish_time = now + durations[task_id]
+            finish[task_id] = finish_time
+            order.append(task_id)
+            heapq.heappush(running, (finish_time, task_id))
+
+        if not running:
+            break
+
+        now = running[0][0]
+        completed = []
+        while running and running[0][0] == now:
+            _, task_id = heapq.heappop(running)
+            completed.append(task_id)
+
+        for task_id in completed:
+            for child in children[task_id]:
+                remaining[child] -= 1
+                if remaining[child] == 0:
+                    heapq.heappush(ready, (-critical[child], child))
+
+    return {
+        "order": order,
+        "start": start,
+        "finish": finish,
+        "makespan": max(finish.values(), default=0),
+        "critical": critical,
+    }
+```

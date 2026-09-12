@@ -1,0 +1,101 @@
+```python
+def solve(payload):
+    def has_exact_keys(value, expected):
+        return (
+            type(value) is dict
+            and len(value) == len(expected)
+            and all(type(key) is str and key in expected for key in value)
+        )
+
+    invalid = {"error": "invalid"}
+
+    if not has_exact_keys(payload, ("capacity", "requests")):
+        return invalid
+
+    capacity = payload["capacity"]
+    requests = payload["requests"]
+
+    if type(capacity) is not int or not 0 <= capacity <= 120:
+        return invalid
+    if type(requests) is not list or len(requests) > 40:
+        return invalid
+
+    validated = []
+    seen_ids = set()
+
+    for request in requests:
+        if not has_exact_keys(request, ("id", "units", "benefit")):
+            return invalid
+
+        request_id = request["id"]
+        units = request["units"]
+        benefit = request["benefit"]
+
+        if (
+            type(request_id) is not str
+            or not 1 <= len(request_id) <= 16
+            or type(units) is not int
+            or not 1 <= units <= 30
+            or type(benefit) is not int
+            or not 1 <= benefit <= 1000
+            or request_id in seen_ids
+        ):
+            return invalid
+
+        seen_ids.add(request_id)
+        validated.append((request_id, units, benefit))
+
+    validated.sort(key=lambda item: item[0], reverse=True)
+
+    dp = [None] * (capacity + 1)
+    dp[0] = (0, ())
+
+    for request_id, units, benefit in validated:
+        for used in range(capacity, units - 1, -1):
+            previous = dp[used - units]
+            if previous is None:
+                continue
+
+            candidate_benefit = previous[0] + benefit
+            candidate_ids = (request_id,) + previous[1]
+            current = dp[used]
+
+            if (
+                current is None
+                or candidate_benefit > current[0]
+                or (
+                    candidate_benefit == current[0]
+                    and candidate_ids < current[1]
+                )
+            ):
+                dp[used] = (candidate_benefit, candidate_ids)
+
+    best_used = 0
+    best_benefit = 0
+    best_ids = ()
+
+    for used, state in enumerate(dp):
+        if state is None:
+            continue
+
+        benefit, ids = state
+        if (
+            benefit > best_benefit
+            or (
+                benefit == best_benefit
+                and (
+                    used < best_used
+                    or (used == best_used and ids < best_ids)
+                )
+            )
+        ):
+            best_used = used
+            best_benefit = benefit
+            best_ids = ids
+
+    return {
+        "selected": list(best_ids),
+        "used": best_used,
+        "benefit": best_benefit,
+    }
+```

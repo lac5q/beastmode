@@ -1,0 +1,23 @@
+[
+  {
+    "input": {"lanes": 2, "tasks": [
+      {"id": "a", "duration": 2, "deps": []},
+      {"id": "b", "duration": 1, "deps": []},
+      {"id": "c", "duration": 4, "deps": ["a"]},
+      {"id": "d", "duration": 1, "deps": ["b"]}
+    ]},
+    "expected": {"order": ["a", "b", "d", "c"], "start": {"a": 0, "b": 0, "d": 1, "c": 2}, "finish": {"a": 2, "b": 1, "d": 2, "c": 6}, "makespan": 6, "critical": {"c": 4, "a": 6, "d": 1, "b": 2}}
+  },
+  {
+    "input": {"lanes": 1, "tasks": [
+      {"id": "z", "duration": 1, "deps": []},
+      {"id": "a", "duration": 1, "deps": []},
+      {"id": "q", "duration": 3, "deps": ["z"]}
+    ]},
+    "expected": {"order": ["z", "q", "a"], "start": {"z": 0, "q": 1, "a": 4}, "finish": {"z": 1, "q": 4, "a": 5}, "makespan": 5, "critical": {"q": 3, "z": 4, "a": 1}}
+  },
+  {
+    "input": {"lanes": 3, "tasks": []},
+    "expected": {"order": [], "start": {}, "finish": {}, "makespan": 0, "critical": {}}
+  }
+]

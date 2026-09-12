@@ -1,0 +1,24 @@
+[
+  {
+    "input": {"initial": {"status": "todo", "assignee": null, "labels": ["bug"]}, "events": [
+      {"id": "s", "op": "start"},
+      {"id": "c", "op": "complete"},
+      {"id": "bad", "op": "complete"},
+      {"id": "r", "op": "reopen"},
+      {"id": "a", "op": "assign", "value": "sam"},
+      {"id": "l", "op": "label", "value": "urgent"},
+      {"id": "l", "op": "unlabel", "value": "bug"}
+    ]},
+    "expected": {"state": {"status": "todo", "assignee": "sam", "labels": ["bug", "urgent"]}, "applied": ["s", "c", "r", "a", "l"], "rejected": ["bad"], "ignored": ["l"]}
+  },
+  {
+    "input": {"initial": {"status": "cancelled", "assignee": "old", "labels": []}, "events": [
+      {"id": "re", "op": "reopen"},
+      {"id": "x", "op": "cancel"},
+      {"id": "clear", "op": "assign", "value": null},
+      {"id": "u", "op": "unlabel", "value": "missing"}
+    ]},
+    "expected": {"state": {"status": "cancelled", "assignee": null, "labels": []}, "applied": ["re", "x", "clear"], "rejected": ["u"], "ignored": []}
+  },
+  {"input": {"initial": {"status": "done", "assignee": null, "labels": []}, "events": []}, "expected": {"state": {"status": "done", "assignee": null, "labels": []}, "applied": [], "rejected": [], "ignored": []}}
+]

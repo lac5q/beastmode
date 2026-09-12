@@ -1,0 +1,4 @@
+[
+  {"name": "allow_any_status_transition", "source": "def solve(payload):\n    s=dict(payload['initial']); applied=[]\n    for e in payload.get('events',[]):\n        if e['op']=='start': s['status']='doing'\n        elif e['op']=='complete': s['status']='done'\n        applied.append(e['id'])\n    return {'state':s,'applied':applied,'rejected':[],'ignored':[]}"},
+  {"name": "duplicate_events_apply", "source": "def solve(payload):\n    s=dict(payload['initial']); applied=[]\n    for e in payload.get('events',[]):\n        if e['op']=='label': s['labels'].append(e['value'])\n        elif e['op']=='unlabel' and e['value'] in s['labels']: s['labels'].remove(e['value'])\n        applied.append(e['id'])\n    return {'state':s,'applied':applied,'rejected':[],'ignored':[]}"}
+]

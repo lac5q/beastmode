@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    chosen = {}\n    as_of = payload.get('as_of', 0)\n    for source, rows in enumerate((payload.get('base', []), payload.get('incoming', []))):\n        for row in rows:\n            if row.get('updated_at', 0) <= as_of:\n                key = row.get('id')\n                rank = (row.get('updated_at', 0), row.get('version', 0), source)\n                if key not in chosen or rank > chosen[key][0]:\n                    chosen[key] = (rank, row)\n    records = []\n    for key in sorted(chosen):\n        row = chosen[key][1]\n        if row.get('deleted'):\n            continue\n        value = dict(row.get('value', {}))\n        value['tags'] = sorted(value.get('tags', []))\n        records.append({'id': key, 'version': row.get('version'), 'updated_at': row.get('updated_at'), 'value': value})\n    return {'records': records}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    chosen = {}\n    as_of = payload.get('as_of', 0)\n    for source, rows in enumerate((payload.get('base', []), payload.get('incoming', []))):\n        for row in rows:\n            if row.get('deleted') or row.get('updated_at', 0) > as_of:\n                continue\n            key = row.get('id')\n            rank = (row.get('version', 0), row.get('updated_at', 0), source)\n            if key not in chosen or rank > chosen[key][0]:\n                chosen[key] = (rank, row)\n    return {'records': [{'id': key, 'version': chosen[key][1].get('version'), 'updated_at': chosen[key][1].get('updated_at'), 'value': {'name': chosen[key][1].get('value', {}).get('name', ''), 'tags': sorted(chosen[key][1].get('value', {}).get('tags', []))}} for key in sorted(chosen)]}"
+  }
+]

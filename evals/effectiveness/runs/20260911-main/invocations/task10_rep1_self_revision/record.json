@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "5a15adb84ac15ec89f59958937380ba7d31b7ea92c1332a08b11f2b843531165",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T18:22:36.711385Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 922653,
+  "pid_recorded_at_utc": "2026-09-11T18:19:58.333785Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "60a0e4250d3cb17798ed7482b7e7210f043b09b02372b04f7204cce36aa11b88",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 10: typed telemetry CSV parser\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly one key, text. text is a string of\nat most 4096 Unicode code points. Split it at line-feed characters. A\ncarriage return is allowed only immediately before a line feed and is removed.\nThe final line may be empty. A line containing only spaces or tabs is ignored.\nA line whose first non-space/tab character is # is also ignored. Other lines\nare records, with at most 80 records. A bare carriage return anywhere else is\ninvalid.\n\nEach record is exactly five CSV fields in this order: timestamp, level, code,\nmessage, tags. CSV quoting is strict: a quote may begin a field only at its\nfirst character; inside a quoted field, a doubled quote represents one quote;\nafter a closing quote only a comma or end of line is allowed. Unquoted fields\ncannot contain quotes. Newlines are not allowed inside quoted fields.\n\ntimestamp is an ASCII decimal integer from 0 through 1000000000. level is\nexactly INFO, WARN, or ERROR. code matches\n[A-Z][A-Z0-9_]{1,7}. message is any decoded string of at most 80 code points,\nincluding the empty string. tags is empty or a semicolon-separated list of\ndistinct tags, each matching [a-z][a-z0-9_-]{0,11}. Tags are canonicalized\ninto Python/Unicode sorted order in the output. Any malformed record, wrong\nfield count, duplicate tag, extra payload key, or other violation returns\nexactly {\"error\":\"invalid\"}.\n\nReturn exactly an object with these standalone fields:\n* events: records in ascending (timestamp, input_record_order) order, each\n  represented as {\"at\": timestamp, \"level\": level, \"code\": code,\n  \"message\": message, \"tags\": sorted_tags}.\n* counts: an object with exactly INFO, WARN, and ERROR integer counts,\n  including zero counts.\n* latest_by_code: for each code, the event with greatest\n  (timestamp, input_record_order), represented as {\"at\": timestamp,\n  \"level\": level}. A code absent from the input is absent from this object.\n\nAn empty or comment-only document returns empty events, zero counts, and an\nempty latest_by_code. The stated text, record, field, and string limits are\nthe complete evaluation size envelope.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 1,\n        \"INFO\": 1,\n        \"WARN\": 1\n      },\n      \"events\": [\n        {\n          \"at\": 1,\n          \"code\": \"CPU\",\n          \"level\": \"WARN\",\n          \"message\": \"warm\",\n          \"tags\": [\n            \"host\"\n          ]\n        },\n        {\n          \"at\": 2,\n          \"code\": \"BOOT\",\n          \"level\": \"INFO\",\n          \"message\": \"ready\",\n          \"tags\": [\n            \"core\",\n            \"fast\"\n          ]\n        },\n        {\n          \"at\": 2,\n          \"code\": \"BOOT\",\n          \"level\": \"ERROR\",\n          \"message\": \"failed\",\n          \"tags\": [\n            \"core\"\n          ]\n        }\n      ],\n      \"latest_by_code\": {\n        \"BOOT\": {\n          \"at\": 2,\n          \"level\": \"ERROR\"\n        },\n        \"CPU\": {\n          \"at\": 1,\n          \"level\": \"WARN\"\n        }\n      }\n    },\n    \"input\": {\n      \"text\": \"2,INFO,BOOT,\\\"ready\\\",core;fast\\n1,WARN,CPU,\\\"warm\\\",host\\n2,ERROR,BOOT,\\\"failed\\\",core\"\n    }\n  },\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 0,\n        \"INFO\": 1,\n        \"WARN\": 0\n      },\n      \"events\": [\n        {\n          \"at\": 0,\n          \"code\": \"MSG\",\n          \"level\": \"INFO\",\n          \"message\": \"say \\\"hi\\\", now\",\n          \"tags\": [\n            \"a\",\n            \"b\"\n          ]\n        }\n      ],\n      \"latest_by_code\": {\n        \"MSG\": {\n          \"at\": 0,\n          \"level\": \"INFO\"\n        }\n      }\n    },\n    \"input\": {\n      \"text\": \"0,INFO,MSG,\\\"say \\\"\\\"hi\\\"\\\", now\\\",a;b\\n\"\n    }\n  },\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 0,\n        \"INFO\": 0,\n        \"WARN\": 0\n      },\n      \"events\": [],\n      \"latest_by_code\": {}\n    },\n    \"input\": {\n      \"text\": \"  # comment\\n\\n\"\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"text\": \"1,INFO,BAD,\\\"unclosed,x\"\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\nimport re\n\n_CODE_RE = re.compile(r\"[A-Z][A-Z0-9_]{1,7}\\Z\")\n_TAG_RE = re.compile(r\"[a-z][a-z0-9_-]{0,11}\\Z\")\n\n\ndef _invalid():\n    return {\"error\": \"invalid\"}\n\n\ndef _parse_csv_line(line):\n    fields = []\n    length = len(line)\n    position = 0\n\n    while True:\n        if position < length and line[position] == '\"':\n            position += 1\n            decoded = []\n            closed = False\n\n            while position < length:\n                character = line[position]\n                if character == '\"':\n                    if position + 1 < length and line[position + 1] == '\"':\n                        decoded.append('\"')\n                        position += 2\n                    else:\n                        position += 1\n                        closed = True\n                        break\n                else:\n                    decoded.append(character)\n                    position += 1\n\n            if not closed:\n                return None\n            if position < length and line[position] != \",\":\n                return None\n\n            field = \"\".join(decoded)\n        else:\n            start = position\n            while position < length and line[position] != \",\":\n                if line[position] == '\"':\n                    return None\n                position += 1\n            field = line[start:position]\n\n        fields.append(field)\n\n        if position == length:\n            return fields\n\n        position += 1\n\n\ndef _parse_timestamp(value):\n    if not value:\n        return None\n\n    result = 0\n    for character in value:\n        code_point = ord(character)\n        if code_point < 48 or code_point > 57:\n            return None\n        result = result * 10 + code_point - 48\n        if result > 1000000000:\n            return None\n\n    return result\n\n\ndef solve(payload):\n    if not isinstance(payload, dict) or len(payload) != 1 or \"text\" not in payload:\n        return _invalid()\n\n    text = payload[\"text\"]\n    if not isinstance(text, str) or len(text) > 4096:\n        return _invalid()\n\n    events = []\n    counts = {\"INFO\": 0, \"WARN\": 0, \"ERROR\": 0}\n    latest = {}\n    record_order = 0\n\n    for raw_line in text.split(\"\\n\"):\n        if raw_line.endswith(\"\\r\"):\n            line = raw_line[:-1]\n        else:\n            line = raw_line\n\n        if \"\\r\" in line:\n            return _invalid()\n\n        first = 0\n        while first < len(line) and line[first] in (\" \", \"\\t\"):\n            first += 1\n\n        if first == len(line) or line[first] == \"#\":\n            continue\n\n        if record_order >= 80:\n            return _invalid()\n\n        fields = _parse_csv_line(line)\n        if fields is None or len(fields) != 5:\n            return _invalid()\n\n        timestamp = _parse_timestamp(fields[0])\n        level = fields[1]\n        code = fields[2]\n        message = fields[3]\n        tags_field = fields[4]\n\n        if timestamp is None:\n            return _invalid()\n        if level not in counts:\n            return _invalid()\n        if _CODE_RE.fullmatch(code) is None:\n            return _invalid()\n        if len(message) > 80:\n            return _invalid()\n\n        if tags_field == \"\":\n            tags = []\n        else:\n            raw_tags = tags_field.split(\";\")\n            tags = []\n            seen = set()\n\n            for tag in raw_tags:\n                if _TAG_RE.fullmatch(tag) is None or tag in seen:\n                    return _invalid()\n                seen.add(tag)\n                tags.append(tag)\n\n            tags.sort()\n\n        event = {\n            \"at\": timestamp,\n            \"level\": level,\n            \"code\": code,\n            \"message\": message,\n            \"tags\": tags,\n        }\n\n        events.append((timestamp, record_order, event))\n        counts[level] += 1\n\n        previous = latest.get(code)\n        if previous is None or timestamp >= previous[0]:\n            latest[code] = (timestamp, record_order, level)\n\n        record_order += 1\n\n    events.sort(key=lambda item: (item[0], item[1]))\n\n    latest_by_code = {\n        code: {\"at\": value[0], \"level\": value[2]}\n        for code, value in latest.items()\n    }\n\n    return {\n        \"events\": [event for _, _, event in events],\n        \"counts\": counts,\n        \"latest_by_code\": latest_by_code,\n    }\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091b2-aa51-77b2-a5b8-b27523e6134b",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 1,
+    "call_index": 2,
+    "repetition": 1,
+    "stage": "self_revision",
+    "task_id": "task10"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T18:19:57.890463Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task10",
+  "thread_id": "01a091b2-aa51-77b2-a5b8-b27523e6134b",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 21918,
+    "output_tokens": 5640,
+    "reasoning_tokens": null
+  }
+}

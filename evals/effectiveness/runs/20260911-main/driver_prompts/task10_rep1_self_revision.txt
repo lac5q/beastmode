@@ -1,0 +1,324 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 10: typed telemetry CSV parser
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly one key, text. text is a string of
+at most 4096 Unicode code points. Split it at line-feed characters. A
+carriage return is allowed only immediately before a line feed and is removed.
+The final line may be empty. A line containing only spaces or tabs is ignored.
+A line whose first non-space/tab character is # is also ignored. Other lines
+are records, with at most 80 records. A bare carriage return anywhere else is
+invalid.
+
+Each record is exactly five CSV fields in this order: timestamp, level, code,
+message, tags. CSV quoting is strict: a quote may begin a field only at its
+first character; inside a quoted field, a doubled quote represents one quote;
+after a closing quote only a comma or end of line is allowed. Unquoted fields
+cannot contain quotes. Newlines are not allowed inside quoted fields.
+
+timestamp is an ASCII decimal integer from 0 through 1000000000. level is
+exactly INFO, WARN, or ERROR. code matches
+[A-Z][A-Z0-9_]{1,7}. message is any decoded string of at most 80 code points,
+including the empty string. tags is empty or a semicolon-separated list of
+distinct tags, each matching [a-z][a-z0-9_-]{0,11}. Tags are canonicalized
+into Python/Unicode sorted order in the output. Any malformed record, wrong
+field count, duplicate tag, extra payload key, or other violation returns
+exactly {"error":"invalid"}.
+
+Return exactly an object with these standalone fields:
+* events: records in ascending (timestamp, input_record_order) order, each
+  represented as {"at": timestamp, "level": level, "code": code,
+  "message": message, "tags": sorted_tags}.
+* counts: an object with exactly INFO, WARN, and ERROR integer counts,
+  including zero counts.
+* latest_by_code: for each code, the event with greatest
+  (timestamp, input_record_order), represented as {"at": timestamp,
+  "level": level}. A code absent from the input is absent from this object.
+
+An empty or comment-only document returns empty events, zero counts, and an
+empty latest_by_code. The stated text, record, field, and string limits are
+the complete evaluation size envelope.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 1,
+        "INFO": 1,
+        "WARN": 1
+      },
+      "events": [
+        {
+          "at": 1,
+          "code": "CPU",
+          "level": "WARN",
+          "message": "warm",
+          "tags": [
+            "host"
+          ]
+        },
+        {
+          "at": 2,
+          "code": "BOOT",
+          "level": "INFO",
+          "message": "ready",
+          "tags": [
+            "core",
+            "fast"
+          ]
+        },
+        {
+          "at": 2,
+          "code": "BOOT",
+          "level": "ERROR",
+          "message": "failed",
+          "tags": [
+            "core"
+          ]
+        }
+      ],
+      "latest_by_code": {
+        "BOOT": {
+          "at": 2,
+          "level": "ERROR"
+        },
+        "CPU": {
+          "at": 1,
+          "level": "WARN"
+        }
+      }
+    },
+    "input": {
+      "text": "2,INFO,BOOT,\"ready\",core;fast\n1,WARN,CPU,\"warm\",host\n2,ERROR,BOOT,\"failed\",core"
+    }
+  },
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 0,
+        "INFO": 1,
+        "WARN": 0
+      },
+      "events": [
+        {
+          "at": 0,
+          "code": "MSG",
+          "level": "INFO",
+          "message": "say \"hi\", now",
+          "tags": [
+            "a",
+            "b"
+          ]
+        }
+      ],
+      "latest_by_code": {
+        "MSG": {
+          "at": 0,
+          "level": "INFO"
+        }
+      }
+    },
+    "input": {
+      "text": "0,INFO,MSG,\"say \"\"hi\"\", now\",a;b\n"
+    }
+  },
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 0,
+        "INFO": 0,
+        "WARN": 0
+      },
+      "events": [],
+      "latest_by_code": {}
+    },
+    "input": {
+      "text": "  # comment\n\n"
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "text": "1,INFO,BAD,\"unclosed,x"
+    }
+  }
+]
+
+INITIAL IMPLEMENTATION
+import re
+
+_CODE_RE = re.compile(r"[A-Z][A-Z0-9_]{1,7}\Z")
+_TAG_RE = re.compile(r"[a-z][a-z0-9_-]{0,11}\Z")
+
+
+def _invalid():
+    return {"error": "invalid"}
+
+
+def _parse_csv_line(line):
+    fields = []
+    length = len(line)
+    position = 0
+
+    while True:
+        if position < length and line[position] == '"':
+            position += 1
+            decoded = []
+            closed = False
+
+            while position < length:
+                character = line[position]
+                if character == '"':
+                    if position + 1 < length and line[position + 1] == '"':
+                        decoded.append('"')
+                        position += 2
+                    else:
+                        position += 1
+                        closed = True
+                        break
+                else:
+                    decoded.append(character)
+                    position += 1
+
+            if not closed:
+                return None
+            if position < length and line[position] != ",":
+                return None
+
+            field = "".join(decoded)
+        else:
+            start = position
+            while position < length and line[position] != ",":
+                if line[position] == '"':
+                    return None
+                position += 1
+            field = line[start:position]
+
+        fields.append(field)
+
+        if position == length:
+            return fields
+
+        position += 1
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+
+    result = 0
+    for character in value:
+        code_point = ord(character)
+        if code_point < 48 or code_point > 57:
+            return None
+        result = result * 10 + code_point - 48
+        if result > 1000000000:
+            return None
+
+    return result
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or len(payload) != 1 or "text" not in payload:
+        return _invalid()
+
+    text = payload["text"]
+    if not isinstance(text, str) or len(text) > 4096:
+        return _invalid()
+
+    events = []
+    counts = {"INFO": 0, "WARN": 0, "ERROR": 0}
+    latest = {}
+    record_order = 0
+
+    for raw_line in text.split("\n"):
+        if raw_line.endswith("\r"):
+            line = raw_line[:-1]
+        else:
+            line = raw_line
+
+        if "\r" in line:
+            return _invalid()
+
+        first = 0
+        while first < len(line) and line[first] in (" ", "\t"):
+            first += 1
+
+        if first == len(line) or line[first] == "#":
+            continue
+
+        if record_order >= 80:
+            return _invalid()
+
+        fields = _parse_csv_line(line)
+        if fields is None or len(fields) != 5:
+            return _invalid()
+
+        timestamp = _parse_timestamp(fields[0])
+        level = fields[1]
+        code = fields[2]
+        message = fields[3]
+        tags_field = fields[4]
+
+        if timestamp is None:
+            return _invalid()
+        if level not in counts:
+            return _invalid()
+        if _CODE_RE.fullmatch(code) is None:
+            return _invalid()
+        if len(message) > 80:
+            return _invalid()
+
+        if tags_field == "":
+            tags = []
+        else:
+            raw_tags = tags_field.split(";")
+            tags = []
+            seen = set()
+
+            for tag in raw_tags:
+                if _TAG_RE.fullmatch(tag) is None or tag in seen:
+                    return _invalid()
+                seen.add(tag)
+                tags.append(tag)
+
+            tags.sort()
+
+        event = {
+            "at": timestamp,
+            "level": level,
+            "code": code,
+            "message": message,
+            "tags": tags,
+        }
+
+        events.append((timestamp, record_order, event))
+        counts[level] += 1
+
+        previous = latest.get(code)
+        if previous is None or timestamp >= previous[0]:
+            latest[code] = (timestamp, record_order, level)
+
+        record_order += 1
+
+    events.sort(key=lambda item: (item[0], item[1]))
+
+    latest_by_code = {
+        code: {"at": value[0], "level": value[2]}
+        for code, value in latest.items()
+    }
+
+    return {
+        "events": [event for _, _, event in events],
+        "counts": counts,
+        "latest_by_code": latest_by_code,
+    }
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

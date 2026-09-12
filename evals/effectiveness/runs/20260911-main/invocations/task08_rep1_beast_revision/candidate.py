@@ -1,0 +1,114 @@
+def solve(payload):
+    def is_int(value):
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    def is_string(value, maximum):
+        return isinstance(value, str) and 0 < len(value) <= maximum
+
+    def invalid():
+        return {"error": "invalid"}
+
+    if not isinstance(payload, dict):
+        return invalid()
+    if set(payload.keys()) != {"as_of", "events"}:
+        return invalid()
+
+    as_of = payload["as_of"]
+    events = payload["events"]
+
+    if not is_int(as_of) or not 0 <= as_of <= 1000000:
+        return invalid()
+    if not isinstance(events, list) or len(events) > 80:
+        return invalid()
+
+    common_keys = {"id", "source", "seq", "at", "op"}
+    seen = set()
+    eligible = {}
+
+    for event in events:
+        if not isinstance(event, dict):
+            return invalid()
+        if not common_keys.issubset(event.keys()):
+            return invalid()
+
+        event_id = event["id"]
+        source = event["source"]
+        seq = event["seq"]
+        at = event["at"]
+        op = event["op"]
+
+        if not is_string(event_id, 16):
+            return invalid()
+        if source not in ("primary", "replica"):
+            return invalid()
+        if not is_int(seq) or not 1 <= seq <= 1000000:
+            return invalid()
+        if not is_int(at) or not 0 <= at <= 1000000:
+            return invalid()
+        if op not in ("set", "patch", "delete"):
+            return invalid()
+
+        sequence_key = (source, event_id, seq)
+        if sequence_key in seen:
+            return invalid()
+        seen.add(sequence_key)
+
+        if op == "delete":
+            if set(event.keys()) != common_keys:
+                return invalid()
+            value = None
+        else:
+            if set(event.keys()) != common_keys | {"value"}:
+                return invalid()
+
+            value = event["value"]
+            if not isinstance(value, dict):
+                return invalid()
+
+            value_keys = set(value.keys())
+            if op == "set":
+                if value_keys != {"name", "qty"}:
+                    return invalid()
+            elif not value_keys or not value_keys.issubset({"name", "qty"}):
+                return invalid()
+
+            if "name" in value and not is_string(value["name"], 32):
+                return invalid()
+            if "qty" in value:
+                if not is_int(value["qty"]) or not 0 <= value["qty"] <= 10000:
+                    return invalid()
+
+        if at <= as_of:
+            eligible.setdefault(event_id, []).append(
+                (at, seq, 0 if source == "primary" else 1, op, value)
+            )
+
+    state = {}
+
+    for event_id, group in eligible.items():
+        group.sort(key=lambda item: item[:3])
+
+        for _, _, _, op, value in group:
+            if op == "set":
+                state[event_id] = (value["name"], value["qty"])
+            elif op == "patch":
+                if event_id in state:
+                    name, qty = state[event_id]
+                    if "name" in value:
+                        name = value["name"]
+                    if "qty" in value:
+                        qty = value["qty"]
+                    state[event_id] = (name, qty)
+            else:
+                state.pop(event_id, None)
+
+    return {
+        "records": [
+            {
+                "id": event_id,
+                "name": state[event_id][0],
+                "qty": state[event_id][1],
+            }
+            for event_id in sorted(state)
+        ]
+    }

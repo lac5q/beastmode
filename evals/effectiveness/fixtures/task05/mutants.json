@@ -1,0 +1,4 @@
+[
+  {"name": "duplicate_reapplied", "source": "def solve(payload):\n    stock=dict(payload.get('stock',{})); reserved={k:0 for k in stock}; applied=[]\n    for e in payload.get('events',[]):\n        if e['op']=='receive': stock[e['sku']]+=e['qty']\n        elif e['op']=='reserve' and stock[e['sku']]>=e['qty']: stock[e['sku']]-=e['qty']; reserved[e['sku']]+=e['qty']\n        applied.append(e['id'])\n    return {'stock':stock,'reserved':reserved,'applied':applied,'rejected':[],'ignored':[]}"},
+  {"name": "ship_from_stock", "source": "def solve(payload):\n    stock=dict(payload.get('stock',{})); reserved={k:0 for k in stock}; applied=[]\n    for e in payload.get('events',[]):\n        if e['op']=='ship' and stock.get(e['sku'],0)>=e['qty']: stock[e['sku']]-=e['qty']; applied.append(e['id'])\n    return {'stock':stock,'reserved':reserved,'applied':applied,'rejected':[],'ignored':[]}"}
+]

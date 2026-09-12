@@ -1,6 +1,14 @@
 ---
 name: beastmode
-description: Use when running Beastmode: director keeps design and merge; Luna Max does mechanical slices.
+description: >
+  Multi-agent orchestration framework for high-intensity feature implementation.
+  Routes work across model tiers: frontier models (Claude Fable, Kimi 3, Opus;
+  Codex only when explicitly selected) own design, architecture, and review sign-off,
+  while the pinned Luna Max economy lane handles implementation and mechanical
+  validation in isolated worktrees,
+  with a self-improving learning loop that promotes lessons back into skills.
+  Harness-agnostic: works with Hermes ACN (async parallel sub-agents), Pi,
+  Claude Code, Codex, Ultraswarm, GSD, delegate_task, or manual orchestration.
 version: 2.5.0
 author: Luis Calderon
 tags: [beastmode, orchestration, multi-agent, cost-optimization, model-routing, self-improving, worktrees]
@@ -9,12 +17,6 @@ agents: [hermes, codex, openclaw, claude-code, fable, kimi, minimax]
 ---
 
 # Beastmode: Multi-Agent Orchestration Framework
-
-## Luna Max dispatch
-
-When this skill is loaded, menial work goes to Luna Max at maximum reasoning.
-Full rule: `references/luna-max-dispatch.md`. Codex lanes: `adapters/codex/SKILL.md`.
-Do not treat this file as always-on AGENTS.md.
 
 Beastmode is a structured approach to multi-agent software development that separates high-judgment work (planning, architecture, review) from routine execution (implementation, tests, docs) across different model tiers, with strict cost discipline and a self-improving learning loop. It is designed for MofA (Mixture of Agents) orchestration and pairs well with MemroOS/memroos-style durable memory for long-running agent goals.
 

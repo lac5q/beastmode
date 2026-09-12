@@ -1,0 +1,6 @@
+{
+  "paused_pids": [],
+  "driver_pids": [],
+  "method": "SIGSTOP; resume with SIGCONT; do not restart calls",
+  "note": "User requested pause. Wall-clock harness timeout may include pause; inspect before resume."
+}

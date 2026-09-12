@@ -1,0 +1,199 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 08: ordered record event reconciliation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly the keys as_of and events. as_of is
+an integer from 0 through 1000000 inclusive; booleans are not integers.
+events is an array of at most 80 event objects. Every event has the five
+common keys id, source, seq, at, and op. id is a non-empty string of at most
+16 Unicode code points. source is exactly primary or replica. seq is an
+integer from 1 through 1000000. at is an integer from 0 through 1000000.
+op is exactly set, patch, or delete. For each (source, id) pair, seq values
+must be unique. Future events still must be well-formed and still participate
+in this uniqueness rule.
+
+A set event has exactly one additional key, value. A value has exactly name
+and qty: name is a non-empty string of at most 32 code points and qty is an
+integer from 0 through 10000; booleans are not integers. A patch event also
+has exactly one additional key, value, but its value is a non-empty object
+whose keys are a subset of name and qty, with the same field rules. A delete
+event has no value key. Any missing or extra key, wrong type, duplicate
+sequence, out-of-range value, or other violation returns exactly
+{"error":"invalid"}. The input object and all nested objects reject unknown
+keys. There are no implicit defaults.
+
+Ignore events with at > as_of after validating them. For each remaining ID,
+sort its events by (at, seq, source_rank), where source_rank is 0 for primary
+and 1 for replica. Apply them in that order. set replaces the complete current
+record. patch changes only the named fields if the ID is currently live; a
+patch for an absent or deleted ID is ignored. delete removes the current
+record. A later set can create a record again.
+
+Return exactly {"records": [...]}. Each surviving record is
+{"id": id, "name": name, "qty": qty}, and records are sorted by ID using
+Python/Unicode string ordering. An empty result has "records": [].
+
+The stated event, string, and integer limits are the complete evaluation size
+envelope and permit bounded in-memory processing.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "records": [
+        {
+          "id": "a",
+          "name": "AA",
+          "qty": 7
+        }
+      ]
+    },
+    "input": {
+      "as_of": 2,
+      "events": [
+        {
+          "at": 1,
+          "id": "a",
+          "op": "set",
+          "seq": 1,
+          "source": "primary",
+          "value": {
+            "name": "A",
+            "qty": 5
+          }
+        },
+        {
+          "at": 1,
+          "id": "a",
+          "op": "patch",
+          "seq": 1,
+          "source": "replica",
+          "value": {
+            "qty": 7
+          }
+        },
+        {
+          "at": 2,
+          "id": "a",
+          "op": "patch",
+          "seq": 2,
+          "source": "primary",
+          "value": {
+            "name": "AA"
+          }
+        },
+        {
+          "at": 1,
+          "id": "b",
+          "op": "set",
+          "seq": 1,
+          "source": "primary",
+          "value": {
+            "name": "B",
+            "qty": 1
+          }
+        },
+        {
+          "at": 2,
+          "id": "b",
+          "op": "delete",
+          "seq": 2,
+          "source": "primary"
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "records": [
+        {
+          "id": "x",
+          "name": "Replica",
+          "qty": 2
+        }
+      ]
+    },
+    "input": {
+      "as_of": 1,
+      "events": [
+        {
+          "at": 1,
+          "id": "x",
+          "op": "set",
+          "seq": 1,
+          "source": "replica",
+          "value": {
+            "name": "Replica",
+            "qty": 2
+          }
+        },
+        {
+          "at": 1,
+          "id": "x",
+          "op": "set",
+          "seq": 1,
+          "source": "primary",
+          "value": {
+            "name": "Primary",
+            "qty": 3
+          }
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "records": []
+    },
+    "input": {
+      "as_of": 0,
+      "events": [
+        {
+          "at": 1,
+          "id": "future",
+          "op": "set",
+          "seq": 1,
+          "source": "primary",
+          "value": {
+            "name": "F",
+            "qty": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "as_of": 3,
+      "events": [
+        {
+          "at": 1,
+          "id": "x",
+          "op": "set",
+          "seq": 1,
+          "source": "primary",
+          "value": {
+            "name": "X",
+            "qty": 1
+          }
+        },
+        {
+          "at": 2,
+          "id": "x",
+          "op": "delete",
+          "seq": 1,
+          "source": "primary"
+        }
+      ]
+    }
+  }
+]
+
+Produce your complete implementation.

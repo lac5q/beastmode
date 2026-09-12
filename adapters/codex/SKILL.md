@@ -1,6 +1,6 @@
 ---
 name: beastmode-codex
-description: Use when the Codex session is the Beastmode director and needs worker-lane mechanics.
+description: Codex harness adapter for the universal Beastmode MofA framework, absorbing the beastmode-cloud worker lanes
 version: 1.0.0
 author: Luis Calderon
 tags: [beastmode, mofa, codex, orchestration, multi-agent, model-routing, acn]

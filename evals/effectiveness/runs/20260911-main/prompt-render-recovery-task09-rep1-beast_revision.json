@@ -1,0 +1,6 @@
+{
+  "reason": "literal nested JSON braces trigger frozen guard",
+  "frozen_inputs_verified": true,
+  "prompt_sha256": "760133e7f14f64a0b30321124c3948539ac9577a2407d1323ed6d0dcf70c7ea5",
+  "method": "same ordered substitutions; unchanged harness CLI"
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "input": {"intervals": [[1, 4], [4, 6], [10, 12], [2, 3]], "queries": [[0, 2], [3, 10], [12, 12]]},
+    "expected": {"merged": [[1, 6], [10, 12]], "total": 7, "overlaps": [1, 3, 0]}
+  },
+  {
+    "input": {"intervals": [[-5, -2], [-4, 1], [3, 5]], "queries": [[-10, 10], [-2, 3], [1, 3]]},
+    "expected": {"merged": [[-5, 1], [3, 5]], "total": 8, "overlaps": [8, 3, 0]}
+  },
+  {
+    "input": {"intervals": [], "queries": [[0, 0], [-2, 4]]},
+    "expected": {"merged": [], "total": 0, "overlaps": [0, 0]}
+  }
+]

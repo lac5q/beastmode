@@ -1,0 +1,140 @@
+def solve(payload):
+    def invalid():
+        return {"error": "invalid"}
+
+    if not isinstance(payload, dict):
+        return invalid()
+    if "initial" not in payload or "events" not in payload:
+        return invalid()
+
+    initial = payload["initial"]
+    events = payload["events"]
+
+    if not isinstance(initial, dict) or not isinstance(events, list):
+        return invalid()
+    if len(events) > 100:
+        return invalid()
+
+    for key in ("status", "assignee", "labels"):
+        if key not in initial:
+            return invalid()
+
+    status = initial["status"]
+    assignee = initial["assignee"]
+    labels = initial["labels"]
+
+    if not isinstance(status, str) or status not in {
+        "todo", "doing", "done", "cancelled"
+    }:
+        return invalid()
+
+    if assignee is not None and (
+        not isinstance(assignee, str) or not assignee or len(assignee) > 40
+    ):
+        return invalid()
+
+    if not isinstance(labels, list) or len(labels) > 10:
+        return invalid()
+
+    label_seen = set()
+    for label in labels:
+        if not isinstance(label, str) or not label or len(label) > 20:
+            return invalid()
+        if label in label_seen:
+            return invalid()
+        label_seen.add(label)
+
+    labels = list(labels)
+    applied = []
+    rejected = []
+    ignored = []
+    seen_ids = set()
+
+    for event in events:
+        if not isinstance(event, dict):
+            return invalid()
+        if "id" not in event or "op" not in event:
+            return invalid()
+
+        event_id = event["id"]
+        op = event["op"]
+
+        if not isinstance(event_id, str) or not event_id or len(event_id) > 40:
+            return invalid()
+        if not isinstance(op, str) or op not in {
+            "start", "complete", "reopen", "cancel",
+            "assign", "label", "unlabel"
+        }:
+            return invalid()
+
+        value = None
+        if op in {"assign", "label", "unlabel"}:
+            if "value" not in event:
+                return invalid()
+
+            value = event["value"]
+
+            if op == "assign":
+                if value is not None and (
+                    not isinstance(value, str) or not value or len(value) > 40
+                ):
+                    return invalid()
+            elif not isinstance(value, str) or not value or len(value) > 20:
+                return invalid()
+
+        if event_id in seen_ids:
+            ignored.append(event_id)
+            continue
+
+        seen_ids.add(event_id)
+
+        if op == "start":
+            if status == "todo":
+                status = "doing"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "complete":
+            if status == "doing":
+                status = "done"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "reopen":
+            if status in {"done", "cancelled"}:
+                status = "todo"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "cancel":
+            if status in {"todo", "doing"}:
+                status = "cancelled"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "assign":
+            assignee = value
+            applied.append(event_id)
+        elif op == "label":
+            if value not in labels and len(labels) < 10:
+                labels.append(value)
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        else:
+            if value in labels:
+                labels.remove(value)
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+
+    return {
+        "state": {
+            "status": status,
+            "assignee": assignee,
+            "labels": labels,
+        },
+        "applied": applied,
+        "rejected": rejected,
+        "ignored": ignored,
+    }

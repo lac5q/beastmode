@@ -1,0 +1,175 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 04: minimum room assignment
+
+Implement a pure Python `solve(payload)` function with JSON-compatible input and output.
+
+The valid input is an object whose `intervals` field is an array of at most 100 elements. Each element is an object with a unique non-empty string `id` of at most 40 Unicode characters and integer `start` and `end` values in `[-1000000000,1000000000]` satisfying `start < end`. Booleans do not count as integers. Missing fields, wrong types, duplicate IDs, or any other violation returns exactly `{"error":"invalid"}`. The array may be empty. Unknown object keys are ignored.
+
+Each interval occupies a room during the half-open interval `[start,end)`. Sort intervals by ascending `start`, then lexicographically ascending `id`. Process them in that order. Before assigning an interval, every room whose previous interval ended at or before its start is free, including at an equal boundary. Reuse the smallest-numbered free room. If none is free, create the next room number; room numbers start at `1`. An interval cannot share a room with an overlapping interval.
+
+Return exactly `rooms` (the number of rooms created), `assignment` (each input ID to its room number), and `order` (the processing order). Object key order is irrelevant; `order` is the only place where ordering is represented.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "assignment": {
+        "a": 1,
+        "b": 2,
+        "c": 1
+      },
+      "order": [
+        "a",
+        "b",
+        "c"
+      ],
+      "rooms": 2
+    },
+    "input": {
+      "intervals": [
+        {
+          "end": 4,
+          "id": "b",
+          "start": 0
+        },
+        {
+          "end": 2,
+          "id": "a",
+          "start": 0
+        },
+        {
+          "end": 5,
+          "id": "c",
+          "start": 2
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "assignment": {
+        "x": 1,
+        "y": 2,
+        "z": 1
+      },
+      "order": [
+        "x",
+        "y",
+        "z"
+      ],
+      "rooms": 2
+    },
+    "input": {
+      "intervals": [
+        {
+          "end": -1,
+          "id": "x",
+          "start": -3
+        },
+        {
+          "end": 1,
+          "id": "y",
+          "start": -2
+        },
+        {
+          "end": 2,
+          "id": "z",
+          "start": 1
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "assignment": {},
+      "order": [],
+      "rooms": 0
+    },
+    "input": {
+      "intervals": []
+    }
+  }
+]
+
+INITIAL IMPLEMENTATION
+```python
+import heapq
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or "intervals" not in payload:
+        return {"error": "invalid"}
+
+    intervals_input = payload["intervals"]
+    if not isinstance(intervals_input, list) or len(intervals_input) > 100:
+        return {"error": "invalid"}
+
+    intervals = []
+    seen_ids = set()
+
+    for item in intervals_input:
+        if not isinstance(item, dict):
+            return {"error": "invalid"}
+        if "id" not in item or "start" not in item or "end" not in item:
+            return {"error": "invalid"}
+
+        identifier = item["id"]
+        start = item["start"]
+        end = item["end"]
+
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or len(identifier) > 40
+            or identifier in seen_ids
+        ):
+            return {"error": "invalid"}
+
+        if (
+            isinstance(start, bool)
+            or not isinstance(start, int)
+            or isinstance(end, bool)
+            or not isinstance(end, int)
+            or not -1000000000 <= start <= 1000000000
+            or not -1000000000 <= end <= 1000000000
+            or start >= end
+        ):
+            return {"error": "invalid"}
+
+        seen_ids.add(identifier)
+        intervals.append((start, identifier, end))
+
+    intervals.sort(key=lambda interval: (interval[0], interval[1]))
+
+    occupied = []
+    free_rooms = []
+    assignment = {}
+    order = []
+    room_count = 0
+
+    for start, identifier, end in intervals:
+        while occupied and occupied[0][0] <= start:
+            _, room = heapq.heappop(occupied)
+            heapq.heappush(free_rooms, room)
+
+        if free_rooms:
+            room = heapq.heappop(free_rooms)
+        else:
+            room_count += 1
+            room = room_count
+
+        heapq.heappush(occupied, (end, room))
+        assignment[identifier] = room
+        order.append(identifier)
+
+    return {
+        "rooms": room_count,
+        "assignment": assignment,
+        "order": order,
+    }
+```
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

@@ -1,0 +1,21 @@
+[
+  {
+    "input": {"stock": {"A": 10, "B": 2}, "events": [
+      {"id": "r1", "op": "reserve", "sku": "A", "qty": 4},
+      {"id": "s1", "op": "ship", "sku": "A", "qty": 3},
+      {"id": "r1", "op": "reserve", "sku": "A", "qty": 1},
+      {"id": "bad", "op": "release", "sku": "B", "qty": 1}
+    ]},
+    "expected": {"stock": {"A": 6, "B": 2}, "reserved": {"A": 1, "B": 0}, "applied": ["r1", "s1"], "rejected": ["bad"], "ignored": ["r1"]}
+  },
+  {
+    "input": {"stock": {"x": 0}, "events": [
+      {"id": "in", "op": "receive", "sku": "x", "qty": 5},
+      {"id": "hold", "op": "reserve", "sku": "x", "qty": 5},
+      {"id": "return", "op": "release", "sku": "x", "qty": 2},
+      {"id": "send", "op": "ship", "sku": "x", "qty": 3}
+    ]},
+    "expected": {"stock": {"x": 2}, "reserved": {"x": 0}, "applied": ["in", "hold", "return", "send"], "rejected": [], "ignored": []}
+  },
+  {"input": {"stock": {}, "events": []}, "expected": {"stock": {}, "reserved": {}, "applied": [], "rejected": [], "ignored": []}}
+]

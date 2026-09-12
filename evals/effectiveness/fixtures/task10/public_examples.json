@@ -1,0 +1,36 @@
+[
+  {
+    "input": {
+      "text": "2,INFO,BOOT,\"ready\",core;fast\n1,WARN,CPU,\"warm\",host\n2,ERROR,BOOT,\"failed\",core"
+    },
+    "expected": {
+      "events": [
+        {"at": 1, "level": "WARN", "code": "CPU", "message": "warm", "tags": ["host"]},
+        {"at": 2, "level": "INFO", "code": "BOOT", "message": "ready", "tags": ["core", "fast"]},
+        {"at": 2, "level": "ERROR", "code": "BOOT", "message": "failed", "tags": ["core"]}
+      ],
+      "counts": {"INFO": 1, "WARN": 1, "ERROR": 1},
+      "latest_by_code": {"CPU": {"at": 1, "level": "WARN"}, "BOOT": {"at": 2, "level": "ERROR"}}
+    }
+  },
+  {
+    "input": {
+      "text": "0,INFO,MSG,\"say \"\"hi\"\", now\",a;b\n"
+    },
+    "expected": {
+      "events": [
+        {"at": 0, "level": "INFO", "code": "MSG", "message": "say \"hi\", now", "tags": ["a", "b"]}
+      ],
+      "counts": {"INFO": 1, "WARN": 0, "ERROR": 0},
+      "latest_by_code": {"MSG": {"at": 0, "level": "INFO"}}
+    }
+  },
+  {
+    "input": {"text": "  # comment\n\n"},
+    "expected": {"events": [], "counts": {"INFO": 0, "WARN": 0, "ERROR": 0}, "latest_by_code": {}}
+  },
+  {
+    "input": {"text": "1,INFO,BAD,\"unclosed,x"},
+    "expected": {"error": "invalid"}
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    grouped = {}\n    for event in payload.get('events', []):\n        if event.get('at', 0) <= payload.get('as_of', 0):\n            grouped.setdefault(event.get('id'), []).append(event)\n    states = {}\n    for ident, rows in grouped.items():\n        rows.sort(key=lambda e: (e.get('seq', 0), e.get('at', 0)))\n        state = None\n        for event in rows:\n            if event.get('op') == 'set': state = dict(event.get('value', {}))\n            elif event.get('op') == 'patch' and state is not None: state.update(event.get('value', {}))\n            elif event.get('op') == 'delete': state = None\n        if state is not None: states[ident] = state\n    return {'records': [{'id': i, 'name': states[i].get('name'), 'qty': states[i].get('qty')} for i in sorted(states)]}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    states = {}\n    for event in payload.get('events', []):\n        if event.get('at', 0) > payload.get('as_of', 0): continue\n        ident = event.get('id')\n        if event.get('op') == 'set': states[ident] = dict(event.get('value', {}))\n        elif event.get('op') == 'patch': states.setdefault(ident, {}).update(event.get('value', {}))\n        elif event.get('op') == 'delete': states.pop(ident, None)\n    return {'records': [{'id': i, 'name': states[i].get('name'), 'qty': states[i].get('qty')} for i in sorted(states)]}"
+  }
+]

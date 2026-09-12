@@ -2,6 +2,7 @@
 
 | Effort | Status | Docs |
 |---|---|---|
+| Effectiveness evaluation and paper | **pending** — paused at 85/96 terminal stages and 21/24 reviews; harness handoff prepared | [Checkpoint and remaining work](effectiveness/ROADMAP.md) |
 | ACN Unification (v2.2.0) | **shipped** — see below; hardened in v2.3.0 | this file, `ACCEPTANCE.md` |
 | Beastmode on LangGraph (v2.4.0) | **shipped on public `main`** — P0–P7S complete; optional LangGraph/LangSmith runtime, capability-preserving hardening, exact-commit security scan, generated-artifact checks, and remote CI are green | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
 | Run visibility (`acn-trace`) | **planned** — independent of LangGraph, works on every harness today | `observability/ROADMAP.md` |

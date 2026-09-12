@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    capacity = payload.get('capacity', 0)\n    rows = sorted(payload.get('requests', []), key=lambda row: (-row.get('benefit', 0), row.get('id', '')))\n    selected = []\n    used = 0\n    benefit = 0\n    for row in rows:\n        if used + row.get('units', 0) <= capacity:\n            selected.append(row.get('id'))\n            used += row.get('units', 0)\n            benefit += row.get('benefit', 0)\n    return {'selected': sorted(selected), 'used': used, 'benefit': benefit}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    capacity = payload.get('capacity', 0)\n    rows = sorted(payload.get('requests', []), key=lambda row: (row.get('units', 0), row.get('id', '')))\n    selected = []\n    used = 0\n    benefit = 0\n    for row in rows:\n        if used + row.get('units', 0) <= capacity:\n            selected.append(row.get('id'))\n            used += row.get('units', 0)\n            benefit += row.get('benefit', 0)\n    return {'selected': sorted(selected), 'used': used, 'benefit': benefit}"
+  }
+]

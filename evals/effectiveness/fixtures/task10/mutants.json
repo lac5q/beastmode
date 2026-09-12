@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    events = []\n    for line in payload.get('text', '').splitlines():\n        fields = line.split(',')\n        if len(fields) == 5:\n            events.append({'at': int(fields[0]), 'level': fields[1], 'code': fields[2], 'message': fields[3], 'tags': fields[4].split(';') if fields[4] else []})\n    counts = {level: sum(event['level'] == level for event in events) for level in ('INFO', 'WARN', 'ERROR')}\n    latest = {}\n    for event in events: latest[event['code']] = {'at': event['at'], 'level': event['level']}\n    return {'events': events, 'counts': counts, 'latest_by_code': latest}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    import csv\n    rows = list(csv.reader(payload.get('text', '').splitlines()))\n    events = []\n    for row in rows:\n        if len(row) != 5: continue\n        events.append({'at': int(row[0]), 'level': row[1], 'code': row[2], 'message': row[3], 'tags': row[4].split(';') if row[4] else []})\n    counts = {'INFO': 0, 'WARN': 0, 'ERROR': 0}\n    latest = {}\n    for event in events:\n        counts[event['level']] += 1\n        latest[event['code']] = {'at': event['at'], 'level': event['level']}\n    return {'events': sorted(events, key=lambda event: event['at']), 'counts': counts, 'latest_by_code': latest}"
+  }
+]

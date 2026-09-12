@@ -1,0 +1,109 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 04: minimum room assignment
+
+Implement a pure Python `solve(payload)` function with JSON-compatible input and output.
+
+The valid input is an object whose `intervals` field is an array of at most 100 elements. Each element is an object with a unique non-empty string `id` of at most 40 Unicode characters and integer `start` and `end` values in `[-1000000000,1000000000]` satisfying `start < end`. Booleans do not count as integers. Missing fields, wrong types, duplicate IDs, or any other violation returns exactly `{"error":"invalid"}`. The array may be empty. Unknown object keys are ignored.
+
+Each interval occupies a room during the half-open interval `[start,end)`. Sort intervals by ascending `start`, then lexicographically ascending `id`. Process them in that order. Before assigning an interval, every room whose previous interval ended at or before its start is free, including at an equal boundary. Reuse the smallest-numbered free room. If none is free, create the next room number; room numbers start at `1`. An interval cannot share a room with an overlapping interval.
+
+Return exactly `rooms` (the number of rooms created), `assignment` (each input ID to its room number), and `order` (the processing order). Object key order is irrelevant; `order` is the only place where ordering is represented.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "assignment": {
+        "a": 1,
+        "b": 2,
+        "c": 1
+      },
+      "order": [
+        "a",
+        "b",
+        "c"
+      ],
+      "rooms": 2
+    },
+    "input": {
+      "intervals": [
+        {
+          "end": 4,
+          "id": "b",
+          "start": 0
+        },
+        {
+          "end": 2,
+          "id": "a",
+          "start": 0
+        },
+        {
+          "end": 5,
+          "id": "c",
+          "start": 2
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "assignment": {
+        "x": 1,
+        "y": 2,
+        "z": 1
+      },
+      "order": [
+        "x",
+        "y",
+        "z"
+      ],
+      "rooms": 2
+    },
+    "input": {
+      "intervals": [
+        {
+          "end": -1,
+          "id": "x",
+          "start": -3
+        },
+        {
+          "end": 1,
+          "id": "y",
+          "start": -2
+        },
+        {
+          "end": 2,
+          "id": "z",
+          "start": 1
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "assignment": {},
+      "order": [],
+      "rooms": 0
+    },
+    "input": {
+      "intervals": []
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 04
+
+Acceptance: deterministic minimal room allocation in the public processing order; reuse the smallest available room number after releasing ALL rooms ending at or before the next start. Half-open intervals permit equal-boundary reuse.
+
+Validate the top-level object/list, interval objects, unique nonempty string IDs, and strict start/end integer rules excluding bool; validate before hashing IDs or comparing values. Apply public extra-field and size policy. Sort by (start,id), independent of input order and end time.
+
+Maintain a min-heap of occupied (end,room_id) and a separate min-heap of free room IDs. For each interval in sorted order, pop every occupied record with end <= start and push its room ID into free. Allocate heappop(free) when available; otherwise increment total_created and use that new ID. Push the current (end,room_id). Record assignment and processing order. Do not pick the earliest finishing room among free rooms; smallest room ID is the rule. rooms is total IDs created, which equals the peak occupancy under this greedy allocation, not the final occupied heap length.
+
+Review probes: simultaneous starts tied by ID, multiple rooms becoming free together, a lower ID freeing later but before the next start, touching intervals, negative times, shuffled input, and empty array. No unit-time simulation or input mutation is required.
+
+
+Implement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.

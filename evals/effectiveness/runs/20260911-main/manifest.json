@@ -1,0 +1,1968 @@
+{
+  "arms": [
+    "baseline",
+    "beastmode"
+  ],
+  "base_git_revision": "346bbb4b1459a6c71f1a57953ffc13cc15377ecf",
+  "call_stages": [
+    "single",
+    "self_revision",
+    "beast_initial",
+    "beast_revision"
+  ],
+  "created_at_utc": "2026-09-11T18:15:41.513041Z",
+  "director_plans": [
+    {
+      "path": "plans/task01.md",
+      "sha256": "4b7405fa0a8b84e9e8ab36e093a32e68184d2ae3a4007f4bdd6ffaa804b466eb"
+    },
+    {
+      "path": "plans/task02.md",
+      "sha256": "05dc68d90593f2afa98648952ae15083fb2fe10e2ee8e5c204020f08f981cf24"
+    },
+    {
+      "path": "plans/task03.md",
+      "sha256": "89bf8ee8e13a978477099410e04f960d741d11b38080ea7f3cfec65376253f2e"
+    },
+    {
+      "path": "plans/task04.md",
+      "sha256": "8cfae70a3763870e93b11154e9bfe810436fa09d8526bb8348f03010845e036f"
+    },
+    {
+      "path": "plans/task05.md",
+      "sha256": "769ec7fde669b80413d0a7621cafe6a33d0f4df6da7c7535459bef95714446f6"
+    },
+    {
+      "path": "plans/task06.md",
+      "sha256": "c965859ad648dec03dc581f389fbe0f9ed20be3d6882d5ebc4354d6ec278d2ba"
+    },
+    {
+      "path": "plans/task07.md",
+      "sha256": "e79131506da69be128624aa06c38f7f2be74c6b35e01f2d0fef6eb90a249f909"
+    },
+    {
+      "path": "plans/task08.md",
+      "sha256": "91e56c6c3c15df6e6d7b754b28ee474375b1b8d042ae1037a4ecdb609252559b"
+    },
+    {
+      "path": "plans/task09.md",
+      "sha256": "3c80a7b1dc67fba724f2500c4d6455beef5c95cd6727d343d06ea959571b124f"
+    },
+    {
+      "path": "plans/task10.md",
+      "sha256": "ff3b7cf99a749a02780af502c6789d6e1a65d9712ff65999e6b53e1afac3ec81"
+    },
+    {
+      "path": "plans/task11.md",
+      "sha256": "fd5885cb6e4ec42b771430d3202462343e2b757857dd58a9d9ec273c66deb6a5"
+    },
+    {
+      "path": "plans/task12.md",
+      "sha256": "de8813aaa505de53e97f3b38654e7dde8990297e9fbb046cd43766fb99d6e831"
+    }
+  ],
+  "file_inventory": [
+    {
+      "path": "PROTOCOL.md",
+      "sha256": "c8b7a911e4c68f16b865536eaf5a4c658fcb7fb2504a752ec3faac9031590783"
+    },
+    {
+      "path": "fixtures/task01/public.md",
+      "sha256": "addd4b6901f25cd261714240c044eb38a703cefe7d42899cbe771f066ef1be53"
+    },
+    {
+      "path": "fixtures/task01/public_examples.json",
+      "sha256": "a41dea6b95d11f5ffa12dd275806e897fa0d37118240cc22c3e2cf41f1c33e25"
+    },
+    {
+      "path": "fixtures/task01/private_cases.json",
+      "sha256": "d0dde22e65dd99fad30cc0de8a472e93fc3c6fc90eaee86ed35c508255d8b78b"
+    },
+    {
+      "path": "fixtures/task01/reference.py",
+      "sha256": "cd43d433bc704586586d9e2e5a6e33b01f654406a4b1dadc415b7fbfa7fa8dd6"
+    },
+    {
+      "path": "fixtures/task01/mutants.json",
+      "sha256": "6eb8b8c8585ac1c38f5af1d0e8b030004f250aa85fe88f75e85dd27eecaa7147"
+    },
+    {
+      "path": "fixtures/task02/public.md",
+      "sha256": "ad808b90c4009bc4eff1f4dca07fe81518ccdefb17b264321fd63cf95cb54f18"
+    },
+    {
+      "path": "fixtures/task02/public_examples.json",
+      "sha256": "f14d223df4e151aefbfb61ac43f055c27e62c4cb99bdcd074b6d4cfde12a4c5d"
+    },
+    {
+      "path": "fixtures/task02/private_cases.json",
+      "sha256": "562a1a3661904e671b03d48c58a05826944d84fa67b24901120fdf4decd88fec"
+    },
+    {
+      "path": "fixtures/task02/reference.py",
+      "sha256": "4d983c2c70f469a49239a7866ee1baf1e9c2b266de99bb26f6d89265e59d6dae"
+    },
+    {
+      "path": "fixtures/task02/mutants.json",
+      "sha256": "dfc2e4841c3c7f8bd2779bb211d317dbe41a355c04d104f54d3f62685e1dd597"
+    },
+    {
+      "path": "fixtures/task03/public.md",
+      "sha256": "329db191ff7da9f853b34a797f15c40322cbb9413666124a90df53fac25df37b"
+    },
+    {
+      "path": "fixtures/task03/public_examples.json",
+      "sha256": "c71d4abe8f86f484ef6221818b4c110246d6b6a5af0c6376ef136fde4b1b7266"
+    },
+    {
+      "path": "fixtures/task03/private_cases.json",
+      "sha256": "67c9a397f3cb9f454a8299901f8f2abc92e4182dde443d4614434fe5458faacb"
+    },
+    {
+      "path": "fixtures/task03/reference.py",
+      "sha256": "545aa7652031748d02498c3361ba39742f3eb6d57263a2dde11018f7b1553b37"
+    },
+    {
+      "path": "fixtures/task03/mutants.json",
+      "sha256": "8744809f9d60e952a73c044190a239537f934031198299a95a061ee1688393d3"
+    },
+    {
+      "path": "fixtures/task04/public.md",
+      "sha256": "52b9acf777188debf08deb6bd8c4b492a521611e98585bb4dc4da08d1ded4776"
+    },
+    {
+      "path": "fixtures/task04/public_examples.json",
+      "sha256": "b8877b1e021aa53026ca594db785362c150a61275d5c6403f0fd99e524fd09d4"
+    },
+    {
+      "path": "fixtures/task04/private_cases.json",
+      "sha256": "b7d15579c8a543317e2dab90087e49e7a590161ed96c36096a4d54ccbc3129cb"
+    },
+    {
+      "path": "fixtures/task04/reference.py",
+      "sha256": "776030050152ed3d006412fa72e0d93b72fbe51784071466238904a475465e28"
+    },
+    {
+      "path": "fixtures/task04/mutants.json",
+      "sha256": "6ea60509be1e5bcfbd4dad2e83f7ffb3715e1f5ed2186fffd9790859afdf0c53"
+    },
+    {
+      "path": "fixtures/task05/public.md",
+      "sha256": "d5358fc2947ffd08e9982cad86f04df1bf839fd50f6f62d45ad8c4ed6493f6e2"
+    },
+    {
+      "path": "fixtures/task05/public_examples.json",
+      "sha256": "fa932e8a7debb8e787506070fee5643dceddec4bb7f2d988821f5d567306132f"
+    },
+    {
+      "path": "fixtures/task05/private_cases.json",
+      "sha256": "46170f851ced59988ec1737f33025f9ad4e7dcc4970c420385f539b90578514d"
+    },
+    {
+      "path": "fixtures/task05/reference.py",
+      "sha256": "4761dd5d7fc411259ed49ce56be83e54f568da4eb00149128e16b8749f486e26"
+    },
+    {
+      "path": "fixtures/task05/mutants.json",
+      "sha256": "7415894750f3239b40aab5f877154c937f14afff83aa4625b708ab7e15c97826"
+    },
+    {
+      "path": "fixtures/task06/public.md",
+      "sha256": "b644c112e39a26c12811f7b821b01c5a8c3fe2250c87056715fbbd143f0d6214"
+    },
+    {
+      "path": "fixtures/task06/public_examples.json",
+      "sha256": "bb3465b5c62183a1fd5b2aca17b2ff4cbbc8c4984586a8abfd0c590f50ec556f"
+    },
+    {
+      "path": "fixtures/task06/private_cases.json",
+      "sha256": "f407ba96396a251be3f66d09734f620a6a15caeb43c0916e652d88af6c72c9bb"
+    },
+    {
+      "path": "fixtures/task06/reference.py",
+      "sha256": "8e5ff724ee7241415b0037b8212d62e92dbea7749b77f8e882b684781ddd40ab"
+    },
+    {
+      "path": "fixtures/task06/mutants.json",
+      "sha256": "6f4b2ecc2f66f214080cb39e509f9e74e5f259d8fdabcb49e4fd95d0d6295566"
+    },
+    {
+      "path": "fixtures/task07/public.md",
+      "sha256": "b2bebf1de1e77e895169eb83380f9de0e742431fadb6bacbaab4e1bec50dd7b0"
+    },
+    {
+      "path": "fixtures/task07/public_examples.json",
+      "sha256": "0bce170faa12f44b57de4cb122cfca45cf55c6f1cb0373c642005e2a5b474911"
+    },
+    {
+      "path": "fixtures/task07/private_cases.json",
+      "sha256": "6e70a5e52f81a5488deb3b5a481dd590b27ce0484c23b6783cccfd76ed42e107"
+    },
+    {
+      "path": "fixtures/task07/reference.py",
+      "sha256": "d8cce219a893f3f1f59eb42de97b834e1bfb55d2d5320fddb90418c35b01e695"
+    },
+    {
+      "path": "fixtures/task07/mutants.json",
+      "sha256": "afe7d80fb72e184f744d098511cdd02a343d6c3e0d959ec32cd06eff5c4fa356"
+    },
+    {
+      "path": "fixtures/task08/public.md",
+      "sha256": "89ff1b264ad759420f8a759e06f945ea88054f192614b3344ce4a4fabd2fa377"
+    },
+    {
+      "path": "fixtures/task08/public_examples.json",
+      "sha256": "061e755a427dd64c4676909d75c55a4e509f6f4e04ba43c2e1479ce3cba29d46"
+    },
+    {
+      "path": "fixtures/task08/private_cases.json",
+      "sha256": "64d72a33423362d1c451cadb0f0532a6bf1f7b2cabbfd44ddbd4c036a1aef15a"
+    },
+    {
+      "path": "fixtures/task08/reference.py",
+      "sha256": "a27e6839cf53d13c5e6062a987a22ef087694277cfc5ec0857ee03896597cfa7"
+    },
+    {
+      "path": "fixtures/task08/mutants.json",
+      "sha256": "17b9466213fef1fd4699a3b2ed7c0c4f1fd1515f92da842c2c59e1eef672d539"
+    },
+    {
+      "path": "fixtures/task09/public.md",
+      "sha256": "34c063e35b1e412abecba37a236ad7ac997ab1dd986be6b5a355b3274b1e7ff9"
+    },
+    {
+      "path": "fixtures/task09/public_examples.json",
+      "sha256": "da5d59804b49764aa9f6dc6bf442f84d0fb2f2468a3a2d7a10df1498168a2172"
+    },
+    {
+      "path": "fixtures/task09/private_cases.json",
+      "sha256": "0905add8408240959e54d469f51668620192457eda1b85a13ba7eb420f570203"
+    },
+    {
+      "path": "fixtures/task09/reference.py",
+      "sha256": "6d82e29f725a68841c217f617c92b64249629957b71b685d54860ff0cfb46784"
+    },
+    {
+      "path": "fixtures/task09/mutants.json",
+      "sha256": "558f3a177ec9b97418936722015345bb6d574346a85eaf0042c113f14a91170b"
+    },
+    {
+      "path": "fixtures/task10/public.md",
+      "sha256": "f36429b37efcab7c2afb43d081650c19d62bcd435dbae70b64fc24c9bbc2c882"
+    },
+    {
+      "path": "fixtures/task10/public_examples.json",
+      "sha256": "1a50788769cfa3d74190bfc0a21fd866d4b2aceb568f9bb8475c81ebb0fd51dd"
+    },
+    {
+      "path": "fixtures/task10/private_cases.json",
+      "sha256": "e2bd72d8c92aacad8c60a94f2ffe07651fe0d698d5680da3f727a620f1275a0e"
+    },
+    {
+      "path": "fixtures/task10/reference.py",
+      "sha256": "63d0962196de038de1c0dff77c268d7f52cced1197273a66e6e67a22c6ff8d0d"
+    },
+    {
+      "path": "fixtures/task10/mutants.json",
+      "sha256": "c0197c07e7a64bf78c507cc896f6705b0a4ed161e2f9bbc16043c93db98bfece"
+    },
+    {
+      "path": "fixtures/task11/public.md",
+      "sha256": "521964a601e31cd28b92835100d2ebb68af48c8ddc8f11844a816ed81e4c2571"
+    },
+    {
+      "path": "fixtures/task11/public_examples.json",
+      "sha256": "3e7a882636b66d3e66796610cdaf22baa3bd60ce6d90b1216f13218e8e6693fb"
+    },
+    {
+      "path": "fixtures/task11/private_cases.json",
+      "sha256": "45f8b82c5c5be47c5cae536c633e2c4ded005d82e604df217080106086329fff"
+    },
+    {
+      "path": "fixtures/task11/reference.py",
+      "sha256": "5861e3cdc3ac730ecf83fd0aca428c8cf7feea4e58d48caa5d2c1af12f9a556f"
+    },
+    {
+      "path": "fixtures/task11/mutants.json",
+      "sha256": "a8cad889b14b91fbba150cc33696f1a9b7d44f25c42d9d77e629ee6510b3cce1"
+    },
+    {
+      "path": "fixtures/task12/public.md",
+      "sha256": "ed316a70783d6b08221940ec90c0c219a350e9d5d3df00088d456dc6e3ee0568"
+    },
+    {
+      "path": "fixtures/task12/public_examples.json",
+      "sha256": "3729a6754c67f4d6a5272f8473fed900de9a11c64768c6d59c496fe5391e0ba0"
+    },
+    {
+      "path": "fixtures/task12/private_cases.json",
+      "sha256": "279a3312262e1833f442cbe14fe288da8392f8f9a0670b3cd57ea125ec4e021c"
+    },
+    {
+      "path": "fixtures/task12/reference.py",
+      "sha256": "5627b91cb8a277d343f87d84620b54b40aa3bb56ff076e47b3ad5c78b2e3ec8f"
+    },
+    {
+      "path": "fixtures/task12/mutants.json",
+      "sha256": "e3216e6bd0f75c7ec715a2df218526a8f85e0953db0e1150759a3320ba0ed3b0"
+    },
+    {
+      "path": "fixtures/validate.py",
+      "sha256": "1341ef49280fa9d17c42c068a094208f12d488953b0cbe0528000d358099aef6"
+    },
+    {
+      "path": "harness.py",
+      "sha256": "8fce749a392f48a28c4fee7f51f2f16f462f16488917cca108135f85c59ba88e"
+    },
+    {
+      "path": "test_harness.py",
+      "sha256": "9a8737aaf65e5c3f494b361716fa46f02b3be607099f342027030a6ef0061165"
+    },
+    {
+      "path": "driver.py",
+      "sha256": "3cd40dda8b42f75c3c7be56b3c4929113d260f58b7fb9da03e9ccc0f2d6ebc23"
+    },
+    {
+      "path": "test_driver.py",
+      "sha256": "0c136fd940dda9cb5755351f7deeccb9e9bb709615864000f3810af35e427ba4"
+    },
+    {
+      "path": "environment.json",
+      "sha256": "f2399ecfe4313e3c2f84d743f1016e177a83437d3657021dece22d470fd609fd"
+    },
+    {
+      "path": "plans/task01.md",
+      "sha256": "4b7405fa0a8b84e9e8ab36e093a32e68184d2ae3a4007f4bdd6ffaa804b466eb"
+    },
+    {
+      "path": "plans/task02.md",
+      "sha256": "05dc68d90593f2afa98648952ae15083fb2fe10e2ee8e5c204020f08f981cf24"
+    },
+    {
+      "path": "plans/task03.md",
+      "sha256": "89bf8ee8e13a978477099410e04f960d741d11b38080ea7f3cfec65376253f2e"
+    },
+    {
+      "path": "plans/task04.md",
+      "sha256": "8cfae70a3763870e93b11154e9bfe810436fa09d8526bb8348f03010845e036f"
+    },
+    {
+      "path": "plans/task05.md",
+      "sha256": "769ec7fde669b80413d0a7621cafe6a33d0f4df6da7c7535459bef95714446f6"
+    },
+    {
+      "path": "plans/task06.md",
+      "sha256": "c965859ad648dec03dc581f389fbe0f9ed20be3d6882d5ebc4354d6ec278d2ba"
+    },
+    {
+      "path": "plans/task07.md",
+      "sha256": "e79131506da69be128624aa06c38f7f2be74c6b35e01f2d0fef6eb90a249f909"
+    },
+    {
+      "path": "plans/task08.md",
+      "sha256": "91e56c6c3c15df6e6d7b754b28ee474375b1b8d042ae1037a4ecdb609252559b"
+    },
+    {
+      "path": "plans/task09.md",
+      "sha256": "3c80a7b1dc67fba724f2500c4d6455beef5c95cd6727d343d06ea959571b124f"
+    },
+    {
+      "path": "plans/task10.md",
+      "sha256": "ff3b7cf99a749a02780af502c6789d6e1a65d9712ff65999e6b53e1afac3ec81"
+    },
+    {
+      "path": "plans/task11.md",
+      "sha256": "fd5885cb6e4ec42b771430d3202462343e2b757857dd58a9d9ec273c66deb6a5"
+    },
+    {
+      "path": "plans/task12.md",
+      "sha256": "de8813aaa505de53e97f3b38654e7dde8990297e9fbb046cd43766fb99d6e831"
+    },
+    {
+      "path": "prompts/beast_initial.txt",
+      "sha256": "cdb51a168336135565290062dda5c557eb9cc54b304bae2142ce45526e377b21"
+    },
+    {
+      "path": "prompts/beast_revision.txt",
+      "sha256": "592498c52f0d7897f25bac11608a0efc45a3f9bbc44c63e870b447c65e2beb55"
+    },
+    {
+      "path": "prompts/common.txt",
+      "sha256": "8f0c5b3ad8f6d56df9fee75c0f9d09ec75ecae5d00bf5cf07a0dad892639d8bf"
+    },
+    {
+      "path": "prompts/self_revision.txt",
+      "sha256": "5b0d698c2b48e5bef64de848a12739120b9a3dc72ce4c272d55c287770b60245"
+    },
+    {
+      "path": "prompts/single.txt",
+      "sha256": "2fcb365b4fb6167b96cfcbfd2f527b240123c86e4ef18a14033972e76b2bac7f"
+    }
+  ],
+  "final_matrix": [
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task01"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task01"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task02"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task02"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task03"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task03"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task04"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task04"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task05"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task05"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task06"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task06"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task07"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task07"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task08"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task08"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task09"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task09"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task10"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task10"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task11"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task11"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "single",
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task12"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "single",
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task12"
+    },
+    {
+      "arm": "self_revision",
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "beastmode",
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task12"
+    }
+  ],
+  "final_stages": [
+    "single",
+    "self_revision",
+    "beast_revision"
+  ],
+  "fixed_prompt_template": {
+    "path": "prompt_template.txt",
+    "sha256": "8f0c5b3ad8f6d56df9fee75c0f9d09ec75ecae5d00bf5cf07a0dad892639d8bf",
+    "source": "prompts/common.txt"
+  },
+  "fixture_validation": {
+    "receipt": {
+      "discovered_tasks": 12,
+      "expected_tasks": 12,
+      "ok": true,
+      "tasks": [
+        {
+          "mutants": [
+            {
+              "failures": 20,
+              "killed": true,
+              "name": "merge_dependencies_too_early",
+              "passes": 0,
+              "private_cases": 20
+            },
+            {
+              "failures": 19,
+              "killed": true,
+              "name": "reverse_ready_tie",
+              "passes": 1,
+              "private_cases": 20
+            }
+          ],
+          "ok": true,
+          "private_cases": 20,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task01"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 20,
+              "killed": true,
+              "name": "alphabetical_ready_queue",
+              "passes": 1,
+              "private_cases": 21
+            },
+            {
+              "failures": 20,
+              "killed": true,
+              "name": "critical_uses_children_count",
+              "passes": 1,
+              "private_cases": 21
+            }
+          ],
+          "ok": true,
+          "private_cases": 21,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task02"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 17,
+              "killed": true,
+              "name": "closed_endpoints",
+              "passes": 3,
+              "private_cases": 20
+            },
+            {
+              "failures": 12,
+              "killed": true,
+              "name": "ignore_union_overlap_in_queries",
+              "passes": 8,
+              "private_cases": 20
+            }
+          ],
+          "ok": true,
+          "private_cases": 20,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task03"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 18,
+              "killed": true,
+              "name": "strict_boundary_release",
+              "passes": 2,
+              "private_cases": 20
+            },
+            {
+              "failures": 18,
+              "killed": true,
+              "name": "input_order_tie",
+              "passes": 2,
+              "private_cases": 20
+            }
+          ],
+          "ok": true,
+          "private_cases": 20,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task04"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 18,
+              "killed": true,
+              "name": "duplicate_reapplied",
+              "passes": 3,
+              "private_cases": 21
+            },
+            {
+              "failures": 20,
+              "killed": true,
+              "name": "ship_from_stock",
+              "passes": 1,
+              "private_cases": 21
+            }
+          ],
+          "ok": true,
+          "private_cases": 21,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task05"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 19,
+              "killed": true,
+              "name": "allow_any_status_transition",
+              "passes": 2,
+              "private_cases": 21
+            },
+            {
+              "failures": 17,
+              "killed": true,
+              "name": "duplicate_events_apply",
+              "passes": 4,
+              "private_cases": 21
+            }
+          ],
+          "ok": true,
+          "private_cases": 21,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task06"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 15,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 9,
+              "private_cases": 24
+            },
+            {
+              "failures": 14,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 10,
+              "private_cases": 24
+            }
+          ],
+          "ok": true,
+          "private_cases": 24,
+          "private_failures": 0,
+          "public_cases": 3,
+          "public_failures": 0,
+          "task": "task07"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 13,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 11,
+              "private_cases": 24
+            },
+            {
+              "failures": 17,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 7,
+              "private_cases": 24
+            }
+          ],
+          "ok": true,
+          "private_cases": 24,
+          "private_failures": 0,
+          "public_cases": 4,
+          "public_failures": 0,
+          "task": "task08"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 28,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 2,
+              "private_cases": 30
+            },
+            {
+              "failures": 22,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 8,
+              "private_cases": 30
+            }
+          ],
+          "ok": true,
+          "private_cases": 30,
+          "private_failures": 0,
+          "public_cases": 4,
+          "public_failures": 0,
+          "task": "task09"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 27,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 3,
+              "private_cases": 30
+            },
+            {
+              "failures": 16,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 14,
+              "private_cases": 30
+            }
+          ],
+          "ok": true,
+          "private_cases": 30,
+          "private_failures": 0,
+          "public_cases": 4,
+          "public_failures": 0,
+          "task": "task10"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 18,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 10,
+              "private_cases": 28
+            },
+            {
+              "failures": 12,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 16,
+              "private_cases": 28
+            }
+          ],
+          "ok": true,
+          "private_cases": 28,
+          "private_failures": 0,
+          "public_cases": 4,
+          "public_failures": 0,
+          "task": "task11"
+        },
+        {
+          "mutants": [
+            {
+              "failures": 13,
+              "killed": true,
+              "name": "mutant-1",
+              "passes": 13,
+              "private_cases": 26
+            },
+            {
+              "failures": 16,
+              "killed": true,
+              "name": "mutant-2",
+              "passes": 10,
+              "private_cases": 26
+            }
+          ],
+          "ok": true,
+          "private_cases": 26,
+          "private_failures": 0,
+          "public_cases": 4,
+          "public_failures": 0,
+          "task": "task12"
+        }
+      ]
+    },
+    "receipt_sha256": "a0f751252b598f010de09423cc8270d23e50737b401e9064fad7118de2348e6f"
+  },
+  "fixture_validator": {
+    "path": "fixtures/validate.py",
+    "sha256": "1341ef49280fa9d17c42c068a094208f12d488953b0cbe0528000d358099aef6"
+  },
+  "fixtures_root": "fixtures",
+  "planned_calls": 96,
+  "planned_final_artifacts": 72,
+  "prompt_templates": [
+    {
+      "path": "prompts/beast_initial.txt",
+      "sha256": "cdb51a168336135565290062dda5c557eb9cc54b304bae2142ce45526e377b21"
+    },
+    {
+      "path": "prompts/beast_revision.txt",
+      "sha256": "592498c52f0d7897f25bac11608a0efc45a3f9bbc44c63e870b447c65e2beb55"
+    },
+    {
+      "path": "prompts/common.txt",
+      "sha256": "8f0c5b3ad8f6d56df9fee75c0f9d09ec75ecae5d00bf5cf07a0dad892639d8bf"
+    },
+    {
+      "path": "prompts/self_revision.txt",
+      "sha256": "5b0d698c2b48e5bef64de848a12739120b9a3dc72ce4c272d55c287770b60245"
+    },
+    {
+      "path": "prompts/single.txt",
+      "sha256": "2fcb365b4fb6167b96cfcbfd2f527b240123c86e4ef18a14033972e76b2bac7f"
+    }
+  ],
+  "protocol_path": "PROTOCOL.md",
+  "protocol_sha256": "c8b7a911e4c68f16b865536eaf5a4c658fcb7fb2504a752ec3faac9031590783",
+  "python_version": "3.11.15 (main, Jun 23 2026, 15:19:43) [Clang 22.1.3 ]",
+  "repetitions": [
+    1,
+    2
+  ],
+  "run_id": "20260911-main",
+  "schedule": [
+    {
+      "arm": "baseline",
+      "block_index": 1,
+      "call_index": 1,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task10"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 1,
+      "call_index": 2,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 1,
+      "call_index": 3,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 1,
+      "call_index": 4,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 2,
+      "call_index": 5,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task12"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 2,
+      "call_index": 6,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 2,
+      "call_index": 7,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task12"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 2,
+      "call_index": 8,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 3,
+      "call_index": 9,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task07"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 3,
+      "call_index": 10,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 3,
+      "call_index": 11,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 3,
+      "call_index": 12,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 4,
+      "call_index": 13,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task11"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 4,
+      "call_index": 14,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 4,
+      "call_index": 15,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 4,
+      "call_index": 16,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 5,
+      "call_index": 17,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task08"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 5,
+      "call_index": 18,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 5,
+      "call_index": 19,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 5,
+      "call_index": 20,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 6,
+      "call_index": 21,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task11"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 6,
+      "call_index": 22,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 6,
+      "call_index": 23,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 6,
+      "call_index": 24,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task11"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 7,
+      "call_index": 25,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task02"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 7,
+      "call_index": 26,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 7,
+      "call_index": 27,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 7,
+      "call_index": 28,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 8,
+      "call_index": 29,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 8,
+      "call_index": 30,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 8,
+      "call_index": 31,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task04"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 8,
+      "call_index": 32,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 9,
+      "call_index": 33,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task01"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 9,
+      "call_index": 34,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 9,
+      "call_index": 35,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 9,
+      "call_index": 36,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 10,
+      "call_index": 37,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 10,
+      "call_index": 38,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 10,
+      "call_index": 39,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task05"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 10,
+      "call_index": 40,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 11,
+      "call_index": 41,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 11,
+      "call_index": 42,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 11,
+      "call_index": 43,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task09"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 11,
+      "call_index": 44,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 12,
+      "call_index": 45,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 12,
+      "call_index": 46,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 12,
+      "call_index": 47,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task05"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 12,
+      "call_index": 48,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task05"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 13,
+      "call_index": 49,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task12"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 13,
+      "call_index": 50,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 13,
+      "call_index": 51,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task12"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 13,
+      "call_index": 52,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task12"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 14,
+      "call_index": 53,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task03"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 14,
+      "call_index": 54,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 14,
+      "call_index": 55,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 14,
+      "call_index": 56,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 15,
+      "call_index": 57,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task04"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 15,
+      "call_index": 58,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 15,
+      "call_index": 59,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 15,
+      "call_index": 60,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task04"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 16,
+      "call_index": 61,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 16,
+      "call_index": 62,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 16,
+      "call_index": 63,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task06"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 16,
+      "call_index": 64,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 17,
+      "call_index": 65,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task07"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 17,
+      "call_index": 66,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 17,
+      "call_index": 67,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task07"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 17,
+      "call_index": 68,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task07"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 18,
+      "call_index": 69,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task09"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 18,
+      "call_index": 70,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 18,
+      "call_index": 71,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 18,
+      "call_index": 72,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task09"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 19,
+      "call_index": 73,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task03"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 19,
+      "call_index": 74,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 19,
+      "call_index": 75,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 19,
+      "call_index": 76,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task03"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 20,
+      "call_index": 77,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task02"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 20,
+      "call_index": 78,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 20,
+      "call_index": 79,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 20,
+      "call_index": 80,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task02"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 21,
+      "call_index": 81,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 21,
+      "call_index": 82,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 21,
+      "call_index": 83,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task08"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 21,
+      "call_index": 84,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task08"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 22,
+      "call_index": 85,
+      "repetition": 1,
+      "stage": "beast_initial",
+      "task_id": "task01"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 22,
+      "call_index": 86,
+      "repetition": 1,
+      "stage": "beast_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 22,
+      "call_index": 87,
+      "repetition": 1,
+      "stage": "single",
+      "task_id": "task01"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 22,
+      "call_index": 88,
+      "repetition": 1,
+      "stage": "self_revision",
+      "task_id": "task01"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 23,
+      "call_index": 89,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task06"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 23,
+      "call_index": 90,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 23,
+      "call_index": 91,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task06"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 23,
+      "call_index": 92,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task06"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 24,
+      "call_index": 93,
+      "repetition": 2,
+      "stage": "single",
+      "task_id": "task10"
+    },
+    {
+      "arm": "baseline",
+      "block_index": 24,
+      "call_index": 94,
+      "repetition": 2,
+      "stage": "self_revision",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 24,
+      "call_index": 95,
+      "repetition": 2,
+      "stage": "beast_initial",
+      "task_id": "task10"
+    },
+    {
+      "arm": "beastmode",
+      "block_index": 24,
+      "call_index": 96,
+      "repetition": 2,
+      "stage": "beast_revision",
+      "task_id": "task10"
+    }
+  ],
+  "schema_version": 1,
+  "seed": 20260911,
+  "status": "frozen",
+  "task_ids": [
+    "task01",
+    "task02",
+    "task03",
+    "task04",
+    "task05",
+    "task06",
+    "task07",
+    "task08",
+    "task09",
+    "task10",
+    "task11",
+    "task12"
+  ]
+}

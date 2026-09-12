@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "842c10cffb19e82789c0d93a644029db3793703b44dc03bd44757120fcf8995d",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T18:39:40.828249Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 979372,
+  "pid_recorded_at_utc": "2026-09-11T18:37:42.605060Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "b495771695f3621569175392fb6c83003dbf888e94a7b2133b09b7ecc70b0d41",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 12: dependency-closed two-resource allocation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys cpu, memory, and jobs. cpu\nand memory are integers from 0 through 64 inclusive; booleans are not\nintegers. jobs is an array of at most 16 job objects. Every job has exactly\nid, cpu, memory, priority, and deps. id is a unique non-empty string of at\nmost 16 Unicode code points. A job's cpu and memory are integers from 1\nthrough 32. priority is an integer from 1 through 1000. deps is an array of\nat most 16 distinct string IDs, and every dependency names another job in the\nsame input. A self-dependency or any directed dependency cycle is invalid.\nMissing or extra keys, wrong types, duplicate IDs or dependencies, unknown\ndependencies, out-of-range values, or any other violation returns exactly\n{\"error\":\"invalid\"}. The stated limits are the complete evaluation size\nenvelope.\n\nChoose a subset of jobs whose total cpu is at most cpu and whose total memory\nis at most memory. If a job is selected, every direct and transitive\ndependency must also be selected. Maximize total priority. If several\ndependency-closed subsets have the same priority, choose the one with the\nsmaller sum of cpu plus memory. If they still tie, sort each subset's IDs by\nPython/Unicode string ordering and choose the lexicographically smaller ID\nlist. The empty subset is always allowed.\n\nReturn exactly {\"selected\": [...], \"used\": {\"cpu\": integer, \"memory\":\ninteger}, \"priority\": integer}. selected is sorted by ID, used contains the\nresource sums, and priority is the sum for the selected jobs. No other output\nfields are allowed. Zero capacities or no jobs therefore return an empty\nselection with zero usage and priority.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"priority\": 13,\n      \"selected\": [\n        \"a\",\n        \"c\"\n      ],\n      \"used\": {\n        \"cpu\": 4,\n        \"memory\": 3\n      }\n    },\n    \"input\": {\n      \"cpu\": 4,\n      \"jobs\": [\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 5\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 2,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 2,\n          \"priority\": 8\n        }\n      ],\n      \"memory\": 4\n    }\n  },\n  {\n    \"expected\": {\n      \"priority\": 15,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": {\n        \"cpu\": 3,\n        \"memory\": 3\n      }\n    },\n    \"input\": {\n      \"cpu\": 3,\n      \"jobs\": [\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 2,\n          \"priority\": 5\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 10\n        },\n        {\n          \"cpu\": 3,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 3,\n          \"priority\": 14\n        }\n      ],\n      \"memory\": 3\n    }\n  },\n  {\n    \"expected\": {\n      \"priority\": 8,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": {\n        \"cpu\": 2,\n        \"memory\": 2\n      }\n    },\n    \"input\": {\n      \"cpu\": 2,\n      \"jobs\": [\n        {\n          \"cpu\": 1,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 2,\n          \"priority\": 8\n        }\n      ],\n      \"memory\": 2\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"cpu\": 4,\n      \"jobs\": [\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"b\"\n          ],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 1\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 1\n        }\n      ],\n      \"memory\": 4\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\ndef solve(payload):\n    if type(payload) is not dict or set(payload.keys()) != {\"cpu\", \"memory\", \"jobs\"}:\n        return {\"error\": \"invalid\"}\n\n    capacity_cpu = payload[\"cpu\"]\n    capacity_memory = payload[\"memory\"]\n    jobs = payload[\"jobs\"]\n\n    if (\n        type(capacity_cpu) is not int\n        or type(capacity_memory) is not int\n        or not 0 <= capacity_cpu <= 64\n        or not 0 <= capacity_memory <= 64\n        or type(jobs) is not list\n        or len(jobs) > 16\n    ):\n        return {\"error\": \"invalid\"}\n\n    job_keys = {\"id\", \"cpu\", \"memory\", \"priority\", \"deps\"}\n    ids = []\n    job_cpus = []\n    job_memories = []\n    job_priorities = []\n    raw_dependencies = []\n    seen_ids = set()\n\n    for job in jobs:\n        if type(job) is not dict or set(job.keys()) != job_keys:\n            return {\"error\": \"invalid\"}\n\n        job_id = job[\"id\"]\n        job_cpu = job[\"cpu\"]\n        job_memory = job[\"memory\"]\n        job_priority = job[\"priority\"]\n        dependencies = job[\"deps\"]\n\n        if (\n            type(job_id) is not str\n            or not 0 < len(job_id) <= 16\n            or job_id in seen_ids\n            or type(job_cpu) is not int\n            or not 1 <= job_cpu <= 32\n            or type(job_memory) is not int\n            or not 1 <= job_memory <= 32\n            or type(job_priority) is not int\n            or not 1 <= job_priority <= 1000\n            or type(dependencies) is not list\n            or len(dependencies) > 16\n        ):\n            return {\"error\": \"invalid\"}\n\n        dependency_set = set()\n        for dependency in dependencies:\n            if type(dependency) is not str or dependency in dependency_set:\n                return {\"error\": \"invalid\"}\n            dependency_set.add(dependency)\n\n        seen_ids.add(job_id)\n        ids.append(job_id)\n        job_cpus.append(job_cpu)\n        job_memories.append(job_memory)\n        job_priorities.append(job_priority)\n        raw_dependencies.append(dependencies)\n\n    index_by_id = {job_id: index for index, job_id in enumerate(ids)}\n    dependencies_by_index = []\n\n    for index, dependencies in enumerate(raw_dependencies):\n        resolved = []\n        for dependency in dependencies:\n            dependency_index = index_by_id.get(dependency)\n            if dependency_index is None or dependency_index == index:\n                return {\"error\": \"invalid\"}\n            resolved.append(dependency_index)\n        dependencies_by_index.append(resolved)\n\n    count = len(ids)\n    required = [0] * count\n    state = [0] * count\n\n    def visit(index):\n        if state[index] == 2:\n            return required[index]\n        if state[index] == 1:\n            return None\n\n        state[index] = 1\n        mask = 0\n\n        for dependency in dependencies_by_index[index]:\n            dependency_mask = visit(dependency)\n            if dependency_mask is None:\n                return None\n            mask |= (1 << dependency) | dependency_mask\n\n        state[index] = 2\n        required[index] = mask\n        return mask\n\n    for index in range(count):\n        if visit(index) is None:\n            return {\"error\": \"invalid\"}\n\n    size = 1 << count\n    cpu_sums = [0] * size\n    memory_sums = [0] * size\n    priority_sums = [0] * size\n    dependency_unions = [0] * size\n\n    best_priority = 0\n    best_cost = 0\n    best_cpu = 0\n    best_memory = 0\n    best_ids = ()\n\n    for mask in range(1, size):\n        bit = mask & -mask\n        index = bit.bit_length() - 1\n        previous = mask ^ bit\n\n        cpu_sums[mask] = cpu_sums[previous] + job_cpus[index]\n        memory_sums[mask] = memory_sums[previous] + job_memories[index]\n        priority_sums[mask] = priority_sums[previous] + job_priorities[index]\n        dependency_unions[mask] = dependency_unions[previous] | required[index]\n\n        used_cpu = cpu_sums[mask]\n        used_memory = memory_sums[mask]\n\n        if used_cpu > capacity_cpu or used_memory > capacity_memory:\n            continue\n        if dependency_unions[mask] & ~mask:\n            continue\n\n        candidate_priority = priority_sums[mask]\n        candidate_cost = used_cpu + used_memory\n        candidate_ids = tuple(\n            sorted(ids[i] for i in range(count) if mask & (1 << i))\n        )\n\n        if candidate_priority > best_priority:\n            should_update = True\n        elif candidate_priority < best_priority:\n            should_update = False\n        elif candidate_cost < best_cost:\n            should_update = True\n        elif candidate_cost > best_cost:\n            should_update = False\n        else:\n            should_update = candidate_ids < best_ids\n\n        if should_update:\n            best_priority = candidate_priority\n            best_cost = candidate_cost\n            best_cpu = used_cpu\n            best_memory = used_memory\n            best_ids = candidate_ids\n\n    return {\n        \"selected\": list(best_ids),\n        \"used\": {\"cpu\": best_cpu, \"memory\": best_memory},\n        \"priority\": best_priority,\n    }\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091c2-e9a6-71d3-bff4-4afd8519fd7d",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 2,
+    "call_index": 8,
+    "repetition": 1,
+    "stage": "self_revision",
+    "task_id": "task12"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T18:37:41.640940Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task12",
+  "thread_id": "01a091c2-e9a6-71d3-bff4-4afd8519fd7d",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 22199,
+    "output_tokens": 3255,
+    "reasoning_tokens": null
+  }
+}

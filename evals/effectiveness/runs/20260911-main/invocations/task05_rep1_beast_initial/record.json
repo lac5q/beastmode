@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "a49370263c42e0a1e0755d59f76c8f3581248dbcbbb27a6655f18ffaa0cc7169",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:38:25.831636Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1152830,
+  "pid_recorded_at_utc": "2026-09-11T19:36:47.267242Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "d1636f6b0f90e0fdd554ed2551330dad1b30a8e34c8b9808ee3f1bd6d9fb304e",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 05: inventory event reducer\n\nImplement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.\n\nThe valid input is an object with `stock` and `events`. `stock` is an object with at most 40 SKU keys; each key is a non-empty ASCII string of at most 32 characters matching `[A-Za-z0-9_.-]+`, and each value is an integer from `0` through `1000000`. `events` is an array of at most 100 objects. Every event has a non-empty string `id` (at most 40 characters), an `op` in `receive`, `reserve`, `release`, `ship`, a SKU present in the initial stock, and a positive integer `qty <= 1000000`. Booleans do not count as integers. Any malformed top-level value, stock entry, or event returns exactly `{\"error\":\"invalid\"}`; this includes an unknown SKU or operation. Unknown object keys are ignored.\n\nBegin with each SKU's `stock` value and a reserved quantity of zero. Process events in input order. Validate every event's required shape before duplicate-ID handling, so a malformed duplicate still returns `{\"error\":\"invalid\"}`. An event ID is considered seen on its first valid occurrence. A later valid event with the same ID is put in `ignored` and changes nothing, even if its fields differ. For a first occurrence, `receive` adds quantity to stock; `reserve` moves quantity from stock to reserved; `release` moves quantity from reserved back to stock; and `ship` removes quantity from reserved. A validly shaped operation that would make a quantity negative is put in `rejected` and changes nothing. Other first occurrences are put in `applied` after changing state. Each list preserves event order, and duplicate occurrences appear in `ignored` in their occurrence order.\n\nReturn exactly `stock`, `reserved`, `applied`, `rejected`, and `ignored`. State maps contain every initial SKU, including zero values. Object key order is irrelevant.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"applied\": [\n        \"r1\",\n        \"s1\"\n      ],\n      \"ignored\": [\n        \"r1\"\n      ],\n      \"rejected\": [\n        \"bad\"\n      ],\n      \"reserved\": {\n        \"A\": 1,\n        \"B\": 0\n      },\n      \"stock\": {\n        \"A\": 6,\n        \"B\": 2\n      }\n    },\n    \"input\": {\n      \"events\": [\n        {\n          \"id\": \"r1\",\n          \"op\": \"reserve\",\n          \"qty\": 4,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"s1\",\n          \"op\": \"ship\",\n          \"qty\": 3,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"r1\",\n          \"op\": \"reserve\",\n          \"qty\": 1,\n          \"sku\": \"A\"\n        },\n        {\n          \"id\": \"bad\",\n          \"op\": \"release\",\n          \"qty\": 1,\n          \"sku\": \"B\"\n        }\n      ],\n      \"stock\": {\n        \"A\": 10,\n        \"B\": 2\n      }\n    }\n  },\n  {\n    \"expected\": {\n      \"applied\": [\n        \"in\",\n        \"hold\",\n        \"return\",\n        \"send\"\n      ],\n      \"ignored\": [],\n      \"rejected\": [],\n      \"reserved\": {\n        \"x\": 0\n      },\n      \"stock\": {\n        \"x\": 2\n      }\n    },\n    \"input\": {\n      \"events\": [\n        {\n          \"id\": \"in\",\n          \"op\": \"receive\",\n          \"qty\": 5,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"hold\",\n          \"op\": \"reserve\",\n          \"qty\": 5,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"return\",\n          \"op\": \"release\",\n          \"qty\": 2,\n          \"sku\": \"x\"\n        },\n        {\n          \"id\": \"send\",\n          \"op\": \"ship\",\n          \"qty\": 3,\n          \"sku\": \"x\"\n        }\n      ],\n      \"stock\": {\n        \"x\": 0\n      }\n    }\n  },\n  {\n    \"expected\": {\n      \"applied\": [],\n      \"ignored\": [],\n      \"rejected\": [],\n      \"reserved\": {},\n      \"stock\": {}\n    },\n    \"input\": {\n      \"events\": [],\n      \"stock\": {}\n    }\n  }\n]\n\nDIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN\n# Director plan: Task 05\n\nAcceptance: separate malformed input (whole-call invalid sentinel) from a valid but unaffordable operation (rejected event). Preserve event occurrence order, idempotency by ID, and both state maps for every initial SKU.\n\nFirst validate all input before reducing: top-level object, stock object/size/SKU ASCII pattern and length, bounded non-bool integer quantities, event array size, required event fields/ID length/operation/SKU membership. Unknown keys are ignored. Even repeated-ID events must satisfy the public shape validation: duplicate handling is a state rule, not an exemption from the preceding malformed-event rule. Output maps should be copies, not aliases of payload.\n\nInitialize reserved to zero per SKU and seen IDs to empty. For each event: if seen, append its ID to ignored and stop processing it; otherwise mark seen BEFORE deciding whether the operation can apply. Thus a first rejected occurrence still suppresses later occurrences of that ID. receive adds to stock; reserve requires stock >= qty then transfers to reserved; release requires reserved >= qty then transfers to stock; ship requires reserved >= qty then subtracts only from reserved. Reject without partial state changes on insufficient quantity. Input bounds do not impose an unstated cap on accumulated state.\n\nReview probes: rejected first event followed by same ID; duplicate with different valid fields; reserve then ship versus release; zero-stock SKU; empty maps/events; invalid bool qty; malformed duplicate; initial stock retains keys at zero. The exact public specification is authoritative.\n\n\nImplement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091f8-fbac-7813-90f1-7611e4114ba9",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "beastmode",
+    "block_index": 10,
+    "call_index": 37,
+    "repetition": 1,
+    "stage": "beast_initial",
+    "task_id": "task05"
+  },
+  "schema_version": 1,
+  "stage": "beast_initial",
+  "started_at_utc": "2026-09-11T19:36:46.941822Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task05",
+  "thread_id": "01a091f8-fbac-7813-90f1-7611e4114ba9",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 17152,
+    "input_tokens": 24622,
+    "output_tokens": 3329,
+    "reasoning_tokens": null
+  }
+}

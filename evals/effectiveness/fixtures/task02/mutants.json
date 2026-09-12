@@ -1,0 +1,4 @@
+[
+  {"name": "alphabetical_ready_queue", "source": "def solve(payload):\n    return {'order': sorted(t['id'] for t in payload.get('tasks', [])), 'start': {}, 'finish': {}, 'makespan': 0, 'critical': {}}"},
+  {"name": "critical_uses_children_count", "source": "def solve(payload):\n    tasks = payload.get('tasks', [])\n    return {'order': [t['id'] for t in tasks], 'start': {}, 'finish': {}, 'makespan': 0, 'critical': {t['id']: len(t.get('deps', [])) for t in tasks}}"}
+]

@@ -1,0 +1,151 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 06: issue workflow reducer
+
+Implement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.
+
+The valid input is an object with `initial` and `events`. `initial` has `status` equal to `todo`, `doing`, `done`, or `cancelled`; `assignee` equal to `null` or a non-empty string of at most 40 characters; and `labels`, an array of at most 10 distinct non-empty strings of at most 20 characters. `events` has at most 100 objects. Every event has a unique-or-repeatable non-empty string `id` of at most 40 characters and an `op` in `start`, `complete`, `reopen`, `cancel`, `assign`, `label`, `unlabel`. `assign`, `label`, and `unlabel` require a `value`: assignment accepts `null` or a non-empty string up to 40 characters, while the label operations require a non-empty string up to 20 characters. Any malformed top-level value, initial state, or event returns exactly `{"error":"invalid"}`. Booleans are not strings. Unknown object keys are ignored. Repeated IDs are allowed and have the duplicate behavior below.
+
+Process events in input order. Validate every event's required shape before duplicate-ID handling, so a malformed duplicate still returns `{"error":"invalid"}`. The first valid event with an ID marks that ID seen; each later valid event with that ID is appended to `ignored` and changes nothing, even if its fields differ. `start` changes `todo` to `doing`; `complete` changes `doing` to `done`; `reopen` changes `done` or `cancelled` to `todo`; and `cancel` changes `todo` or `doing` to `cancelled`. These four operations are rejected when their source status is not allowed. `assign` always applies its value. `label` appends a label when it is absent and fewer than 10 labels exist; otherwise it is rejected. `unlabel` removes a present label; otherwise it is rejected. A rejected operation changes nothing. Labels preserve their current list order.
+
+Return exactly `state` (with `status`, `assignee`, and `labels`), `applied`, `rejected`, and `ignored`. Each list preserves event order. Object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "applied": [
+        "s",
+        "c",
+        "r",
+        "a",
+        "l"
+      ],
+      "ignored": [
+        "l"
+      ],
+      "rejected": [
+        "bad"
+      ],
+      "state": {
+        "assignee": "sam",
+        "labels": [
+          "bug",
+          "urgent"
+        ],
+        "status": "todo"
+      }
+    },
+    "input": {
+      "events": [
+        {
+          "id": "s",
+          "op": "start"
+        },
+        {
+          "id": "c",
+          "op": "complete"
+        },
+        {
+          "id": "bad",
+          "op": "complete"
+        },
+        {
+          "id": "r",
+          "op": "reopen"
+        },
+        {
+          "id": "a",
+          "op": "assign",
+          "value": "sam"
+        },
+        {
+          "id": "l",
+          "op": "label",
+          "value": "urgent"
+        },
+        {
+          "id": "l",
+          "op": "unlabel",
+          "value": "bug"
+        }
+      ],
+      "initial": {
+        "assignee": null,
+        "labels": [
+          "bug"
+        ],
+        "status": "todo"
+      }
+    }
+  },
+  {
+    "expected": {
+      "applied": [
+        "re",
+        "x",
+        "clear"
+      ],
+      "ignored": [],
+      "rejected": [
+        "u"
+      ],
+      "state": {
+        "assignee": null,
+        "labels": [],
+        "status": "cancelled"
+      }
+    },
+    "input": {
+      "events": [
+        {
+          "id": "re",
+          "op": "reopen"
+        },
+        {
+          "id": "x",
+          "op": "cancel"
+        },
+        {
+          "id": "clear",
+          "op": "assign",
+          "value": null
+        },
+        {
+          "id": "u",
+          "op": "unlabel",
+          "value": "missing"
+        }
+      ],
+      "initial": {
+        "assignee": "old",
+        "labels": [],
+        "status": "cancelled"
+      }
+    }
+  },
+  {
+    "expected": {
+      "applied": [],
+      "ignored": [],
+      "rejected": [],
+      "state": {
+        "assignee": null,
+        "labels": [],
+        "status": "done"
+      }
+    },
+    "input": {
+      "events": [],
+      "initial": {
+        "assignee": null,
+        "labels": [],
+        "status": "done"
+      }
+    }
+  }
+]
+
+Produce your complete implementation.

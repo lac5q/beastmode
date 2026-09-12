@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "71336f3a3fd98b72015700d6d414177225a15e4bec911f73d23dc386fcde9ca2",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T21:06:24.720277Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1424213,
+  "pid_recorded_at_utc": "2026-09-11T21:03:26.154935Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "0946ceaec2479ea617dada8e1b3eb6a10cf0914523cf09476c3416b8c0687d57",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 09: typed assignment-list parser\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly one key, text. text is a string of\nat most 512 Unicode code points. Parse a document containing zero or more\nassignments (at most 40) separated by semicolons; a final semicolon is\noptional. Whitespace\nmeans space, tab, carriage return, or line feed and may occur around tokens.\nOutside a quoted string, # starts a comment that runs through (but not\nincluding) the next line feed or the end of the text. A comment is whitespace\nfor parsing, but it does not replace the required semicolon between\nassignments.\n\nAn assignment is key = value. A key is an ASCII letter followed by zero or\nmore ASCII letters, digits, or underscores, with total length 1 through 16.\nKeys must be unique. Values are an integer, the lowercase word true, the\nlowercase word false, a quoted string, or a list in square brackets. Integers\nare written with an optional minus sign and ASCII digits, have no leading zero\nexcept for zero itself, and lie from -1000000 through 1000000. A quoted\nstring uses double quotes and allows only these escapes: backslash-double\nquote, backslash-backslash, backslash-n, backslash-t, backslash-semicolon,\nand backslash-hash. An unescaped line feed or carriage return is invalid\ninside a quoted string; an unknown escape is invalid.\nThe decoded string length is at most 64.\n\nA list contains one or more scalar values separated by commas; an empty list\nis also valid. Scalar values use the integer, boolean, or quoted-string rules\nabove. Lists cannot nest, have at most 12 items, and cannot have a trailing\ncomma. Duplicate keys, a missing separator or equals sign, malformed escapes,\nwrong types, extra payload keys, or any other violation returns exactly\n{\"error\":\"invalid\"}. An empty text document is valid.\n\nReturn exactly {\"values\": {key: parsed_value, ...}}. Parsed values retain\ntheir boolean, integer, string, and list types. Object key order is\nirrelevant. The stated length, assignment, and list limits are the complete\nevaluation size envelope.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"values\": {\n        \"enabled\": true,\n        \"name\": \"Ada\",\n        \"retries\": 3,\n        \"tags\": [\n          \"b\",\n          \"a\"\n        ]\n      }\n    },\n    \"input\": {\n      \"text\": \"name=\\\"Ada\\\"; retries=3; enabled=true; tags=[\\\"b\\\", \\\"a\\\"];\"\n    }\n  },\n  {\n    \"expected\": {\n      \"values\": {\n        \"flag\": false,\n        \"message\": \"line\\nnext\"\n      }\n    },\n    \"input\": {\n      \"text\": \"message=\\\"line\\\\nnext\\\"; # ignored comment\\nflag=false\"\n    }\n  },\n  {\n    \"expected\": {\n      \"values\": {}\n    },\n    \"input\": {\n      \"text\": \"\"\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"text\": \"x=1 x=2\"\n    }\n  }\n]\n\nDIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN\n# Director plan: Task 09\n\nAcceptance: implement the stated grammar, preserve scalar JSON types, and reject trailing junk, missing separators, duplicate keys, and malformed strings/lists. Do not use Python eval or split the document naively on semicolons, commas, or hash characters inside strings.\n\nUse an index-based scanner with a skip_whitespace_and_comments routine applied only outside quoted strings. Comments end at LF or EOF and count as whitespace, never as an assignment separator. Parse a key with the exact ASCII pattern/length, then '=', then one scalar or nonnested list. After a value require EOF or ';'; consume an optional final semicolon but reject an empty assignment from repeated separators. Enforce the public policy if it explicitly says otherwise. Validate the payload's exact keys and text length first.\n\nString parsing must distinguish raw characters from escapes: accept only the six listed escapes, reject unknown/truncated escapes and raw line breaks, and enforce decoded length. Scalar parser handles lowercase booleans and the integer grammar/range with token termination checked by the surrounding grammar; avoid isdigit broadening the specified digit alphabet. Optional '-' may precede zero, since the public grammar does not ban negative zero. Lists allow empty or up to12 scalars, forbid nesting and trailing commas. Preserve bool versus int; do not coerce quoted scalars.\n\nReview probes: '#' and ';' inside strings, escaped quote/backslash, comments between tokens, comment without required semicolon, signed/leading-zero numbers, repeated key, malformed list separator, empty/comment-only document. Track input position to reject every unconsumed non-whitespace/comment character. Public grammar outranks any implementation assumption.\n\n\nImplement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a09248-4fe3-7613-8014-4de4ddce4c0c",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "beastmode",
+    "block_index": 18,
+    "call_index": 71,
+    "repetition": 1,
+    "stage": "beast_initial",
+    "task_id": "task09"
+  },
+  "schema_version": 1,
+  "stage": "beast_initial",
+  "started_at_utc": "2026-09-11T21:03:25.890604Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task09",
+  "thread_id": "01a09248-4fe3-7613-8014-4de4ddce4c0c",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 14080,
+    "input_tokens": 20988,
+    "output_tokens": 8508,
+    "reasoning_tokens": null
+  }
+}

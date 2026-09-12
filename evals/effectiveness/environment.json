@@ -1,0 +1,23 @@
+{
+  "host_python": "3.11.15 (main, Jun 23 2026, 15:19:43) [Clang 22.1.3 ]",
+  "candidate_python": "Python 3.12.3",
+  "candidate_executable": "/usr/bin/python3.12",
+  "candidate_executable_sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+  "bubblewrap": "bubblewrap 0.9.0",
+  "codex_cli": "codex-cli 0.153.4",
+  "os": "Linux",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "architecture": "x86_64",
+  "director_runtime_model": "gpt-6-astra",
+  "director_runtime_effort": "low",
+  "economy_requested_model": "gpt-5.6-luna",
+  "economy_requested_effort": "max",
+  "backend_snapshot": null,
+  "sampling_settings": "Native Codex account defaults except pinned max reasoning; server-side limits unavailable.",
+  "isolation": "bubblewrap --unshare-all; per-case CPU2s/wall5s/address-space256MiB/stdout1MiB; no host home or expected files",
+  "smoke_instruction_digests": {
+    "session_meta.base_instructions": "ddb52fe8ffd3195354faf25833bab119e03f7e8e451ab6da8028bd5db60e8558"
+  },
+  "instruction_digest_source_thread": "01a09180-cd93-7da1-8be2-f893b072a32c",
+  "instruction_digest_limit": "Digest from unscored smoke configuration; per-call prompts and runtime receipts retained separately."
+}

@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "ab9d229963ed066afe5b8aee6b32335c199db55f07214b0bb2da87a5b0487f5d",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T18:37:41.402332Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 971191,
+  "pid_recorded_at_utc": "2026-09-11T18:35:01.463875Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "93679f82ab9db3c9b4f93ac0941d489d0790275814b954525c5162739b291844",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 12: dependency-closed two-resource allocation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys cpu, memory, and jobs. cpu\nand memory are integers from 0 through 64 inclusive; booleans are not\nintegers. jobs is an array of at most 16 job objects. Every job has exactly\nid, cpu, memory, priority, and deps. id is a unique non-empty string of at\nmost 16 Unicode code points. A job's cpu and memory are integers from 1\nthrough 32. priority is an integer from 1 through 1000. deps is an array of\nat most 16 distinct string IDs, and every dependency names another job in the\nsame input. A self-dependency or any directed dependency cycle is invalid.\nMissing or extra keys, wrong types, duplicate IDs or dependencies, unknown\ndependencies, out-of-range values, or any other violation returns exactly\n{\"error\":\"invalid\"}. The stated limits are the complete evaluation size\nenvelope.\n\nChoose a subset of jobs whose total cpu is at most cpu and whose total memory\nis at most memory. If a job is selected, every direct and transitive\ndependency must also be selected. Maximize total priority. If several\ndependency-closed subsets have the same priority, choose the one with the\nsmaller sum of cpu plus memory. If they still tie, sort each subset's IDs by\nPython/Unicode string ordering and choose the lexicographically smaller ID\nlist. The empty subset is always allowed.\n\nReturn exactly {\"selected\": [...], \"used\": {\"cpu\": integer, \"memory\":\ninteger}, \"priority\": integer}. selected is sorted by ID, used contains the\nresource sums, and priority is the sum for the selected jobs. No other output\nfields are allowed. Zero capacities or no jobs therefore return an empty\nselection with zero usage and priority.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"priority\": 13,\n      \"selected\": [\n        \"a\",\n        \"c\"\n      ],\n      \"used\": {\n        \"cpu\": 4,\n        \"memory\": 3\n      }\n    },\n    \"input\": {\n      \"cpu\": 4,\n      \"jobs\": [\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 5\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 2,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 2,\n          \"priority\": 8\n        }\n      ],\n      \"memory\": 4\n    }\n  },\n  {\n    \"expected\": {\n      \"priority\": 15,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": {\n        \"cpu\": 3,\n        \"memory\": 3\n      }\n    },\n    \"input\": {\n      \"cpu\": 3,\n      \"jobs\": [\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 2,\n          \"priority\": 5\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 10\n        },\n        {\n          \"cpu\": 3,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 3,\n          \"priority\": 14\n        }\n      ],\n      \"memory\": 3\n    }\n  },\n  {\n    \"expected\": {\n      \"priority\": 8,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": {\n        \"cpu\": 2,\n        \"memory\": 2\n      }\n    },\n    \"input\": {\n      \"cpu\": 2,\n      \"jobs\": [\n        {\n          \"cpu\": 1,\n          \"deps\": [],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 4\n        },\n        {\n          \"cpu\": 2,\n          \"deps\": [],\n          \"id\": \"c\",\n          \"memory\": 2,\n          \"priority\": 8\n        }\n      ],\n      \"memory\": 2\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"cpu\": 4,\n      \"jobs\": [\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"b\"\n          ],\n          \"id\": \"a\",\n          \"memory\": 1,\n          \"priority\": 1\n        },\n        {\n          \"cpu\": 1,\n          \"deps\": [\n            \"a\"\n          ],\n          \"id\": \"b\",\n          \"memory\": 1,\n          \"priority\": 1\n        }\n      ],\n      \"memory\": 4\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091c0-74d8-78c2-ac39-748a2738ab6f",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 2,
+    "call_index": 7,
+    "repetition": 1,
+    "stage": "single",
+    "task_id": "task12"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T18:35:01.032229Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task12",
+  "thread_id": "01a091c0-74d8-78c2-ac39-748a2738ab6f",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 20997,
+    "output_tokens": 6698,
+    "reasoning_tokens": null
+  }
+}

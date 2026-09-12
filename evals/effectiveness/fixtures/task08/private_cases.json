@@ -1,0 +1,190 @@
+[
+  {
+    "id": "t08-01",
+    "input": {"as_of": 0, "events": []},
+    "expected": {"records": []}
+  },
+  {
+    "id": "t08-02",
+    "input": {"as_of": 5, "events": [{"id": "a", "source": "primary", "seq": 1, "at": 5, "op": "set", "value": {"name": "A", "qty": 0}}]},
+    "expected": {"records": [{"id": "a", "name": "A", "qty": 0}]}
+  },
+  {
+    "id": "t08-03",
+    "input": {
+      "as_of": 3,
+      "events": [
+        {"id": "a", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "A", "qty": 2}},
+        {"id": "a", "source": "primary", "seq": 2, "at": 2, "op": "patch", "value": {"qty": 9}}
+      ]
+    },
+    "expected": {"records": [{"id": "a", "name": "A", "qty": 9}]}
+  },
+  {
+    "id": "t08-04",
+    "input": {"as_of": 2, "events": [{"id": "missing", "source": "primary", "seq": 1, "at": 1, "op": "patch", "value": {"qty": 4}}]},
+    "expected": {"records": []}
+  },
+  {
+    "id": "t08-05",
+    "input": {
+      "as_of": 3,
+      "events": [
+        {"id": "a", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "A", "qty": 2}},
+        {"id": "a", "source": "primary", "seq": 2, "at": 2, "op": "delete"},
+        {"id": "a", "source": "primary", "seq": 3, "at": 3, "op": "patch", "value": {"name": "Ignored"}}
+      ]
+    },
+    "expected": {"records": []}
+  },
+  {
+    "id": "t08-06",
+    "input": {
+      "as_of": 3,
+      "events": [
+        {"id": "a", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "A", "qty": 2}},
+        {"id": "a", "source": "primary", "seq": 2, "at": 2, "op": "delete"},
+        {"id": "a", "source": "primary", "seq": 3, "at": 3, "op": "set", "value": {"name": "Again", "qty": 8}}
+      ]
+    },
+    "expected": {"records": [{"id": "a", "name": "Again", "qty": 8}]}
+  },
+  {
+    "id": "t08-07",
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "a", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "A", "qty": 2}},
+        {"id": "a", "source": "primary", "seq": 2, "at": 4, "op": "delete"}
+      ]
+    },
+    "expected": {"records": [{"id": "a", "name": "A", "qty": 2}]}
+  },
+  {
+    "id": "t08-08",
+    "input": {
+      "as_of": 1,
+      "events": [
+        {"id": "x", "source": "replica", "seq": 1, "at": 1, "op": "set", "value": {"name": "R", "qty": 2}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "P", "qty": 3}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "R", "qty": 2}]}
+  },
+  {
+    "id": "t08-09",
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 2, "at": 2, "op": "patch", "value": {"qty": 2}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "X", "qty": 1}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "X", "qty": 2}]}
+  },
+  {
+    "id": "t08-10",
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 1, "at": 2, "op": "patch", "value": {"qty": 4}},
+        {"id": "x", "source": "primary", "seq": 2, "at": 1, "op": "set", "value": {"name": "X", "qty": 1}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "X", "qty": 4}]}
+  },
+  {
+    "id": "t08-11",
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "X", "qty": 1}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 2, "op": "delete"}
+      ]
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-12",
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "P", "qty": 1}},
+        {"id": "x", "source": "replica", "seq": 1, "at": 1, "op": "patch", "value": {"name": "R"}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "R", "qty": 1}]}
+  },
+  {
+    "id": "t08-13",
+    "input": {"as_of": 1, "events": [], "extra": []},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-14",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "other", "seq": 1, "at": 0, "op": "delete"}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-15",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": true, "at": 0, "op": "delete"}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-16",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "set", "value": {"name": "X"}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-17",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "patch", "value": {}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-18",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "patch", "value": {"unknown": 1}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-19",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "delete", "value": {}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-20",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "set", "value": {"name": "", "qty": 1}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-21",
+    "input": {"as_of": 1, "events": [{"id": "x", "source": "primary", "seq": 1, "at": 0, "op": "set", "value": {"name": "X", "qty": true}}]},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-22",
+    "input": {"as_of": true, "events": []},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t08-23",
+    "input": {
+      "as_of": 5,
+      "events": [
+        {"id": "z", "source": "primary", "seq": 1, "at": 0, "op": "set", "value": {"name": "Z", "qty": 1}},
+        {"id": "a", "source": "primary", "seq": 1, "at": 0, "op": "set", "value": {"name": "A", "qty": 2}}
+      ]
+    },
+    "expected": {"records": [{"id": "a", "name": "A", "qty": 2}, {"id": "z", "name": "Z", "qty": 1}]}
+  },
+  {
+    "id": "t08-24",
+    "input": {
+      "as_of": 5,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 2, "at": 2, "op": "set", "value": {"name": "X", "qty": 2}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "Old", "qty": 1}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "X", "qty": 2}]}
+  }
+]

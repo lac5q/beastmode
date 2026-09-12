@@ -1,0 +1,19 @@
+[
+  {
+    "input": {"intervals": [
+      {"id": "b", "start": 0, "end": 4},
+      {"id": "a", "start": 0, "end": 2},
+      {"id": "c", "start": 2, "end": 5}
+    ]},
+    "expected": {"rooms": 2, "assignment": {"a": 1, "b": 2, "c": 1}, "order": ["a", "b", "c"]}
+  },
+  {
+    "input": {"intervals": [
+      {"id": "x", "start": -3, "end": -1},
+      {"id": "y", "start": -2, "end": 1},
+      {"id": "z", "start": 1, "end": 2}
+    ]},
+    "expected": {"rooms": 2, "assignment": {"x": 1, "y": 2, "z": 1}, "order": ["x", "y", "z"]}
+  },
+  {"input": {"intervals": []}, "expected": {"rooms": 0, "assignment": {}, "order": []}}
+]

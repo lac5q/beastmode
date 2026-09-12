@@ -1,0 +1,16 @@
+PUBLIC SPECIFICATION
+{{public_spec}}
+
+PUBLIC EXAMPLES
+{{public_examples}}
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+{{director_plan}}
+
+INITIAL IMPLEMENTATION
+{{initial_code}}
+
+DIRECTOR CONTRACT REVIEW
+{{director_review}}
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

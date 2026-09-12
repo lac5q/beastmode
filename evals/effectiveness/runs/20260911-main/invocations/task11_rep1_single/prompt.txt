@@ -1,0 +1,119 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 11: bounded single-budget allocation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly the keys capacity and requests.
+capacity is an integer from 0 through 120 inclusive; booleans are not
+integers. requests is an array of at most 40 request objects. Each request has
+exactly id, units, and benefit. id is a non-empty string of at most 16 Unicode
+code points and is unique across requests. units is an integer from 1 through
+30. benefit is an integer from 1 through 1000. Any missing or extra key, wrong
+type, duplicate ID, or out-of-range value returns exactly
+{"error":"invalid"}. The stated limits are the complete evaluation size
+envelope.
+
+Choose a subset of requests, using each request at most once, whose total
+units is at most capacity. Maximize the sum of benefit. If several subsets
+have the same benefit, choose the one with the smaller total units. If they
+still tie, sort each subset's IDs by Python/Unicode string ordering and choose
+the lexicographically smaller ID list. The empty subset is always allowed.
+
+Return exactly {"selected": [...], "used": integer, "benefit": integer}.
+selected is the chosen ID list in sorted order. used and benefit are the sums
+for that subset. No other output fields are allowed. A zero capacity or empty
+request array therefore returns selected [], used 0, benefit 0.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "benefit": 13,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": 5
+    },
+    "input": {
+      "capacity": 5,
+      "requests": [
+        {
+          "benefit": 6,
+          "id": "a",
+          "units": 2
+        },
+        {
+          "benefit": 7,
+          "id": "b",
+          "units": 3
+        },
+        {
+          "benefit": 9,
+          "id": "c",
+          "units": 4
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "benefit": 5,
+      "selected": [
+        "b"
+      ],
+      "used": 1
+    },
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {
+          "benefit": 5,
+          "id": "a",
+          "units": 2
+        },
+        {
+          "benefit": 5,
+          "id": "b",
+          "units": 1
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "benefit": 0,
+      "selected": [],
+      "used": 0
+    },
+    "input": {
+      "capacity": 0,
+      "requests": []
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {
+          "benefit": 1,
+          "id": "x",
+          "units": 1
+        },
+        {
+          "benefit": 2,
+          "id": "x",
+          "units": 1
+        }
+      ]
+    }
+  }
+]
+
+Produce your complete implementation.

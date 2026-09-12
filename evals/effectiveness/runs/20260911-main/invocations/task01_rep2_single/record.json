@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "8053b8994d49fa95bfd7039bd28b1c798979c8f9cc14a5e807dd27da970a656c",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:28:30.915015Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1121046,
+  "pid_recorded_at_utc": "2026-09-11T19:26:41.851514Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "28dde15234e46ba9bf3e1aafe3e026445a53bef2c5528a9f7f9b77149ca98d48",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 01: dependency scheduler\n\nImplement a pure Python function `solve(payload)` that accepts and returns JSON-compatible values.\n\nThe valid input is an object with an integer `workers` in `1..80` and a `tasks` array of at most 80 tasks. Each task is an object with a unique non-empty string `id` of at most 40 Unicode characters, a positive integer `duration` in `1..100000`, and a `deps` array of distinct string task IDs. Every dependency must name a task in the same array. An empty task array is valid. A self-dependency, a dependency cycle, missing required field, wrong type, duplicate ID, duplicate dependency, or any other violation of these rules returns exactly `{\"error\":\"invalid\"}`. Booleans are not integers for this contract. Unknown object keys are ignored.\n\nSchedule the tasks on `workers` identical workers. Time starts at zero and is integral. A task becomes ready only after every dependency has finished. At each time when one or more tasks finish, finish all of them before starting new work. Also perform the initial starts at time zero. If several ready tasks compete for slots, choose the lexicographically smallest `id` first using Python/Unicode string ordering. Start as many chosen tasks as there are free workers. A task occupies a worker for exactly its duration; tasks that finish at the same time free their slots together. Repeat until all tasks finish.\n\nReturn an object with `order` (task IDs in start order), `start` (ID to start time), `finish` (ID to finish time), and `makespan` (the greatest finish time, or `0` for no tasks). No extra keys are needed. JSON object key order is irrelevant.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"finish\": {\n        \"a\": 3,\n        \"b\": 2,\n        \"c\": 4\n      },\n      \"makespan\": 4,\n      \"order\": [\n        \"a\",\n        \"b\",\n        \"c\"\n      ],\n      \"start\": {\n        \"a\": 0,\n        \"b\": 0,\n        \"c\": 3\n      }\n    },\n    \"input\": {\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 3,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 2,\n          \"id\": \"b\"\n        },\n        {\n          \"deps\": [\n            \"a\",\n            \"b\"\n          ],\n          \"duration\": 1,\n          \"id\": \"c\"\n        }\n      ],\n      \"workers\": 2\n    }\n  },\n  {\n    \"expected\": {\n      \"finish\": {\n        \"a\": 2,\n        \"m\": 3,\n        \"z\": 4\n      },\n      \"makespan\": 4,\n      \"order\": [\n        \"a\",\n        \"m\",\n        \"z\"\n      ],\n      \"start\": {\n        \"a\": 0,\n        \"m\": 2,\n        \"z\": 3\n      }\n    },\n    \"input\": {\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 1,\n          \"id\": \"z\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 2,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [\n            \"a\"\n          ],\n          \"duration\": 1,\n          \"id\": \"m\"\n        }\n      ],\n      \"workers\": 1\n    }\n  },\n  {\n    \"expected\": {\n      \"finish\": {},\n      \"makespan\": 0,\n      \"order\": [],\n      \"start\": {}\n    },\n    \"input\": {\n      \"tasks\": [],\n      \"workers\": 3\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091ef-bbdb-7051-a7fa-fd60e0451f64",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 9,
+    "call_index": 33,
+    "repetition": 2,
+    "stage": "single",
+    "task_id": "task01"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T19:26:41.609499Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task01",
+  "thread_id": "01a091ef-bbdb-7051-a7fa-fd60e0451f64",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 14080,
+    "input_tokens": 20667,
+    "output_tokens": 4358,
+    "reasoning_tokens": null
+  }
+}

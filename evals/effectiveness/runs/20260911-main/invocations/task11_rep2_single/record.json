@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "d7678d42379686aea138750acb8f23c81ab303d2c464421ecd5c27908973e1fa",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:09:00.646087Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1062918,
+  "pid_recorded_at_utc": "2026-09-11T19:06:57.735110Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "79b4498d901b30e27961eed816b4bdb939a9d7a4aad3dff68a8dcfc494b6af77",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 11: bounded single-budget allocation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys capacity and requests.\ncapacity is an integer from 0 through 120 inclusive; booleans are not\nintegers. requests is an array of at most 40 request objects. Each request has\nexactly id, units, and benefit. id is a non-empty string of at most 16 Unicode\ncode points and is unique across requests. units is an integer from 1 through\n30. benefit is an integer from 1 through 1000. Any missing or extra key, wrong\ntype, duplicate ID, or out-of-range value returns exactly\n{\"error\":\"invalid\"}. The stated limits are the complete evaluation size\nenvelope.\n\nChoose a subset of requests, using each request at most once, whose total\nunits is at most capacity. Maximize the sum of benefit. If several subsets\nhave the same benefit, choose the one with the smaller total units. If they\nstill tie, sort each subset's IDs by Python/Unicode string ordering and choose\nthe lexicographically smaller ID list. The empty subset is always allowed.\n\nReturn exactly {\"selected\": [...], \"used\": integer, \"benefit\": integer}.\nselected is the chosen ID list in sorted order. used and benefit are the sums\nfor that subset. No other output fields are allowed. A zero capacity or empty\nrequest array therefore returns selected [], used 0, benefit 0.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"benefit\": 13,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": 5\n    },\n    \"input\": {\n      \"capacity\": 5,\n      \"requests\": [\n        {\n          \"benefit\": 6,\n          \"id\": \"a\",\n          \"units\": 2\n        },\n        {\n          \"benefit\": 7,\n          \"id\": \"b\",\n          \"units\": 3\n        },\n        {\n          \"benefit\": 9,\n          \"id\": \"c\",\n          \"units\": 4\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"benefit\": 5,\n      \"selected\": [\n        \"b\"\n      ],\n      \"used\": 1\n    },\n    \"input\": {\n      \"capacity\": 2,\n      \"requests\": [\n        {\n          \"benefit\": 5,\n          \"id\": \"a\",\n          \"units\": 2\n        },\n        {\n          \"benefit\": 5,\n          \"id\": \"b\",\n          \"units\": 1\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"benefit\": 0,\n      \"selected\": [],\n      \"used\": 0\n    },\n    \"input\": {\n      \"capacity\": 0,\n      \"requests\": []\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"capacity\": 2,\n      \"requests\": [\n        {\n          \"benefit\": 1,\n          \"id\": \"x\",\n          \"units\": 1\n        },\n        {\n          \"benefit\": 2,\n          \"id\": \"x\",\n          \"units\": 1\n        }\n      ]\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091dd-a850-7d43-9487-9553a3d6d243",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 6,
+    "call_index": 23,
+    "repetition": 2,
+    "stage": "single",
+    "task_id": "task11"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T19:06:57.682337Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task11",
+  "thread_id": "01a091dd-a850-7d43-9487-9553a3d6d243",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 14080,
+    "input_tokens": 20577,
+    "output_tokens": 5231,
+    "reasoning_tokens": null
+  }
+}
