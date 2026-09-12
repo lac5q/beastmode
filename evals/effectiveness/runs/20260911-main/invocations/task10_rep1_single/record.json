@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "cbe61e1d1e497c36be07196339899ce2ecb77e74a0f097ebc55232ebf5015f48",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T18:19:57.782741Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 913679,
+  "pid_recorded_at_utc": "2026-09-11T18:16:52.438479Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "fb3b2af8dd574768ab2cdfdf38bb59ef451322f0178219bc501bb14099a5911b",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 10: typed telemetry CSV parser\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly one key, text. text is a string of\nat most 4096 Unicode code points. Split it at line-feed characters. A\ncarriage return is allowed only immediately before a line feed and is removed.\nThe final line may be empty. A line containing only spaces or tabs is ignored.\nA line whose first non-space/tab character is # is also ignored. Other lines\nare records, with at most 80 records. A bare carriage return anywhere else is\ninvalid.\n\nEach record is exactly five CSV fields in this order: timestamp, level, code,\nmessage, tags. CSV quoting is strict: a quote may begin a field only at its\nfirst character; inside a quoted field, a doubled quote represents one quote;\nafter a closing quote only a comma or end of line is allowed. Unquoted fields\ncannot contain quotes. Newlines are not allowed inside quoted fields.\n\ntimestamp is an ASCII decimal integer from 0 through 1000000000. level is\nexactly INFO, WARN, or ERROR. code matches\n[A-Z][A-Z0-9_]{1,7}. message is any decoded string of at most 80 code points,\nincluding the empty string. tags is empty or a semicolon-separated list of\ndistinct tags, each matching [a-z][a-z0-9_-]{0,11}. Tags are canonicalized\ninto Python/Unicode sorted order in the output. Any malformed record, wrong\nfield count, duplicate tag, extra payload key, or other violation returns\nexactly {\"error\":\"invalid\"}.\n\nReturn exactly an object with these standalone fields:\n* events: records in ascending (timestamp, input_record_order) order, each\n  represented as {\"at\": timestamp, \"level\": level, \"code\": code,\n  \"message\": message, \"tags\": sorted_tags}.\n* counts: an object with exactly INFO, WARN, and ERROR integer counts,\n  including zero counts.\n* latest_by_code: for each code, the event with greatest\n  (timestamp, input_record_order), represented as {\"at\": timestamp,\n  \"level\": level}. A code absent from the input is absent from this object.\n\nAn empty or comment-only document returns empty events, zero counts, and an\nempty latest_by_code. The stated text, record, field, and string limits are\nthe complete evaluation size envelope.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 1,\n        \"INFO\": 1,\n        \"WARN\": 1\n      },\n      \"events\": [\n        {\n          \"at\": 1,\n          \"code\": \"CPU\",\n          \"level\": \"WARN\",\n          \"message\": \"warm\",\n          \"tags\": [\n            \"host\"\n          ]\n        },\n        {\n          \"at\": 2,\n          \"code\": \"BOOT\",\n          \"level\": \"INFO\",\n          \"message\": \"ready\",\n          \"tags\": [\n            \"core\",\n            \"fast\"\n          ]\n        },\n        {\n          \"at\": 2,\n          \"code\": \"BOOT\",\n          \"level\": \"ERROR\",\n          \"message\": \"failed\",\n          \"tags\": [\n            \"core\"\n          ]\n        }\n      ],\n      \"latest_by_code\": {\n        \"BOOT\": {\n          \"at\": 2,\n          \"level\": \"ERROR\"\n        },\n        \"CPU\": {\n          \"at\": 1,\n          \"level\": \"WARN\"\n        }\n      }\n    },\n    \"input\": {\n      \"text\": \"2,INFO,BOOT,\\\"ready\\\",core;fast\\n1,WARN,CPU,\\\"warm\\\",host\\n2,ERROR,BOOT,\\\"failed\\\",core\"\n    }\n  },\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 0,\n        \"INFO\": 1,\n        \"WARN\": 0\n      },\n      \"events\": [\n        {\n          \"at\": 0,\n          \"code\": \"MSG\",\n          \"level\": \"INFO\",\n          \"message\": \"say \\\"hi\\\", now\",\n          \"tags\": [\n            \"a\",\n            \"b\"\n          ]\n        }\n      ],\n      \"latest_by_code\": {\n        \"MSG\": {\n          \"at\": 0,\n          \"level\": \"INFO\"\n        }\n      }\n    },\n    \"input\": {\n      \"text\": \"0,INFO,MSG,\\\"say \\\"\\\"hi\\\"\\\", now\\\",a;b\\n\"\n    }\n  },\n  {\n    \"expected\": {\n      \"counts\": {\n        \"ERROR\": 0,\n        \"INFO\": 0,\n        \"WARN\": 0\n      },\n      \"events\": [],\n      \"latest_by_code\": {}\n    },\n    \"input\": {\n      \"text\": \"  # comment\\n\\n\"\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"text\": \"1,INFO,BAD,\\\"unclosed,x\"\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091af-d1d0-7603-8a93-25a6d75aa739",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 1,
+    "call_index": 1,
+    "repetition": 1,
+    "stage": "single",
+    "task_id": "task10"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T18:16:52.142200Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task10",
+  "thread_id": "01a091af-d1d0-7603-8a93-25a6d75aa739",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 24282,
+    "output_tokens": 8892,
+    "reasoning_tokens": null
+  }
+}

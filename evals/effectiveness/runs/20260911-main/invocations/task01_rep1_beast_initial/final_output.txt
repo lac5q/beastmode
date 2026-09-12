@@ -1,0 +1,124 @@
+import heapq
+from collections import deque
+
+
+def solve(payload):
+    if type(payload) is not dict:
+        return {"error": "invalid"}
+
+    if "workers" not in payload or "tasks" not in payload:
+        return {"error": "invalid"}
+
+    workers = payload["workers"]
+    tasks = payload["tasks"]
+
+    if type(workers) is not int or not 1 <= workers <= 80:
+        return {"error": "invalid"}
+    if type(tasks) is not list or len(tasks) > 80:
+        return {"error": "invalid"}
+
+    records = []
+    ids = set()
+    durations = {}
+
+    for task in tasks:
+        if type(task) is not dict:
+            return {"error": "invalid"}
+        if "id" not in task or "duration" not in task or "deps" not in task:
+            return {"error": "invalid"}
+
+        task_id = task["id"]
+        duration = task["duration"]
+        deps = task["deps"]
+
+        if type(task_id) is not str or not task_id or len(task_id) > 40:
+            return {"error": "invalid"}
+        if type(duration) is not int or not 1 <= duration <= 100000:
+            return {"error": "invalid"}
+        if type(deps) is not list:
+            return {"error": "invalid"}
+
+        seen_deps = set()
+        for dep in deps:
+            if type(dep) is not str or dep in seen_deps:
+                return {"error": "invalid"}
+            seen_deps.add(dep)
+
+        if task_id in ids:
+            return {"error": "invalid"}
+
+        ids.add(task_id)
+        durations[task_id] = duration
+        records.append((task_id, deps))
+
+    reverse = {task_id: [] for task_id in ids}
+    indegree = {task_id: 0 for task_id in ids}
+
+    for task_id, deps in records:
+        for dep in deps:
+            if dep not in ids or dep == task_id:
+                return {"error": "invalid"}
+            reverse[dep].append(task_id)
+        indegree[task_id] = len(deps)
+
+    check_indegree = indegree.copy()
+    queue = deque(task_id for task_id in ids if check_indegree[task_id] == 0)
+    visited = 0
+
+    while queue:
+        task_id = queue.popleft()
+        visited += 1
+        for dependent in reverse[task_id]:
+            check_indegree[dependent] -= 1
+            if check_indegree[dependent] == 0:
+                queue.append(dependent)
+
+    if visited != len(records):
+        return {"error": "invalid"}
+
+    ready = [task_id for task_id in ids if indegree[task_id] == 0]
+    heapq.heapify(ready)
+
+    running = []
+    remaining = indegree.copy()
+    order = []
+    start = {}
+    finish = {}
+    current_time = 0
+
+    while len(order) < len(records):
+        free_workers = workers - len(running)
+
+        while free_workers > 0 and ready:
+            task_id = heapq.heappop(ready)
+            start_time = current_time
+            finish_time = start_time + durations[task_id]
+
+            order.append(task_id)
+            start[task_id] = start_time
+            finish[task_id] = finish_time
+            heapq.heappush(running, (finish_time, task_id))
+            free_workers -= 1
+
+        if not running:
+            return {"error": "invalid"}
+
+        current_time = running[0][0]
+        completed = []
+
+        while running and running[0][0] == current_time:
+            _, task_id = heapq.heappop(running)
+            completed.append(task_id)
+
+        for task_id in completed:
+            for dependent in reverse[task_id]:
+                remaining[dependent] -= 1
+                if remaining[dependent] == 0:
+                    heapq.heappush(ready, dependent)
+
+    return {
+        "order": order,
+        "start": start,
+        "finish": finish,
+        "makespan": max(finish.values(), default=0),
+    }

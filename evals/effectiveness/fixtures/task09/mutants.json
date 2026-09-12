@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    values = {}\n    for part in payload.get('text', '').split(';'):\n        if '=' in part:\n            key, value = part.split('=', 1)\n            values[key.strip()] = value.strip()\n    return {'values': values}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    values = {}\n    for part in payload.get('text', '').split(';'):\n        if '=' not in part:\n            continue\n        key, value = part.split('=', 1)\n        value = value.strip()\n        if value == 'true': value = True\n        elif value == 'false': value = False\n        else:\n            try: value = int(value)\n            except ValueError: pass\n        values[key.strip()] = value\n    return {'values': values}"
+  }
+]

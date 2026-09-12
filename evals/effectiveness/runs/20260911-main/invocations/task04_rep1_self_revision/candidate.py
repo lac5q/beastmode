@@ -1,0 +1,75 @@
+import heapq
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or "intervals" not in payload:
+        return {"error": "invalid"}
+
+    intervals_input = payload["intervals"]
+    if not isinstance(intervals_input, list) or len(intervals_input) > 100:
+        return {"error": "invalid"}
+
+    intervals = []
+    seen_ids = set()
+
+    for item in intervals_input:
+        if not isinstance(item, dict):
+            return {"error": "invalid"}
+
+        if "id" not in item or "start" not in item or "end" not in item:
+            return {"error": "invalid"}
+
+        identifier = item["id"]
+        start = item["start"]
+        end = item["end"]
+
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or len(identifier) > 40
+            or identifier in seen_ids
+        ):
+            return {"error": "invalid"}
+
+        if (
+            isinstance(start, bool)
+            or not isinstance(start, int)
+            or isinstance(end, bool)
+            or not isinstance(end, int)
+            or not -1000000000 <= start <= 1000000000
+            or not -1000000000 <= end <= 1000000000
+            or start >= end
+        ):
+            return {"error": "invalid"}
+
+        seen_ids.add(identifier)
+        intervals.append((start, identifier, end))
+
+    intervals.sort(key=lambda interval: (interval[0], interval[1]))
+
+    occupied = []
+    free_rooms = []
+    assignment = {}
+    order = []
+    room_count = 0
+
+    for start, identifier, end in intervals:
+        while occupied and occupied[0][0] <= start:
+            _, room = heapq.heappop(occupied)
+            heapq.heappush(free_rooms, room)
+
+        if free_rooms:
+            room = heapq.heappop(free_rooms)
+        else:
+            room_count += 1
+            room = room_count
+
+        heapq.heappush(occupied, (end, room))
+        assignment[identifier] = room
+        order.append(identifier)
+
+    return {
+        "rooms": room_count,
+        "assignment": assignment,
+        "order": order,
+    }

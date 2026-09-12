@@ -1,0 +1,108 @@
+[
+  {
+    "worker": "fixtures-driver",
+    "thread_id": "01a09170-33ad-7a60-b8c2-028110241f62",
+    "requested_model": "gpt-5.6-luna",
+    "requested_effort": "max",
+    "runtime_contexts": [
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      }
+    ],
+    "usage": {
+      "input_tokens": 8760544,
+      "cached_input_tokens": 8482560,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 84923,
+      "reasoning_output_tokens": 29589,
+      "total_tokens": 8845467
+    },
+    "status": "completed",
+    "dollar_cost": null
+  },
+  {
+    "worker": "harness-fixture-audit",
+    "thread_id": "01a09170-f959-7b22-a8fc-55edb34646d4",
+    "requested_model": "gpt-5.6-luna",
+    "requested_effort": "max",
+    "runtime_contexts": [
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      }
+    ],
+    "usage": {
+      "input_tokens": 10669019,
+      "cached_input_tokens": 10471936,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 80252,
+      "reasoning_output_tokens": 33658,
+      "total_tokens": 10749271
+    },
+    "status": "completed",
+    "dollar_cost": null
+  },
+  {
+    "worker": "inventory-fixtures-fixes",
+    "thread_id": "01a0916b-e3e5-7991-b813-cf26720b1b34",
+    "requested_model": "gpt-5.6-luna",
+    "requested_effort": "max",
+    "runtime_contexts": [
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      },
+      {
+        "model": "gpt-5.6-luna",
+        "effort": "max"
+      }
+    ],
+    "usage": {
+      "input_tokens": 10024492,
+      "cached_input_tokens": 9703424,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 107065,
+      "reasoning_output_tokens": 47472,
+      "total_tokens": 10131557
+    },
+    "status": "completed",
+    "dollar_cost": null
+  }
+]

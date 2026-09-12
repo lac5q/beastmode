@@ -1,0 +1,14 @@
+{
+  "thread_id": "01a09180-cd93-7da1-8be2-f893b072a32c",
+  "source_parsed": true,
+  "parse_error": null,
+  "tools_used": false,
+  "runtime": {
+    "thread_id": "01a09180-cd93-7da1-8be2-f893b072a32c",
+    "verified": true,
+    "model": "gpt-5.6-luna",
+    "effort": "max",
+    "source": "turn_context"
+  },
+  "scored": false
+}

@@ -1,0 +1,83 @@
+def solve(payload):
+    MIN_ENDPOINT = -1000000000
+    MAX_ENDPOINT = 1000000000
+
+    if not isinstance(payload, dict):
+        return {"error": "invalid"}
+    if "intervals" not in payload or "queries" not in payload:
+        return {"error": "invalid"}
+
+    intervals = payload["intervals"]
+    queries = payload["queries"]
+
+    if not isinstance(intervals, list) or not isinstance(queries, list):
+        return {"error": "invalid"}
+    if len(intervals) > 100 or len(queries) > 100:
+        return {"error": "invalid"}
+
+    def valid_endpoint(value):
+        return (
+            type(value) is int
+            and MIN_ENDPOINT <= value <= MAX_ENDPOINT
+        )
+
+    checked_intervals = []
+    for interval in intervals:
+        if not isinstance(interval, list) or len(interval) != 2:
+            return {"error": "invalid"}
+
+        start, end = interval
+        if not valid_endpoint(start) or not valid_endpoint(end):
+            return {"error": "invalid"}
+        if start >= end:
+            return {"error": "invalid"}
+
+        checked_intervals.append([start, end])
+
+    checked_queries = []
+    for query in queries:
+        if not isinstance(query, list) or len(query) != 2:
+            return {"error": "invalid"}
+
+        start, end = query
+        if not valid_endpoint(start) or not valid_endpoint(end):
+            return {"error": "invalid"}
+        if start > end:
+            return {"error": "invalid"}
+
+        checked_queries.append([start, end])
+
+    checked_intervals.sort(key=lambda interval: (interval[0], interval[1]))
+
+    merged = []
+    for start, end in checked_intervals:
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        else:
+            merged[-1][1] = max(merged[-1][1], end)
+
+    total = sum(end - start for start, end in merged)
+
+    overlaps = []
+    for query_start, query_end in checked_queries:
+        length = 0
+
+        for segment_start, segment_end in merged:
+            if segment_end <= query_start:
+                continue
+            if segment_start >= query_end:
+                break
+
+            intersection_start = max(query_start, segment_start)
+            intersection_end = min(query_end, segment_end)
+
+            if intersection_start < intersection_end:
+                length += intersection_end - intersection_start
+
+        overlaps.append(length)
+
+    return {
+        "merged": merged,
+        "total": total,
+        "overlaps": overlaps,
+    }

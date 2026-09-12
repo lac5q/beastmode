@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "6ea822cb705a27ad7d2d264df4b54545206aa4c8d0ef41e713e94338fc5f301e",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T20:04:52.717376Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1229808,
+  "pid_recorded_at_utc": "2026-09-11T20:01:49.887515Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "55e661fefdc84d433ef7c3917a8a4df0c0444df76161152155c022f4b9a3418c",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 09: typed assignment-list parser\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly one key, text. text is a string of\nat most 512 Unicode code points. Parse a document containing zero or more\nassignments (at most 40) separated by semicolons; a final semicolon is\noptional. Whitespace\nmeans space, tab, carriage return, or line feed and may occur around tokens.\nOutside a quoted string, # starts a comment that runs through (but not\nincluding) the next line feed or the end of the text. A comment is whitespace\nfor parsing, but it does not replace the required semicolon between\nassignments.\n\nAn assignment is key = value. A key is an ASCII letter followed by zero or\nmore ASCII letters, digits, or underscores, with total length 1 through 16.\nKeys must be unique. Values are an integer, the lowercase word true, the\nlowercase word false, a quoted string, or a list in square brackets. Integers\nare written with an optional minus sign and ASCII digits, have no leading zero\nexcept for zero itself, and lie from -1000000 through 1000000. A quoted\nstring uses double quotes and allows only these escapes: backslash-double\nquote, backslash-backslash, backslash-n, backslash-t, backslash-semicolon,\nand backslash-hash. An unescaped line feed or carriage return is invalid\ninside a quoted string; an unknown escape is invalid.\nThe decoded string length is at most 64.\n\nA list contains one or more scalar values separated by commas; an empty list\nis also valid. Scalar values use the integer, boolean, or quoted-string rules\nabove. Lists cannot nest, have at most 12 items, and cannot have a trailing\ncomma. Duplicate keys, a missing separator or equals sign, malformed escapes,\nwrong types, extra payload keys, or any other violation returns exactly\n{\"error\":\"invalid\"}. An empty text document is valid.\n\nReturn exactly {\"values\": {key: parsed_value, ...}}. Parsed values retain\ntheir boolean, integer, string, and list types. Object key order is\nirrelevant. The stated length, assignment, and list limits are the complete\nevaluation size envelope.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"values\": {\n        \"enabled\": true,\n        \"name\": \"Ada\",\n        \"retries\": 3,\n        \"tags\": [\n          \"b\",\n          \"a\"\n        ]\n      }\n    },\n    \"input\": {\n      \"text\": \"name=\\\"Ada\\\"; retries=3; enabled=true; tags=[\\\"b\\\", \\\"a\\\"];\"\n    }\n  },\n  {\n    \"expected\": {\n      \"values\": {\n        \"flag\": false,\n        \"message\": \"line\\nnext\"\n      }\n    },\n    \"input\": {\n      \"text\": \"message=\\\"line\\\\nnext\\\"; # ignored comment\\nflag=false\"\n    }\n  },\n  {\n    \"expected\": {\n      \"values\": {}\n    },\n    \"input\": {\n      \"text\": \"\"\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"text\": \"x=1 x=2\"\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\nclass _Invalid(Exception):\n    pass\n\n\nclass _Parser:\n    def __init__(self, text):\n        self.text = text\n        self.index = 0\n        self.length = len(text)\n\n    def skip_ignored(self):\n        while self.index < self.length:\n            char = self.text[self.index]\n            if char in \" \\t\\r\\n\":\n                self.index += 1\n            elif char == \"#\":\n                self.index += 1\n                while self.index < self.length and self.text[self.index] != \"\\n\":\n                    self.index += 1\n            else:\n                break\n\n    def parse(self):\n        self.skip_ignored()\n        values = {}\n\n        if self.index == self.length:\n            return values\n\n        while True:\n            if len(values) >= 40:\n                raise _Invalid\n\n            key = self.parse_key()\n            self.skip_ignored()\n\n            if self.index >= self.length or self.text[self.index] != \"=\":\n                raise _Invalid\n            self.index += 1\n\n            self.skip_ignored()\n            value = self.parse_value()\n\n            if key in values:\n                raise _Invalid\n            values[key] = value\n\n            self.skip_ignored()\n            if self.index == self.length:\n                return values\n\n            if self.text[self.index] != \";\":\n                raise _Invalid\n            self.index += 1\n\n            self.skip_ignored()\n            if self.index == self.length:\n                return values\n\n    def parse_key(self):\n        if self.index >= self.length:\n            raise _Invalid\n\n        char = self.text[self.index]\n        if not ((\"A\" <= char <= \"Z\") or (\"a\" <= char <= \"z\")):\n            raise _Invalid\n\n        start = self.index\n        self.index += 1\n\n        while self.index < self.length:\n            char = self.text[self.index]\n            if (\n                (\"A\" <= char <= \"Z\")\n                or (\"a\" <= char <= \"z\")\n                or (\"0\" <= char <= \"9\")\n                or char == \"_\"\n            ):\n                self.index += 1\n            else:\n                break\n\n        key = self.text[start:self.index]\n        if len(key) > 16:\n            raise _Invalid\n        return key\n\n    def parse_value(self):\n        if self.index >= self.length:\n            raise _Invalid\n\n        char = self.text[self.index]\n        if char == \"[\":\n            return self.parse_list()\n        if char == '\"':\n            return self.parse_string()\n        if char == \"-\" or (\"0\" <= char <= \"9\"):\n            return self.parse_integer()\n        if self.text.startswith(\"true\", self.index):\n            self.index += 4\n            return True\n        if self.text.startswith(\"false\", self.index):\n            self.index += 5\n            return False\n\n        raise _Invalid\n\n    def parse_scalar(self):\n        if self.index >= self.length:\n            raise _Invalid\n\n        char = self.text[self.index]\n        if char == '\"':\n            return self.parse_string()\n        if char == \"-\" or (\"0\" <= char <= \"9\"):\n            return self.parse_integer()\n        if self.text.startswith(\"true\", self.index):\n            self.index += 4\n            return True\n        if self.text.startswith(\"false\", self.index):\n            self.index += 5\n            return False\n\n        raise _Invalid\n\n    def parse_integer(self):\n        start = self.index\n\n        if self.index < self.length and self.text[self.index] == \"-\":\n            self.index += 1\n\n        digits_start = self.index\n        while self.index < self.length:\n            char = self.text[self.index]\n            if \"0\" <= char <= \"9\":\n                self.index += 1\n            else:\n                break\n\n        if self.index == digits_start:\n            raise _Invalid\n\n        digits = self.text[digits_start:self.index]\n        if len(digits) > 1 and digits[0] == \"0\":\n            raise _Invalid\n\n        value = int(self.text[start:self.index])\n        if value < -1000000 or value > 1000000:\n            raise _Invalid\n        return value\n\n    def parse_string(self):\n        if self.text[self.index] != '\"':\n            raise _Invalid\n        self.index += 1\n\n        chars = []\n        escapes = {\n            '\"': '\"',\n            \"\\\\\": \"\\\\\",\n            \"n\": \"\\n\",\n            \"t\": \"\\t\",\n            \";\": \";\",\n            \"#\": \"#\",\n        }\n\n        while self.index < self.length:\n            char = self.text[self.index]\n            self.index += 1\n\n            if char == '\"':\n                return \"\".join(chars)\n\n            if char == \"\\n\" or char == \"\\r\":\n                raise _Invalid\n\n            if char == \"\\\\\":\n                if self.index >= self.length:\n                    raise _Invalid\n                escaped = self.text[self.index]\n                self.index += 1\n                if escaped not in escapes:\n                    raise _Invalid\n                char = escapes[escaped]\n\n            chars.append(char)\n            if len(chars) > 64:\n                raise _Invalid\n\n        raise _Invalid\n\n    def parse_list(self):\n        self.index += 1\n        self.skip_ignored()\n\n        if self.index < self.length and self.text[self.index] == \"]\":\n            self.index += 1\n            return []\n\n        items = []\n        while True:\n            if len(items) >= 12:\n                raise _Invalid\n\n            items.append(self.parse_scalar())\n            self.skip_ignored()\n\n            if self.index >= self.length:\n                raise _Invalid\n\n            char = self.text[self.index]\n            if char == \"]\":\n                self.index += 1\n                return items\n\n            if char != \",\":\n                raise _Invalid\n\n            self.index += 1\n            self.skip_ignored()\n\n            if self.index < self.length and self.text[self.index] == \"]\":\n                raise _Invalid\n\n\ndef solve(payload):\n    if not isinstance(payload, dict) or len(payload) != 1 or \"text\" not in payload:\n        return {\"error\": \"invalid\"}\n\n    text = payload[\"text\"]\n    if not isinstance(text, str) or len(text) > 512:\n        return {\"error\": \"invalid\"}\n\n    try:\n        values = _Parser(text).parse()\n    except _Invalid:\n        return {\"error\": \"invalid\"}\n\n    return {\"values\": values}\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a0920f-e498-7133-a4f4-38ae56b1b2b3",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 11,
+    "call_index": 44,
+    "repetition": 2,
+    "stage": "self_revision",
+    "task_id": "task09"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T20:01:49.806812Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task09",
+  "thread_id": "01a0920f-e498-7133-a4f4-38ae56b1b2b3",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 21985,
+    "output_tokens": 8828,
+    "reasoning_tokens": null
+  }
+}

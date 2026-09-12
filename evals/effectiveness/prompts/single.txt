@@ -1,0 +1,7 @@
+PUBLIC SPECIFICATION
+{{public_spec}}
+
+PUBLIC EXAMPLES
+{{public_examples}}
+
+Produce your complete implementation.

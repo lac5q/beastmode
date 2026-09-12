@@ -1,0 +1,113 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 09: typed assignment-list parser
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly one key, text. text is a string of
+at most 512 Unicode code points. Parse a document containing zero or more
+assignments (at most 40) separated by semicolons; a final semicolon is
+optional. Whitespace
+means space, tab, carriage return, or line feed and may occur around tokens.
+Outside a quoted string, # starts a comment that runs through (but not
+including) the next line feed or the end of the text. A comment is whitespace
+for parsing, but it does not replace the required semicolon between
+assignments.
+
+An assignment is key = value. A key is an ASCII letter followed by zero or
+more ASCII letters, digits, or underscores, with total length 1 through 16.
+Keys must be unique. Values are an integer, the lowercase word true, the
+lowercase word false, a quoted string, or a list in square brackets. Integers
+are written with an optional minus sign and ASCII digits, have no leading zero
+except for zero itself, and lie from -1000000 through 1000000. A quoted
+string uses double quotes and allows only these escapes: backslash-double
+quote, backslash-backslash, backslash-n, backslash-t, backslash-semicolon,
+and backslash-hash. An unescaped line feed or carriage return is invalid
+inside a quoted string; an unknown escape is invalid.
+The decoded string length is at most 64.
+
+A list contains one or more scalar values separated by commas; an empty list
+is also valid. Scalar values use the integer, boolean, or quoted-string rules
+above. Lists cannot nest, have at most 12 items, and cannot have a trailing
+comma. Duplicate keys, a missing separator or equals sign, malformed escapes,
+wrong types, extra payload keys, or any other violation returns exactly
+{"error":"invalid"}. An empty text document is valid.
+
+Return exactly {"values": {key: parsed_value, ...}}. Parsed values retain
+their boolean, integer, string, and list types. Object key order is
+irrelevant. The stated length, assignment, and list limits are the complete
+evaluation size envelope.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "values": {
+        "enabled": true,
+        "name": "Ada",
+        "retries": 3,
+        "tags": [
+          "b",
+          "a"
+        ]
+      }
+    },
+    "input": {
+      "text": "name=\"Ada\"; retries=3; enabled=true; tags=[\"b\", \"a\"];"
+    }
+  },
+  {
+    "expected": {
+      "values": {
+        "flag": false,
+        "message": "line\nnext"
+      }
+    },
+    "input": {
+      "text": "message=\"line\\nnext\"; # ignored comment\nflag=false"
+    }
+  },
+  {
+    "expected": {
+      "values": {}
+    },
+    "input": {
+      "text": ""
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "text": "x=1 x=2"
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 09
+
+Acceptance: implement the stated grammar, preserve scalar JSON types, and reject trailing junk, missing separators, duplicate keys, and malformed strings/lists. Do not use Python eval or split the document naively on semicolons, commas, or hash characters inside strings.
+
+Use an index-based scanner with a skip_whitespace_and_comments routine applied only outside quoted strings. Comments end at LF or EOF and count as whitespace, never as an assignment separator. Parse a key with the exact ASCII pattern/length, then '=', then one scalar or nonnested list. After a value require EOF or ';'; consume an optional final semicolon but reject an empty assignment from repeated separators. Enforce the public policy if it explicitly says otherwise. Validate the payload's exact keys and text length first.
+
+String parsing must distinguish raw characters from escapes: accept only the six listed escapes, reject unknown/truncated escapes and raw line breaks, and enforce decoded length. Scalar parser handles lowercase booleans and the integer grammar/range with token termination checked by the surrounding grammar; avoid isdigit broadening the specified digit alphabet. Optional '-' may precede zero, since the public grammar does not ban negative zero. Lists allow empty or up to12 scalars, forbid nesting and trailing commas. Preserve bool versus int; do not coerce quoted scalars.
+
+Review probes: '#' and ';' inside strings, escaped quote/backslash, comments between tokens, comment without required semicolon, signed/leading-zero numbers, repeated key, malformed list separator, empty/comment-only document. Track input position to reject every unconsumed non-whitespace/comment character. Public grammar outranks any implementation assumption.
+
+
+INITIAL IMPLEMENTATION
+No initial implementation was returned; implement the public specification
+
+DIRECTOR CONTRACT REVIEW
+# Director review: task09 repetition 2
+
+No initial implementation is available: the harness process exited before persisting output and its child PID is absent. No candidate can be reviewed. This is an execution failure, not a code-correctness judgment. No baseline candidates or hidden tests/results consulted.
+
+Follow the frozen public specification and director plan to implement the complete parser. The missing-output sentinel supplied by the runner accurately reflects the unavailable initial answer. Return complete final code. This revision does not erase the initial call's unverified status.
+
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

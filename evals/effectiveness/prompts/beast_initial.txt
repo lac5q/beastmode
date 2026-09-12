@@ -1,0 +1,10 @@
+PUBLIC SPECIFICATION
+{{public_spec}}
+
+PUBLIC EXAMPLES
+{{public_examples}}
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+{{director_plan}}
+
+Implement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.

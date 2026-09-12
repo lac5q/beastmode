@@ -1,0 +1,18 @@
+[
+  {
+    "input": {"text": "name=\"Ada\"; retries=3; enabled=true; tags=[\"b\", \"a\"];"},
+    "expected": {"values": {"name": "Ada", "retries": 3, "enabled": true, "tags": ["b", "a"]}}
+  },
+  {
+    "input": {"text": "message=\"line\\nnext\"; # ignored comment\nflag=false"},
+    "expected": {"values": {"message": "line\nnext", "flag": false}}
+  },
+  {
+    "input": {"text": ""},
+    "expected": {"values": {}}
+  },
+  {
+    "input": {"text": "x=1 x=2"},
+    "expected": {"error": "invalid"}
+  }
+]

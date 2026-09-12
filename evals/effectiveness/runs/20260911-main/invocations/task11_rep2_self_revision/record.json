@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "d7678d42379686aea138750acb8f23c81ab303d2c464421ecd5c27908973e1fa",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:10:47.435286Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1068635,
+  "pid_recorded_at_utc": "2026-09-11T19:09:01.093646Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "4bbb2d9ad761a95125e98345f9746299399727dcb6fc8cdbedc0389a8f687bbc",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 11: bounded single-budget allocation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys capacity and requests.\ncapacity is an integer from 0 through 120 inclusive; booleans are not\nintegers. requests is an array of at most 40 request objects. Each request has\nexactly id, units, and benefit. id is a non-empty string of at most 16 Unicode\ncode points and is unique across requests. units is an integer from 1 through\n30. benefit is an integer from 1 through 1000. Any missing or extra key, wrong\ntype, duplicate ID, or out-of-range value returns exactly\n{\"error\":\"invalid\"}. The stated limits are the complete evaluation size\nenvelope.\n\nChoose a subset of requests, using each request at most once, whose total\nunits is at most capacity. Maximize the sum of benefit. If several subsets\nhave the same benefit, choose the one with the smaller total units. If they\nstill tie, sort each subset's IDs by Python/Unicode string ordering and choose\nthe lexicographically smaller ID list. The empty subset is always allowed.\n\nReturn exactly {\"selected\": [...], \"used\": integer, \"benefit\": integer}.\nselected is the chosen ID list in sorted order. used and benefit are the sums\nfor that subset. No other output fields are allowed. A zero capacity or empty\nrequest array therefore returns selected [], used 0, benefit 0.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"benefit\": 13,\n      \"selected\": [\n        \"a\",\n        \"b\"\n      ],\n      \"used\": 5\n    },\n    \"input\": {\n      \"capacity\": 5,\n      \"requests\": [\n        {\n          \"benefit\": 6,\n          \"id\": \"a\",\n          \"units\": 2\n        },\n        {\n          \"benefit\": 7,\n          \"id\": \"b\",\n          \"units\": 3\n        },\n        {\n          \"benefit\": 9,\n          \"id\": \"c\",\n          \"units\": 4\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"benefit\": 5,\n      \"selected\": [\n        \"b\"\n      ],\n      \"used\": 1\n    },\n    \"input\": {\n      \"capacity\": 2,\n      \"requests\": [\n        {\n          \"benefit\": 5,\n          \"id\": \"a\",\n          \"units\": 2\n        },\n        {\n          \"benefit\": 5,\n          \"id\": \"b\",\n          \"units\": 1\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"benefit\": 0,\n      \"selected\": [],\n      \"used\": 0\n    },\n    \"input\": {\n      \"capacity\": 0,\n      \"requests\": []\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"capacity\": 2,\n      \"requests\": [\n        {\n          \"benefit\": 1,\n          \"id\": \"x\",\n          \"units\": 1\n        },\n        {\n          \"benefit\": 2,\n          \"id\": \"x\",\n          \"units\": 1\n        }\n      ]\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\n```python\ndef solve(payload):\n    def has_exact_keys(value, expected):\n        return (\n            type(value) is dict\n            and len(value) == len(expected)\n            and all(type(key) is str and key in expected for key in value)\n        )\n\n    invalid = {\"error\": \"invalid\"}\n\n    if not has_exact_keys(payload, (\"capacity\", \"requests\")):\n        return invalid\n\n    capacity = payload[\"capacity\"]\n    requests = payload[\"requests\"]\n\n    if type(capacity) is not int or not 0 <= capacity <= 120:\n        return invalid\n    if type(requests) is not list or len(requests) > 40:\n        return invalid\n\n    validated = []\n    seen_ids = set()\n\n    for request in requests:\n        if not has_exact_keys(request, (\"id\", \"units\", \"benefit\")):\n            return invalid\n\n        request_id = request[\"id\"]\n        units = request[\"units\"]\n        benefit = request[\"benefit\"]\n\n        if (\n            type(request_id) is not str\n            or not 1 <= len(request_id) <= 16\n            or type(units) is not int\n            or not 1 <= units <= 30\n            or type(benefit) is not int\n            or not 1 <= benefit <= 1000\n            or request_id in seen_ids\n        ):\n            return invalid\n\n        seen_ids.add(request_id)\n        validated.append((request_id, units, benefit))\n\n    validated.sort(key=lambda item: item[0], reverse=True)\n\n    dp = [None] * (capacity + 1)\n    dp[0] = (0, ())\n\n    for request_id, units, benefit in validated:\n        for used in range(capacity, units - 1, -1):\n            previous = dp[used - units]\n            if previous is None:\n                continue\n\n            candidate_benefit = previous[0] + benefit\n            candidate_ids = (request_id,) + previous[1]\n            current = dp[used]\n\n            if (\n                current is None\n                or candidate_benefit > current[0]\n                or (\n                    candidate_benefit == current[0]\n                    and candidate_ids < current[1]\n                )\n            ):\n                dp[used] = (candidate_benefit, candidate_ids)\n\n    best_used = 0\n    best_benefit = 0\n    best_ids = ()\n\n    for used, state in enumerate(dp):\n        if state is None:\n            continue\n\n        benefit, ids = state\n        if (\n            benefit > best_benefit\n            or (\n                benefit == best_benefit\n                and (\n                    used < best_used\n                    or (used == best_used and ids < best_ids)\n                )\n            )\n        ):\n            best_used = used\n            best_benefit = benefit\n            best_ids = ids\n\n    return {\n        \"selected\": list(best_ids),\n        \"used\": best_used,\n        \"benefit\": best_benefit,\n    }\n```\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091df-8fc2-7bc1-ab7f-1fe8d083fc7c",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 6,
+    "call_index": 24,
+    "repetition": 2,
+    "stage": "self_revision",
+    "task_id": "task11"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T19:09:00.751426Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task11",
+  "thread_id": "01a091df-8fc2-7bc1-ab7f-1fe8d083fc7c",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 24679,
+    "output_tokens": 3736,
+    "reasoning_tokens": null
+  }
+}

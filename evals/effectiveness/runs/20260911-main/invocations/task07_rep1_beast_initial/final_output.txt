@@ -1,0 +1,127 @@
+```python
+import re
+
+_TAG_RE = re.compile(r"[a-z][a-z0-9_-]{0,11}")
+_COMMON_KEYS = {"id", "version", "updated_at", "deleted"}
+_LIVE_KEYS = _COMMON_KEYS | {"value"}
+
+
+def _valid_int(value, minimum, maximum):
+    return type(value) is int and minimum <= value <= maximum
+
+
+def _validate_value(value):
+    if type(value) is not dict or set(value.keys()) != {"name", "tags"}:
+        return False
+
+    name = value["name"]
+    tags = value["tags"]
+
+    if type(name) is not str or not name or len(name) > 32:
+        return False
+    if type(tags) is not list or len(tags) > 8:
+        return False
+
+    seen = set()
+    for tag in tags:
+        if type(tag) is not str or _TAG_RE.fullmatch(tag) is None:
+            return False
+        if tag in seen:
+            return False
+        seen.add(tag)
+
+    return True
+
+
+def _validate_records(records):
+    if type(records) is not list or len(records) > 50:
+        return None
+
+    seen_ids = set()
+
+    for record in records:
+        if type(record) is not dict or not _COMMON_KEYS.issubset(record.keys()):
+            return None
+
+        deleted = record["deleted"]
+        if type(deleted) is not bool:
+            return None
+
+        expected_keys = _COMMON_KEYS if deleted else _LIVE_KEYS
+        if set(record.keys()) != expected_keys:
+            return None
+
+        record_id = record["id"]
+        if type(record_id) is not str or not record_id or len(record_id) > 16:
+            return None
+        if record_id in seen_ids:
+            return None
+        seen_ids.add(record_id)
+
+        if not _valid_int(record["version"], 1, 1000000):
+            return None
+        if not _valid_int(record["updated_at"], 0, 1000000):
+            return None
+
+        if not deleted and not _validate_value(record["value"]):
+            return None
+
+    return records
+
+
+def solve(payload):
+    if type(payload) is not dict or set(payload.keys()) != {
+        "as_of",
+        "base",
+        "incoming",
+    }:
+        return {"error": "invalid"}
+
+    as_of = payload["as_of"]
+    if not _valid_int(as_of, 0, 1000000):
+        return {"error": "invalid"}
+
+    base = _validate_records(payload["base"])
+    if base is None:
+        return {"error": "invalid"}
+
+    incoming = _validate_records(payload["incoming"])
+    if incoming is None:
+        return {"error": "invalid"}
+
+    winners = {}
+
+    for source_rank, records in ((0, base), (1, incoming)):
+        for record in records:
+            if record["updated_at"] > as_of:
+                continue
+
+            key = (record["version"], record["updated_at"], source_rank)
+            record_id = record["id"]
+            current = winners.get(record_id)
+
+            if current is None or key > current[0]:
+                winners[record_id] = (key, record)
+
+    result = []
+
+    for record_id in sorted(winners):
+        record = winners[record_id][1]
+        if record["deleted"]:
+            continue
+
+        value = record["value"]
+        result.append(
+            {
+                "id": record_id,
+                "version": record["version"],
+                "updated_at": record["updated_at"],
+                "value": {
+                    "name": value["name"],
+                    "tags": sorted(value["tags"]),
+                },
+            }
+        )
+
+    return {"records": result}
+```

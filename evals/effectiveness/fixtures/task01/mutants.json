@@ -1,0 +1,4 @@
+[
+  {"name": "merge_dependencies_too_early", "source": "def solve(payload):\n    tasks = payload['tasks']\n    return {'order': [t['id'] for t in sorted(tasks, key=lambda t: t['id'])], 'start': {}, 'finish': {}, 'makespan': 0}"},
+  {"name": "reverse_ready_tie", "source": "def solve(payload):\n    import copy\n    p = copy.deepcopy(payload)\n    p['tasks'] = list(reversed(p['tasks']))\n    return {'error': 'invalid'} if not p.get('tasks') else {'order': [t['id'] for t in p['tasks']], 'start': {}, 'finish': {}, 'makespan': 0}"}
+]

@@ -1,0 +1,9 @@
+# Task 05: inventory event reducer
+
+Implement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.
+
+The valid input is an object with `stock` and `events`. `stock` is an object with at most 40 SKU keys; each key is a non-empty ASCII string of at most 32 characters matching `[A-Za-z0-9_.-]+`, and each value is an integer from `0` through `1000000`. `events` is an array of at most 100 objects. Every event has a non-empty string `id` (at most 40 characters), an `op` in `receive`, `reserve`, `release`, `ship`, a SKU present in the initial stock, and a positive integer `qty <= 1000000`. Booleans do not count as integers. Any malformed top-level value, stock entry, or event returns exactly `{"error":"invalid"}`; this includes an unknown SKU or operation. Unknown object keys are ignored.
+
+Begin with each SKU's `stock` value and a reserved quantity of zero. Process events in input order. Validate every event's required shape before duplicate-ID handling, so a malformed duplicate still returns `{"error":"invalid"}`. An event ID is considered seen on its first valid occurrence. A later valid event with the same ID is put in `ignored` and changes nothing, even if its fields differ. For a first occurrence, `receive` adds quantity to stock; `reserve` moves quantity from stock to reserved; `release` moves quantity from reserved back to stock; and `ship` removes quantity from reserved. A validly shaped operation that would make a quantity negative is put in `rejected` and changes nothing. Other first occurrences are put in `applied` after changing state. Each list preserves event order, and duplicate occurrences appear in `ignored` in their occurrence order.
+
+Return exactly `stock`, `reserved`, `applied`, `rejected`, and `ignored`. State maps contain every initial SKU, including zero values. Object key order is irrelevant.

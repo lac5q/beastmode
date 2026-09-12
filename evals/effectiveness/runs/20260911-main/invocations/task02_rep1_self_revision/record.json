@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "56b463bfa860704892cd2ba82e97e2579ef276d51343b19e927370c4a0f5c79a",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T21:21:47.175063Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1478269,
+  "pid_recorded_at_utc": "2026-09-11T21:19:56.967048Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "9424f920a57dc2a78e88b84e4348c973d9808581adad06111cbf67e0b88505ab",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 1,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 02: critical-path build scheduler\n\nImplement a pure Python `solve(payload)` function with JSON-compatible input and output.\n\nThe valid input is an object with integer `lanes` in `1..80` and a `tasks` array of at most 80 tasks. Each task has a unique non-empty string `id` of at most 40 Unicode characters, a positive integer `duration` in `1..100000`, and a `deps` array of distinct string IDs. Every dependency must occur in the array. Empty `tasks` is valid. Booleans do not count as integers. For a missing field, wrong type, duplicate ID or dependency, unknown dependency, self-dependency, cycle, or any other violation, return exactly `{\"error\":\"invalid\"}`. Unknown object keys are ignored.\n\nTasks run on `lanes` identical build lanes. Time is integral and begins at zero. A task is ready only when all dependencies have finished. For every ready task, first compute its critical length as its own duration plus the largest critical length among its direct dependants; a task with no dependant has critical length equal to its duration. At each time when tasks finish, finish all of them before starting work. At time zero do the same start step. When slots compete, choose ready tasks by descending critical length, then lexicographically ascending ID. Start as many as fit. Tasks that finish together release all their lanes together.\n\nReturn `order` (IDs in the exact order they started), `start` (each ID to its integer start time), `finish` (each ID to its integer finish time), `makespan` (the greatest finish time, or `0` for no tasks), and `critical` (each ID to its computed critical length). No extra keys are needed; object key order is irrelevant.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"critical\": {\n        \"a\": 6,\n        \"b\": 2,\n        \"c\": 4,\n        \"d\": 1\n      },\n      \"finish\": {\n        \"a\": 2,\n        \"b\": 1,\n        \"c\": 6,\n        \"d\": 2\n      },\n      \"makespan\": 6,\n      \"order\": [\n        \"a\",\n        \"b\",\n        \"d\",\n        \"c\"\n      ],\n      \"start\": {\n        \"a\": 0,\n        \"b\": 0,\n        \"c\": 2,\n        \"d\": 1\n      }\n    },\n    \"input\": {\n      \"lanes\": 2,\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 2,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 1,\n          \"id\": \"b\"\n        },\n        {\n          \"deps\": [\n            \"a\"\n          ],\n          \"duration\": 4,\n          \"id\": \"c\"\n        },\n        {\n          \"deps\": [\n            \"b\"\n          ],\n          \"duration\": 1,\n          \"id\": \"d\"\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"critical\": {\n        \"a\": 1,\n        \"q\": 3,\n        \"z\": 4\n      },\n      \"finish\": {\n        \"a\": 5,\n        \"q\": 4,\n        \"z\": 1\n      },\n      \"makespan\": 5,\n      \"order\": [\n        \"z\",\n        \"q\",\n        \"a\"\n      ],\n      \"start\": {\n        \"a\": 4,\n        \"q\": 1,\n        \"z\": 0\n      }\n    },\n    \"input\": {\n      \"lanes\": 1,\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 1,\n          \"id\": \"z\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 1,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [\n            \"z\"\n          ],\n          \"duration\": 3,\n          \"id\": \"q\"\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"critical\": {},\n      \"finish\": {},\n      \"makespan\": 0,\n      \"order\": [],\n      \"start\": {}\n    },\n    \"input\": {\n      \"lanes\": 3,\n      \"tasks\": []\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\nimport heapq\n\n\ndef solve(payload):\n    def is_integer(value):\n        return isinstance(value, int) and not isinstance(value, bool)\n\n    if not isinstance(payload, dict):\n        return {\"error\": \"invalid\"}\n\n    lanes = payload.get(\"lanes\")\n    tasks = payload.get(\"tasks\")\n\n    if not is_integer(lanes) or not 1 <= lanes <= 80:\n        return {\"error\": \"invalid\"}\n    if not isinstance(tasks, list) or len(tasks) > 80:\n        return {\"error\": \"invalid\"}\n\n    ids = []\n    durations = {}\n    dependencies = {}\n    task_ids = set()\n\n    for task in tasks:\n        if not isinstance(task, dict):\n            return {\"error\": \"invalid\"}\n        if any(field not in task for field in (\"id\", \"duration\", \"deps\")):\n            return {\"error\": \"invalid\"}\n\n        task_id = task[\"id\"]\n        duration = task[\"duration\"]\n        deps = task[\"deps\"]\n\n        if (\n            not isinstance(task_id, str)\n            or not task_id\n            or len(task_id) > 40\n            or not is_integer(duration)\n            or not 1 <= duration <= 100000\n            or not isinstance(deps, list)\n        ):\n            return {\"error\": \"invalid\"}\n\n        if task_id in task_ids:\n            return {\"error\": \"invalid\"}\n\n        if any(not isinstance(dep, str) for dep in deps):\n            return {\"error\": \"invalid\"}\n        if len(set(deps)) != len(deps):\n            return {\"error\": \"invalid\"}\n\n        task_ids.add(task_id)\n        ids.append(task_id)\n        durations[task_id] = duration\n        dependencies[task_id] = deps\n\n    dependents = {task_id: [] for task_id in ids}\n    indegree = {task_id: len(dependencies[task_id]) for task_id in ids}\n\n    for task_id in ids:\n        for dep in dependencies[task_id]:\n            if dep not in task_ids or dep == task_id:\n                return {\"error\": \"invalid\"}\n            dependents[dep].append(task_id)\n\n    topo_indegree = indegree.copy()\n    queue = [task_id for task_id in ids if topo_indegree[task_id] == 0]\n    topo_order = []\n\n    for task_id in queue:\n        topo_order.append(task_id)\n        for child in dependents[task_id]:\n            topo_indegree[child] -= 1\n            if topo_indegree[child] == 0:\n                queue.append(child)\n\n    if len(topo_order) != len(ids):\n        return {\"error\": \"invalid\"}\n\n    critical = {}\n    for task_id in reversed(topo_order):\n        longest_child = max(\n            (critical[child] for child in dependents[task_id]),\n            default=0,\n        )\n        critical[task_id] = durations[task_id] + longest_child\n\n    remaining = indegree.copy()\n    ready = []\n    for task_id in ids:\n        if remaining[task_id] == 0:\n            heapq.heappush(ready, (-critical[task_id], task_id))\n\n    running = []\n    start = {}\n    finish = {}\n    order = []\n    free_lanes = lanes\n    current_time = 0\n\n    while ready or running:\n        while ready and free_lanes:\n            _, task_id = heapq.heappop(ready)\n            start[task_id] = current_time\n            finish_time = current_time + durations[task_id]\n            finish[task_id] = finish_time\n            order.append(task_id)\n            heapq.heappush(running, (finish_time, task_id))\n            free_lanes -= 1\n\n        if not running:\n            return {\"error\": \"invalid\"}\n\n        current_time = running[0][0]\n        while running and running[0][0] == current_time:\n            _, completed = heapq.heappop(running)\n            free_lanes += 1\n            for child in dependents[completed]:\n                remaining[child] -= 1\n                if remaining[child] == 0:\n                    heapq.heappush(ready, (-critical[child], child))\n\n    if len(order) != len(ids):\n        return {\"error\": \"invalid\"}\n\n    return {\n        \"order\": order,\n        \"start\": start,\n        \"finish\": finish,\n        \"makespan\": max(finish.values(), default=0),\n        \"critical\": critical,\n    }\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a09257-6d1b-7e22-8d7a-48b4469e0830",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 20,
+    "call_index": 78,
+    "repetition": 1,
+    "stage": "self_revision",
+    "task_id": "task02"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T21:19:56.556245Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task02",
+  "thread_id": "01a09257-6d1b-7e22-8d7a-48b4469e0830",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 22249,
+    "output_tokens": 4508,
+    "reasoning_tokens": null
+  }
+}

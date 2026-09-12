@@ -1,0 +1,193 @@
+def _parse_csv_line(line):
+    fields = []
+    length = len(line)
+    index = 0
+
+    while True:
+        if index < length and line[index] == '"':
+            index += 1
+            chars = []
+
+            while True:
+                if index >= length:
+                    return None
+
+                char = line[index]
+                if char == '"':
+                    if index + 1 < length and line[index + 1] == '"':
+                        chars.append('"')
+                        index += 2
+                    else:
+                        index += 1
+                        if index < length and line[index] != ",":
+                            return None
+                        break
+                else:
+                    chars.append(char)
+                    index += 1
+
+            fields.append("".join(chars))
+        else:
+            start = index
+            while index < length and line[index] != ",":
+                if line[index] == '"':
+                    return None
+                index += 1
+            fields.append(line[start:index])
+
+        if index == length:
+            return fields
+
+        index += 1
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+
+    number = 0
+    for char in value:
+        codepoint = ord(char)
+        if codepoint < 48 or codepoint > 57:
+            return None
+        number = number * 10 + codepoint - 48
+        if number > 1000000000:
+            return None
+
+    return number
+
+
+def _valid_code(value):
+    if len(value) < 2 or len(value) > 8:
+        return False
+
+    first = ord(value[0])
+    if first < 65 or first > 90:
+        return False
+
+    for char in value[1:]:
+        codepoint = ord(char)
+        if not (
+            65 <= codepoint <= 90
+            or 48 <= codepoint <= 57
+            or char == "_"
+        ):
+            return False
+
+    return True
+
+
+def _parse_tags(value):
+    if value == "":
+        return []
+
+    tags = value.split(";")
+    seen = set()
+
+    for tag in tags:
+        if len(tag) < 1 or len(tag) > 12 or tag in seen:
+            return None
+
+        first = ord(tag[0])
+        if first < 97 or first > 122:
+            return None
+
+        for char in tag[1:]:
+            codepoint = ord(char)
+            if not (
+                97 <= codepoint <= 122
+                or 48 <= codepoint <= 57
+                or char in "_-"
+            ):
+                return None
+
+        seen.add(tag)
+
+    return sorted(seen)
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or len(payload) != 1 or "text" not in payload:
+        return {"error": "invalid"}
+
+    text = payload["text"]
+    if not isinstance(text, str) or len(text) > 4096:
+        return {"error": "invalid"}
+
+    normalized_chars = []
+    for index, char in enumerate(text):
+        if char == "\r":
+            if index + 1 >= len(text) or text[index + 1] != "\n":
+                return {"error": "invalid"}
+            continue
+        normalized_chars.append(char)
+
+    lines = "".join(normalized_chars).split("\n")
+    records = []
+
+    for line in lines:
+        if not line or all(char in " \t" for char in line):
+            continue
+
+        if line.lstrip(" \t").startswith("#"):
+            continue
+
+        if len(records) >= 80:
+            return {"error": "invalid"}
+
+        fields = _parse_csv_line(line)
+        if fields is None or len(fields) != 5:
+            return {"error": "invalid"}
+
+        timestamp = _parse_timestamp(fields[0])
+        level = fields[1]
+        code = fields[2]
+        message = fields[3]
+        tags = _parse_tags(fields[4])
+
+        if timestamp is None:
+            return {"error": "invalid"}
+
+        if level not in ("INFO", "WARN", "ERROR"):
+            return {"error": "invalid"}
+
+        if not _valid_code(code):
+            return {"error": "invalid"}
+
+        if len(message) > 80:
+            return {"error": "invalid"}
+
+        if tags is None:
+            return {"error": "invalid"}
+
+        records.append(
+            (timestamp, len(records), level, code, message, tags)
+        )
+
+    ordered = sorted(records, key=lambda record: (record[0], record[1]))
+
+    events = []
+    counts = {"INFO": 0, "WARN": 0, "ERROR": 0}
+    latest_by_code = {}
+
+    for timestamp, _, level, code, message, tags in ordered:
+        events.append(
+            {
+                "at": timestamp,
+                "level": level,
+                "code": code,
+                "message": message,
+                "tags": tags,
+            }
+        )
+        counts[level] += 1
+        latest_by_code[code] = {
+            "at": timestamp,
+            "level": level,
+        }
+
+    return {
+        "events": events,
+        "counts": counts,
+        "latest_by_code": latest_by_code,
+    }

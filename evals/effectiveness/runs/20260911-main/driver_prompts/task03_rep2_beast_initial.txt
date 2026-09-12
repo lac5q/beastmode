@@ -1,0 +1,158 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 03: interval union and query lengths
+
+Implement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.
+
+The valid input is an object with `intervals` and `queries`, both arrays of at most 100 elements. Every interval is a two-element integer array `[start,end]` with `start < end` and endpoints in `[-1000000000,1000000000]`. Every query is a two-element integer array with `start <= end` and endpoints in that range; an equal pair is an empty query. Booleans are not integers. Any missing field, wrong type, non-integer endpoint, reversed interval, or other violation returns exactly `{"error":"invalid"}`. Either array may be empty. Unknown object keys are ignored.
+
+Intervals use half-open boundaries: `[start,end)` includes `start` and excludes `end`. Sort intervals by start then end and form their union. Overlapping or touching intervals are one merged interval, so `[1,3)` and `[3,5)` merge. The returned `merged` array is sorted and has no overlap or gap that could be joined. For each query, calculate the total number of covered integer-time units in its intersection with the union; count a boundary-only contact as zero. The query answers remain in input order.
+
+Return exactly an object with `merged`, `total` (the sum of each merged interval's length), and `overlaps` (one integer per query). Negative endpoints are allowed. Object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "merged": [
+        [
+          1,
+          6
+        ],
+        [
+          10,
+          12
+        ]
+      ],
+      "overlaps": [
+        1,
+        3,
+        0
+      ],
+      "total": 7
+    },
+    "input": {
+      "intervals": [
+        [
+          1,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "queries": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          12,
+          12
+        ]
+      ]
+    }
+  },
+  {
+    "expected": {
+      "merged": [
+        [
+          -5,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "overlaps": [
+        8,
+        3,
+        0
+      ],
+      "total": 8
+    },
+    "input": {
+      "intervals": [
+        [
+          -5,
+          -2
+        ],
+        [
+          -4,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "queries": [
+        [
+          -10,
+          10
+        ],
+        [
+          -2,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    }
+  },
+  {
+    "expected": {
+      "merged": [],
+      "overlaps": [
+        0,
+        0
+      ],
+      "total": 0
+    },
+    "input": {
+      "intervals": [],
+      "queries": [
+        [
+          0,
+          0
+        ],
+        [
+          -2,
+          4
+        ]
+      ]
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 03
+
+Acceptance: validate interval and query rules separately, return the union with touching intervals merged, and preserve original query order in overlap totals. Invalid input returns only the specified sentinel, not a partially computed union.
+
+Validate top-level keys/array types and each exact two-element endpoint array before indexing. Integer endpoints exclude bool. Intervals require start < end, whereas queries allow equality. Follow public extra-key/bounds policies. Sort a copy of intervals by (start,end), merge if next_start <= current_end, and extend with max(current_end,next_end). Otherwise flush the current interval. Empty input yields no merged intervals and total zero. Total is sum(end-start), not count of endpoints.
+
+For each query, sum max(0,min(query_end,segment_end)-max(query_start,segment_start)) over the disjoint merged union; skip segments wholly before and stop once wholly after if helpful. Do not double-count overlapping original intervals. Empty queries and boundary-only touches give zero. Avoid expanding integer ranges, since coordinate magnitude need not be small.
+
+Review probes: touching chain, nested duplicates, negative coordinates, empty intervals with nonempty queries, empty queries with nonempty intervals, zero-length query versus invalid zero-length interval, bool endpoint. Outputs must match the public object's field names and exact structures.
+
+
+Implement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.

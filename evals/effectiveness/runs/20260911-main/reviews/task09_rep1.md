@@ -1,0 +1,3 @@
+# Director review: task09 repetition 1
+
+Reviewed the public specification, frozen plan, and Beastmode initial implementation only. No necessary correction identified. The scanner restricts keys and digits to ASCII, preserves scalar types, enforces integer and decoded-string limits, and recognizes comments only outside strings. Surrounding grammar rejects scalar suffixes, missing semicolons, repeated separators, nested lists, and trailing commas. Payload, assignment, and list size limits are checked. Preserve this behavior in the required revision. No baseline implementations or held-out cases/results were consulted.

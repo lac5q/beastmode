@@ -1,0 +1,7 @@
+{
+  "beast_initial_path": "/tmp/beastmode-evals/evals/effectiveness/runs/20260911-main/invocations/task07_rep2_beast_initial/final_output.txt",
+  "plan_path": "/tmp/beastmode-evals/evals/effectiveness/plans/task07.md",
+  "public_spec_path": "/tmp/beastmode-evals/evals/effectiveness/fixtures/task07/public.md",
+  "repetition": 2,
+  "task_id": "task07"
+}

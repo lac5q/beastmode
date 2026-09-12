@@ -1,0 +1,230 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 03: interval union and query lengths
+
+Implement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.
+
+The valid input is an object with `intervals` and `queries`, both arrays of at most 100 elements. Every interval is a two-element integer array `[start,end]` with `start < end` and endpoints in `[-1000000000,1000000000]`. Every query is a two-element integer array with `start <= end` and endpoints in that range; an equal pair is an empty query. Booleans are not integers. Any missing field, wrong type, non-integer endpoint, reversed interval, or other violation returns exactly `{"error":"invalid"}`. Either array may be empty. Unknown object keys are ignored.
+
+Intervals use half-open boundaries: `[start,end)` includes `start` and excludes `end`. Sort intervals by start then end and form their union. Overlapping or touching intervals are one merged interval, so `[1,3)` and `[3,5)` merge. The returned `merged` array is sorted and has no overlap or gap that could be joined. For each query, calculate the total number of covered integer-time units in its intersection with the union; count a boundary-only contact as zero. The query answers remain in input order.
+
+Return exactly an object with `merged`, `total` (the sum of each merged interval's length), and `overlaps` (one integer per query). Negative endpoints are allowed. Object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "merged": [
+        [
+          1,
+          6
+        ],
+        [
+          10,
+          12
+        ]
+      ],
+      "overlaps": [
+        1,
+        3,
+        0
+      ],
+      "total": 7
+    },
+    "input": {
+      "intervals": [
+        [
+          1,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "queries": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          12,
+          12
+        ]
+      ]
+    }
+  },
+  {
+    "expected": {
+      "merged": [
+        [
+          -5,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "overlaps": [
+        8,
+        3,
+        0
+      ],
+      "total": 8
+    },
+    "input": {
+      "intervals": [
+        [
+          -5,
+          -2
+        ],
+        [
+          -4,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "queries": [
+        [
+          -10,
+          10
+        ],
+        [
+          -2,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    }
+  },
+  {
+    "expected": {
+      "merged": [],
+      "overlaps": [
+        0,
+        0
+      ],
+      "total": 0
+    },
+    "input": {
+      "intervals": [],
+      "queries": [
+        [
+          0,
+          0
+        ],
+        [
+          -2,
+          4
+        ]
+      ]
+    }
+  }
+]
+
+INITIAL IMPLEMENTATION
+```python
+def solve(payload):
+    def is_integer(value):
+        return type(value) is int
+
+    def invalid():
+        return {"error": "invalid"}
+
+    if type(payload) is not dict:
+        return invalid()
+    if "intervals" not in payload or "queries" not in payload:
+        return invalid()
+
+    intervals = payload["intervals"]
+    queries = payload["queries"]
+
+    if type(intervals) is not list or type(queries) is not list:
+        return invalid()
+    if len(intervals) > 100 or len(queries) > 100:
+        return invalid()
+
+    parsed_intervals = []
+    for interval in intervals:
+        if type(interval) is not list or len(interval) != 2:
+            return invalid()
+        start, end = interval
+        if (
+            not is_integer(start)
+            or not is_integer(end)
+            or start < -1000000000
+            or start > 1000000000
+            or end < -1000000000
+            or end > 1000000000
+            or start >= end
+        ):
+            return invalid()
+        parsed_intervals.append((start, end))
+
+    parsed_queries = []
+    for query in queries:
+        if type(query) is not list or len(query) != 2:
+            return invalid()
+        start, end = query
+        if (
+            not is_integer(start)
+            or not is_integer(end)
+            or start < -1000000000
+            or start > 1000000000
+            or end < -1000000000
+            or end > 1000000000
+            or start > end
+        ):
+            return invalid()
+        parsed_queries.append((start, end))
+
+    parsed_intervals.sort()
+
+    merged = []
+    for start, end in parsed_intervals:
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        elif end > merged[-1][1]:
+            merged[-1][1] = end
+
+    total = sum(end - start for start, end in merged)
+
+    overlaps = []
+    for query_start, query_end in parsed_queries:
+        length = 0
+        for interval_start, interval_end in merged:
+            left = max(query_start, interval_start)
+            right = min(query_end, interval_end)
+            if left < right:
+                length += right - left
+        overlaps.append(length)
+
+    return {
+        "merged": merged,
+        "total": total,
+        "overlaps": overlaps,
+    }
+```
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

@@ -1,0 +1,52 @@
+[
+  {
+    "input": {
+      "as_of": 10,
+      "base": [
+        {"id": "a", "version": 1, "updated_at": 5, "deleted": false, "value": {"name": "Alpha", "tags": ["z", "a"]}},
+        {"id": "b", "version": 2, "updated_at": 3, "deleted": false, "value": {"name": "Beta", "tags": []}},
+        {"id": "c", "version": 1, "updated_at": 20, "deleted": false, "value": {"name": "Future", "tags": ["x"]}}
+      ],
+      "incoming": [
+        {"id": "a", "version": 1, "updated_at": 5, "deleted": true},
+        {"id": "b", "version": 1, "updated_at": 9, "deleted": false, "value": {"name": "Old", "tags": ["q"]}},
+        {"id": "d", "version": 3, "updated_at": 10, "deleted": false, "value": {"name": "Delta", "tags": ["m", "a"]}}
+      ]
+    },
+    "expected": {
+      "records": [
+        {"id": "b", "version": 2, "updated_at": 3, "value": {"name": "Beta", "tags": []}},
+        {"id": "d", "version": 3, "updated_at": 10, "value": {"name": "Delta", "tags": ["a", "m"]}}
+      ]
+    }
+  },
+  {
+    "input": {
+      "as_of": 0,
+      "base": [
+        {"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "Base", "tags": ["b"]}},
+        {"id": "y", "version": 1, "updated_at": 1, "deleted": false, "value": {"name": "Future", "tags": []}}
+      ],
+      "incoming": [
+        {"id": "x", "version": 2, "updated_at": 0, "deleted": false, "value": {"name": "New", "tags": ["a"]}},
+        {"id": "z", "version": 1, "updated_at": 0, "deleted": true}
+      ]
+    },
+    "expected": {
+      "records": [
+        {"id": "x", "version": 2, "updated_at": 0, "value": {"name": "New", "tags": ["a"]}}
+      ]
+    }
+  },
+  {
+    "input": {
+      "as_of": 4,
+      "base": [
+        {"id": "a", "version": 1, "updated_at": 1, "deleted": false, "value": {"name": "A", "tags": []}},
+        {"id": "a", "version": 2, "updated_at": 2, "deleted": false, "value": {"name": "Duplicate", "tags": []}}
+      ],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  }
+]

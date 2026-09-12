@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "296d5cb9f0c9e711e7daa7a5ae121f201972cd0d69abfe69760043c9fa554c5b",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T20:51:34.549536Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1384762,
+  "pid_recorded_at_utc": "2026-09-11T20:49:57.494932Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "f837fd23d31eb0b61803339306e9bf9bc6a52596968af3cae4a23e1d4abd8f3a",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 07: timestamped record reconciliation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly these keys: as_of, base, and\nincoming. as_of is an integer from 0 through 1000000 inclusive; booleans are\nnot integers. base and incoming are arrays of at most 50 records. Record IDs\nare unique within each array.\n\nEvery record has the four required common keys id, version, updated_at, and\ndeleted. id is a\nnon-empty string of at most 16 Unicode code points. version is an integer from\n1 through 1000000. updated_at is an integer from 0 through 1000000. deleted is\na boolean. A live record (deleted false) also has a value key and no other\nkeys; a tombstone (deleted true) has no value key. A value has exactly name and\ntags: name is a non-empty string of at most 32 code points, and tags is an\narray of at most 8 distinct strings. Each tag matches\n[a-z][a-z0-9_-]{0,11}. Arrays and objects must otherwise follow these types.\nAny missing key, extra key, wrong type, out-of-range number, duplicate ID,\nduplicate tag, or other violation returns exactly {\"error\":\"invalid\"}.\n\nOnly records with updated_at <= as_of are eligible. For each ID present in\neither array, choose the eligible record with the greatest tuple\n(version, updated_at, source_rank), where source_rank is 0 for base and 1 for\nincoming. Thus an incoming record wins an exact version/time tie. A winning\ntombstone removes the ID; an ID with no eligible record is absent.\n\nReturn exactly {\"records\": [...]}. The records array is sorted by ID using\nPython/Unicode string ordering. Each surviving record is represented as\n{\"id\": id, \"version\": version, \"updated_at\": updated_at, \"value\": value}.\nThe returned value has the same name and its tags sorted by Python/Unicode\nstring ordering. No tombstones are returned. An empty result has\n\"records\": [].\n\nThe input object and every nested object reject unknown keys. The input is\nlimited to the stated array, string, and integer bounds so a solver may use\nbounded in-memory processing.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"b\",\n          \"updated_at\": 3,\n          \"value\": {\n            \"name\": \"Beta\",\n            \"tags\": []\n          },\n          \"version\": 2\n        },\n        {\n          \"id\": \"d\",\n          \"updated_at\": 10,\n          \"value\": {\n            \"name\": \"Delta\",\n            \"tags\": [\n              \"a\",\n              \"m\"\n            ]\n          },\n          \"version\": 3\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 10,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 5,\n          \"value\": {\n            \"name\": \"Alpha\",\n            \"tags\": [\n              \"z\",\n              \"a\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"b\",\n          \"updated_at\": 3,\n          \"value\": {\n            \"name\": \"Beta\",\n            \"tags\": []\n          },\n          \"version\": 2\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"c\",\n          \"updated_at\": 20,\n          \"value\": {\n            \"name\": \"Future\",\n            \"tags\": [\n              \"x\"\n            ]\n          },\n          \"version\": 1\n        }\n      ],\n      \"incoming\": [\n        {\n          \"deleted\": true,\n          \"id\": \"a\",\n          \"updated_at\": 5,\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"b\",\n          \"updated_at\": 9,\n          \"value\": {\n            \"name\": \"Old\",\n            \"tags\": [\n              \"q\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"d\",\n          \"updated_at\": 10,\n          \"value\": {\n            \"name\": \"Delta\",\n            \"tags\": [\n              \"m\",\n              \"a\"\n            ]\n          },\n          \"version\": 3\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"New\",\n            \"tags\": [\n              \"a\"\n            ]\n          },\n          \"version\": 2\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 0,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"Base\",\n            \"tags\": [\n              \"b\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"y\",\n          \"updated_at\": 1,\n          \"value\": {\n            \"name\": \"Future\",\n            \"tags\": []\n          },\n          \"version\": 1\n        }\n      ],\n      \"incoming\": [\n        {\n          \"deleted\": false,\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"New\",\n            \"tags\": [\n              \"a\"\n            ]\n          },\n          \"version\": 2\n        },\n        {\n          \"deleted\": true,\n          \"id\": \"z\",\n          \"updated_at\": 0,\n          \"version\": 1\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"as_of\": 4,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 1,\n          \"value\": {\n            \"name\": \"A\",\n            \"tags\": []\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 2,\n          \"value\": {\n            \"name\": \"Duplicate\",\n            \"tags\": []\n          },\n          \"version\": 2\n        }\n      ],\n      \"incoming\": []\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a0923b-f97d-7b50-8247-59587ba39d8b",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 17,
+    "call_index": 67,
+    "repetition": 2,
+    "stage": "single",
+    "task_id": "task07"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T20:49:57.181623Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task07",
+  "thread_id": "01a0923b-f97d-7b50-8247-59587ba39d8b",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 14080,
+    "input_tokens": 21322,
+    "output_tokens": 3139,
+    "reasoning_tokens": null
+  }
+}

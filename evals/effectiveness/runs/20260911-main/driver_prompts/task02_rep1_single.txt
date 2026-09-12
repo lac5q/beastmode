@@ -1,0 +1,137 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 02: critical-path build scheduler
+
+Implement a pure Python `solve(payload)` function with JSON-compatible input and output.
+
+The valid input is an object with integer `lanes` in `1..80` and a `tasks` array of at most 80 tasks. Each task has a unique non-empty string `id` of at most 40 Unicode characters, a positive integer `duration` in `1..100000`, and a `deps` array of distinct string IDs. Every dependency must occur in the array. Empty `tasks` is valid. Booleans do not count as integers. For a missing field, wrong type, duplicate ID or dependency, unknown dependency, self-dependency, cycle, or any other violation, return exactly `{"error":"invalid"}`. Unknown object keys are ignored.
+
+Tasks run on `lanes` identical build lanes. Time is integral and begins at zero. A task is ready only when all dependencies have finished. For every ready task, first compute its critical length as its own duration plus the largest critical length among its direct dependants; a task with no dependant has critical length equal to its duration. At each time when tasks finish, finish all of them before starting work. At time zero do the same start step. When slots compete, choose ready tasks by descending critical length, then lexicographically ascending ID. Start as many as fit. Tasks that finish together release all their lanes together.
+
+Return `order` (IDs in the exact order they started), `start` (each ID to its integer start time), `finish` (each ID to its integer finish time), `makespan` (the greatest finish time, or `0` for no tasks), and `critical` (each ID to its computed critical length). No extra keys are needed; object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "critical": {
+        "a": 6,
+        "b": 2,
+        "c": 4,
+        "d": 1
+      },
+      "finish": {
+        "a": 2,
+        "b": 1,
+        "c": 6,
+        "d": 2
+      },
+      "makespan": 6,
+      "order": [
+        "a",
+        "b",
+        "d",
+        "c"
+      ],
+      "start": {
+        "a": 0,
+        "b": 0,
+        "c": 2,
+        "d": 1
+      }
+    },
+    "input": {
+      "lanes": 2,
+      "tasks": [
+        {
+          "deps": [],
+          "duration": 2,
+          "id": "a"
+        },
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "b"
+        },
+        {
+          "deps": [
+            "a"
+          ],
+          "duration": 4,
+          "id": "c"
+        },
+        {
+          "deps": [
+            "b"
+          ],
+          "duration": 1,
+          "id": "d"
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "critical": {
+        "a": 1,
+        "q": 3,
+        "z": 4
+      },
+      "finish": {
+        "a": 5,
+        "q": 4,
+        "z": 1
+      },
+      "makespan": 5,
+      "order": [
+        "z",
+        "q",
+        "a"
+      ],
+      "start": {
+        "a": 4,
+        "q": 1,
+        "z": 0
+      }
+    },
+    "input": {
+      "lanes": 1,
+      "tasks": [
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "z"
+        },
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "a"
+        },
+        {
+          "deps": [
+            "z"
+          ],
+          "duration": 3,
+          "id": "q"
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "critical": {},
+      "finish": {},
+      "makespan": 0,
+      "order": [],
+      "start": {}
+    },
+    "input": {
+      "lanes": 3,
+      "tasks": []
+    }
+  }
+]
+
+Produce your complete implementation.

@@ -1,0 +1,325 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 09: typed assignment-list parser
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly one key, text. text is a string of
+at most 512 Unicode code points. Parse a document containing zero or more
+assignments (at most 40) separated by semicolons; a final semicolon is
+optional. Whitespace
+means space, tab, carriage return, or line feed and may occur around tokens.
+Outside a quoted string, # starts a comment that runs through (but not
+including) the next line feed or the end of the text. A comment is whitespace
+for parsing, but it does not replace the required semicolon between
+assignments.
+
+An assignment is key = value. A key is an ASCII letter followed by zero or
+more ASCII letters, digits, or underscores, with total length 1 through 16.
+Keys must be unique. Values are an integer, the lowercase word true, the
+lowercase word false, a quoted string, or a list in square brackets. Integers
+are written with an optional minus sign and ASCII digits, have no leading zero
+except for zero itself, and lie from -1000000 through 1000000. A quoted
+string uses double quotes and allows only these escapes: backslash-double
+quote, backslash-backslash, backslash-n, backslash-t, backslash-semicolon,
+and backslash-hash. An unescaped line feed or carriage return is invalid
+inside a quoted string; an unknown escape is invalid.
+The decoded string length is at most 64.
+
+A list contains one or more scalar values separated by commas; an empty list
+is also valid. Scalar values use the integer, boolean, or quoted-string rules
+above. Lists cannot nest, have at most 12 items, and cannot have a trailing
+comma. Duplicate keys, a missing separator or equals sign, malformed escapes,
+wrong types, extra payload keys, or any other violation returns exactly
+{"error":"invalid"}. An empty text document is valid.
+
+Return exactly {"values": {key: parsed_value, ...}}. Parsed values retain
+their boolean, integer, string, and list types. Object key order is
+irrelevant. The stated length, assignment, and list limits are the complete
+evaluation size envelope.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "values": {
+        "enabled": true,
+        "name": "Ada",
+        "retries": 3,
+        "tags": [
+          "b",
+          "a"
+        ]
+      }
+    },
+    "input": {
+      "text": "name=\"Ada\"; retries=3; enabled=true; tags=[\"b\", \"a\"];"
+    }
+  },
+  {
+    "expected": {
+      "values": {
+        "flag": false,
+        "message": "line\nnext"
+      }
+    },
+    "input": {
+      "text": "message=\"line\\nnext\"; # ignored comment\nflag=false"
+    }
+  },
+  {
+    "expected": {
+      "values": {}
+    },
+    "input": {
+      "text": ""
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "text": "x=1 x=2"
+    }
+  }
+]
+
+INITIAL IMPLEMENTATION
+```python
+class _Invalid(Exception):
+    pass
+
+
+class _Parser:
+    def __init__(self, text):
+        self.text = text
+        self.pos = 0
+        self.length = len(text)
+
+    def skip_trivia(self):
+        while self.pos < self.length:
+            char = self.text[self.pos]
+            if char in " \t\r\n":
+                self.pos += 1
+            elif char == "#":
+                self.pos += 1
+                while self.pos < self.length and self.text[self.pos] != "\n":
+                    self.pos += 1
+            else:
+                break
+
+    @staticmethod
+    def is_ascii_letter(char):
+        return ("A" <= char <= "Z") or ("a" <= char <= "z")
+
+    @staticmethod
+    def is_ascii_digit(char):
+        return "0" <= char <= "9"
+
+    def parse_key(self):
+        if self.pos >= self.length or not self.is_ascii_letter(self.text[self.pos]):
+            raise _Invalid()
+
+        start = self.pos
+        self.pos += 1
+
+        while self.pos < self.length:
+            char = self.text[self.pos]
+            if self.is_ascii_letter(char) or self.is_ascii_digit(char) or char == "_":
+                self.pos += 1
+            else:
+                break
+
+        if self.pos - start > 16:
+            raise _Invalid()
+
+        return self.text[start:self.pos]
+
+    def parse_string(self):
+        if self.pos >= self.length or self.text[self.pos] != '"':
+            raise _Invalid()
+
+        self.pos += 1
+        chars = []
+        escapes = {
+            '"': '"',
+            "\\": "\\",
+            "n": "\n",
+            "t": "\t",
+            ";": ";",
+            "#": "#",
+        }
+
+        while self.pos < self.length:
+            char = self.text[self.pos]
+
+            if char == '"':
+                self.pos += 1
+                value = "".join(chars)
+                if len(value) > 64:
+                    raise _Invalid()
+                return value
+
+            if char in "\r\n":
+                raise _Invalid()
+
+            if char == "\\":
+                self.pos += 1
+                if self.pos >= self.length:
+                    raise _Invalid()
+
+                escape = self.text[self.pos]
+                if escape not in escapes:
+                    raise _Invalid()
+
+                chars.append(escapes[escape])
+                self.pos += 1
+            else:
+                chars.append(char)
+                self.pos += 1
+
+        raise _Invalid()
+
+    def parse_integer(self):
+        start = self.pos
+
+        if self.text[self.pos] == "-":
+            self.pos += 1
+            if self.pos >= self.length or not self.is_ascii_digit(self.text[self.pos]):
+                raise _Invalid()
+
+        digits_start = self.pos
+        while self.pos < self.length and self.is_ascii_digit(self.text[self.pos]):
+            self.pos += 1
+
+        digits = self.text[digits_start:self.pos]
+        if not digits:
+            raise _Invalid()
+
+        if len(digits) > 1 and digits[0] == "0":
+            raise _Invalid()
+
+        value = int(self.text[start:self.pos])
+        if value < -1000000 or value > 1000000:
+            raise _Invalid()
+
+        return value
+
+    def parse_scalar(self):
+        if self.pos >= self.length:
+            raise _Invalid()
+
+        char = self.text[self.pos]
+
+        if char == '"':
+            return self.parse_string()
+
+        if char == "-" or self.is_ascii_digit(char):
+            return self.parse_integer()
+
+        if self.text.startswith("true", self.pos):
+            self.pos += 4
+            return True
+
+        if self.text.startswith("false", self.pos):
+            self.pos += 5
+            return False
+
+        raise _Invalid()
+
+    def parse_list(self):
+        if self.pos >= self.length or self.text[self.pos] != "[":
+            raise _Invalid()
+
+        self.pos += 1
+        self.skip_trivia()
+
+        if self.pos < self.length and self.text[self.pos] == "]":
+            self.pos += 1
+            return []
+
+        values = []
+
+        while True:
+            if len(values) >= 12:
+                raise _Invalid()
+
+            values.append(self.parse_scalar())
+            self.skip_trivia()
+
+            if self.pos >= self.length:
+                raise _Invalid()
+
+            if self.text[self.pos] == "]":
+                self.pos += 1
+                return values
+
+            if self.text[self.pos] != ",":
+                raise _Invalid()
+
+            self.pos += 1
+            self.skip_trivia()
+
+            if self.pos >= self.length or self.text[self.pos] == "]":
+                raise _Invalid()
+
+    def parse_value(self):
+        if self.pos < self.length and self.text[self.pos] == "[":
+            return self.parse_list()
+        return self.parse_scalar()
+
+    def parse_document(self):
+        values = {}
+        self.skip_trivia()
+
+        if self.pos >= self.length:
+            return values
+
+        while True:
+            if len(values) >= 40:
+                raise _Invalid()
+
+            key = self.parse_key()
+            if key in values:
+                raise _Invalid()
+
+            self.skip_trivia()
+            if self.pos >= self.length or self.text[self.pos] != "=":
+                raise _Invalid()
+
+            self.pos += 1
+            self.skip_trivia()
+            values[key] = self.parse_value()
+
+            self.skip_trivia()
+            if self.pos >= self.length:
+                return values
+
+            if self.text[self.pos] != ";":
+                raise _Invalid()
+
+            self.pos += 1
+            self.skip_trivia()
+
+            if self.pos >= self.length:
+                return values
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or len(payload) != 1 or "text" not in payload:
+        return {"error": "invalid"}
+
+    text = payload["text"]
+    if not isinstance(text, str) or len(text) > 512:
+        return {"error": "invalid"}
+
+    try:
+        return {"values": _Parser(text).parse_document()}
+    except _Invalid:
+        return {"error": "invalid"}
+```
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

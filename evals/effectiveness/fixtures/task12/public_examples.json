@@ -1,0 +1,49 @@
+[
+  {
+    "input": {
+      "cpu": 4,
+      "memory": 4,
+      "jobs": [
+        {"id": "a", "cpu": 2, "memory": 1, "priority": 5, "deps": []},
+        {"id": "b", "cpu": 1, "memory": 2, "priority": 4, "deps": ["a"]},
+        {"id": "c", "cpu": 2, "memory": 2, "priority": 8, "deps": []}
+      ]
+    },
+    "expected": {"selected": ["a", "c"], "used": {"cpu": 4, "memory": 3}, "priority": 13}
+  },
+  {
+    "input": {
+      "cpu": 3,
+      "memory": 3,
+      "jobs": [
+        {"id": "a", "cpu": 2, "memory": 2, "priority": 5, "deps": []},
+        {"id": "b", "cpu": 1, "memory": 1, "priority": 10, "deps": ["a"]},
+        {"id": "c", "cpu": 3, "memory": 3, "priority": 14, "deps": []}
+      ]
+    },
+    "expected": {"selected": ["a", "b"], "used": {"cpu": 3, "memory": 3}, "priority": 15}
+  },
+  {
+    "input": {
+      "cpu": 2,
+      "memory": 2,
+      "jobs": [
+        {"id": "a", "cpu": 1, "memory": 1, "priority": 4, "deps": []},
+        {"id": "b", "cpu": 1, "memory": 1, "priority": 4, "deps": []},
+        {"id": "c", "cpu": 2, "memory": 2, "priority": 8, "deps": []}
+      ]
+    },
+    "expected": {"selected": ["a", "b"], "used": {"cpu": 2, "memory": 2}, "priority": 8}
+  },
+  {
+    "input": {
+      "cpu": 4,
+      "memory": 4,
+      "jobs": [
+        {"id": "a", "cpu": 1, "memory": 1, "priority": 1, "deps": ["b"]},
+        {"id": "b", "cpu": 1, "memory": 1, "priority": 1, "deps": ["a"]}
+      ]
+    },
+    "expected": {"error": "invalid"}
+  }
+]

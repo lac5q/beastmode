@@ -1,0 +1,316 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 06: issue workflow reducer
+
+Implement a pure Python `solve(payload)` function that maps JSON-compatible input to JSON-compatible output.
+
+The valid input is an object with `initial` and `events`. `initial` has `status` equal to `todo`, `doing`, `done`, or `cancelled`; `assignee` equal to `null` or a non-empty string of at most 40 characters; and `labels`, an array of at most 10 distinct non-empty strings of at most 20 characters. `events` has at most 100 objects. Every event has a unique-or-repeatable non-empty string `id` of at most 40 characters and an `op` in `start`, `complete`, `reopen`, `cancel`, `assign`, `label`, `unlabel`. `assign`, `label`, and `unlabel` require a `value`: assignment accepts `null` or a non-empty string up to 40 characters, while the label operations require a non-empty string up to 20 characters. Any malformed top-level value, initial state, or event returns exactly `{"error":"invalid"}`. Booleans are not strings. Unknown object keys are ignored. Repeated IDs are allowed and have the duplicate behavior below.
+
+Process events in input order. Validate every event's required shape before duplicate-ID handling, so a malformed duplicate still returns `{"error":"invalid"}`. The first valid event with an ID marks that ID seen; each later valid event with that ID is appended to `ignored` and changes nothing, even if its fields differ. `start` changes `todo` to `doing`; `complete` changes `doing` to `done`; `reopen` changes `done` or `cancelled` to `todo`; and `cancel` changes `todo` or `doing` to `cancelled`. These four operations are rejected when their source status is not allowed. `assign` always applies its value. `label` appends a label when it is absent and fewer than 10 labels exist; otherwise it is rejected. `unlabel` removes a present label; otherwise it is rejected. A rejected operation changes nothing. Labels preserve their current list order.
+
+Return exactly `state` (with `status`, `assignee`, and `labels`), `applied`, `rejected`, and `ignored`. Each list preserves event order. Object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "applied": [
+        "s",
+        "c",
+        "r",
+        "a",
+        "l"
+      ],
+      "ignored": [
+        "l"
+      ],
+      "rejected": [
+        "bad"
+      ],
+      "state": {
+        "assignee": "sam",
+        "labels": [
+          "bug",
+          "urgent"
+        ],
+        "status": "todo"
+      }
+    },
+    "input": {
+      "events": [
+        {
+          "id": "s",
+          "op": "start"
+        },
+        {
+          "id": "c",
+          "op": "complete"
+        },
+        {
+          "id": "bad",
+          "op": "complete"
+        },
+        {
+          "id": "r",
+          "op": "reopen"
+        },
+        {
+          "id": "a",
+          "op": "assign",
+          "value": "sam"
+        },
+        {
+          "id": "l",
+          "op": "label",
+          "value": "urgent"
+        },
+        {
+          "id": "l",
+          "op": "unlabel",
+          "value": "bug"
+        }
+      ],
+      "initial": {
+        "assignee": null,
+        "labels": [
+          "bug"
+        ],
+        "status": "todo"
+      }
+    }
+  },
+  {
+    "expected": {
+      "applied": [
+        "re",
+        "x",
+        "clear"
+      ],
+      "ignored": [],
+      "rejected": [
+        "u"
+      ],
+      "state": {
+        "assignee": null,
+        "labels": [],
+        "status": "cancelled"
+      }
+    },
+    "input": {
+      "events": [
+        {
+          "id": "re",
+          "op": "reopen"
+        },
+        {
+          "id": "x",
+          "op": "cancel"
+        },
+        {
+          "id": "clear",
+          "op": "assign",
+          "value": null
+        },
+        {
+          "id": "u",
+          "op": "unlabel",
+          "value": "missing"
+        }
+      ],
+      "initial": {
+        "assignee": "old",
+        "labels": [],
+        "status": "cancelled"
+      }
+    }
+  },
+  {
+    "expected": {
+      "applied": [],
+      "ignored": [],
+      "rejected": [],
+      "state": {
+        "assignee": null,
+        "labels": [],
+        "status": "done"
+      }
+    },
+    "input": {
+      "events": [],
+      "initial": {
+        "assignee": null,
+        "labels": [],
+        "status": "done"
+      }
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 06
+
+Acceptance: validate every initial field and event before reducing, apply the exact status transition table, preserve label order, and distinguish malformed input from a semantically rejected operation. Ignore unknown object keys as specified.
+
+Validate the top-level object, initial status membership, nullable bounded assignee string, distinct bounded nonempty initial labels and count, event count/objects/IDs/operations, and op-specific values. Do not access membership in a set before checking potentially unhashable JSON values. Extra value on an operation that does not require it is an ignored key. Repeated IDs are valid but their event shapes still must validate.
+
+Copy initial state and labels. Track seen IDs; mark a first ID seen before applying or rejecting. A repeated ID appends to ignored without a state change. Encode transitions explicitly: start todo->doing; complete doing->done; reopen done/cancelled->todo; cancel todo/doing->cancelled. Reject disallowed transitions. assign always applies including null. label appends only if absent and current label count <10; unlabel removes only a present label, preserving other labels' order. Semantic rejection never changes state.
+
+Review probes: rejected operation followed by repeated ID; reopen after cancellation; assign in terminal state; duplicate label; full labels then removal and append; removal preserves order; invalid missing value for assign/label/unlabel; empty event list. Record applied/rejected/ignored IDs in occurrence order and return only specified state/list fields.
+
+
+INITIAL IMPLEMENTATION
+def solve(payload):
+    def invalid():
+        return {"error": "invalid"}
+
+    if not isinstance(payload, dict):
+        return invalid()
+    if "initial" not in payload or "events" not in payload:
+        return invalid()
+
+    initial = payload["initial"]
+    events = payload["events"]
+
+    if not isinstance(initial, dict) or not isinstance(events, list):
+        return invalid()
+    if len(events) > 100:
+        return invalid()
+
+    for key in ("status", "assignee", "labels"):
+        if key not in initial:
+            return invalid()
+
+    status = initial["status"]
+    assignee = initial["assignee"]
+    labels = initial["labels"]
+
+    if not isinstance(status, str) or status not in {
+        "todo", "doing", "done", "cancelled"
+    }:
+        return invalid()
+
+    if assignee is not None and (
+        not isinstance(assignee, str) or not assignee or len(assignee) > 40
+    ):
+        return invalid()
+
+    if not isinstance(labels, list) or len(labels) > 10:
+        return invalid()
+
+    label_seen = set()
+    for label in labels:
+        if not isinstance(label, str) or not label or len(label) > 20:
+            return invalid()
+        if label in label_seen:
+            return invalid()
+        label_seen.add(label)
+
+    labels = list(labels)
+    applied = []
+    rejected = []
+    ignored = []
+    seen_ids = set()
+
+    for event in events:
+        if not isinstance(event, dict):
+            return invalid()
+        if "id" not in event or "op" not in event:
+            return invalid()
+
+        event_id = event["id"]
+        op = event["op"]
+
+        if not isinstance(event_id, str) or not event_id or len(event_id) > 40:
+            return invalid()
+        if not isinstance(op, str) or op not in {
+            "start", "complete", "reopen", "cancel",
+            "assign", "label", "unlabel"
+        }:
+            return invalid()
+
+        value = None
+        if op in {"assign", "label", "unlabel"}:
+            if "value" not in event:
+                return invalid()
+            value = event["value"]
+
+            if op == "assign":
+                if value is not None and (
+                    not isinstance(value, str) or not value or len(value) > 40
+                ):
+                    return invalid()
+            elif (
+                not isinstance(value, str) or not value or len(value) > 20
+            ):
+                return invalid()
+
+        if event_id in seen_ids:
+            ignored.append(event_id)
+            continue
+
+        seen_ids.add(event_id)
+
+        if op == "start":
+            if status == "todo":
+                status = "doing"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "complete":
+            if status == "doing":
+                status = "done"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "reopen":
+            if status in {"done", "cancelled"}:
+                status = "todo"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "cancel":
+            if status in {"todo", "doing"}:
+                status = "cancelled"
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        elif op == "assign":
+            assignee = value
+            applied.append(event_id)
+        elif op == "label":
+            if value not in labels and len(labels) < 10:
+                labels.append(value)
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+        else:
+            if value in labels:
+                labels.remove(value)
+                applied.append(event_id)
+            else:
+                rejected.append(event_id)
+
+    return {
+        "state": {
+            "status": status,
+            "assignee": assignee,
+            "labels": labels,
+        },
+        "applied": applied,
+        "rejected": rejected,
+        "ignored": ignored,
+    }
+
+DIRECTOR CONTRACT REVIEW
+# Director review: task06 repetition 1
+
+Reviewed only the public specification, frozen director plan and this Beastmode initial candidate. No baseline candidates or held-out cases/results consulted.
+
+No necessary correction identified. Status and operation types are checked before set membership; nullable assignee and bounded distinct labels are validated. Event IDs and required op-specific values are validated before duplicate handling, so malformed duplicates fail. Unknown keys, including value on other operations, are ignored. Seen IDs are marked before semantic rejection. All four status transition rules match the contract; assign always applies, label rejects duplicates/full lists, and unlabel removes only present labels while retaining order. The implementation interleaves per-event validation and reduction rather than prevalidating every event, but this is observationally equivalent for this pure function: later malformed input returns only invalid, and copied labels prevent input mutation or partial external state. Output fields and occurrence ordering are correct.
+
+Recheck the public contract and return complete final code. Preserve these semantics; no speculative rewrite is requested.
+
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

@@ -1,0 +1,131 @@
+import re
+
+_TAG_RE = re.compile(r"[a-z][a-z0-9_-]{0,11}")
+_TOP_LEVEL_KEYS = {"as_of", "base", "incoming"}
+_TOMBSTONE_KEYS = {"id", "version", "updated_at", "deleted"}
+_LIVE_KEYS = _TOMBSTONE_KEYS | {"value"}
+_VALUE_KEYS = {"name", "tags"}
+
+
+def _valid_int(value, minimum, maximum):
+    return type(value) is int and minimum <= value <= maximum
+
+
+def _validate_record(record, seen_ids):
+    if type(record) is not dict:
+        return False
+
+    deleted = record.get("deleted")
+    if type(deleted) is not bool:
+        return False
+
+    expected_keys = _TOMBSTONE_KEYS if deleted else _LIVE_KEYS
+    if set(record.keys()) != expected_keys:
+        return False
+
+    record_id = record["id"]
+    if (
+        type(record_id) is not str
+        or not record_id
+        or len(record_id) > 16
+        or record_id in seen_ids
+    ):
+        return False
+    seen_ids.add(record_id)
+
+    if not _valid_int(record["version"], 1, 1_000_000):
+        return False
+    if not _valid_int(record["updated_at"], 0, 1_000_000):
+        return False
+
+    if not deleted:
+        value = record["value"]
+        if type(value) is not dict or set(value.keys()) != _VALUE_KEYS:
+            return False
+
+        name = value["name"]
+        if type(name) is not str or not name or len(name) > 32:
+            return False
+
+        tags = value["tags"]
+        if type(tags) is not list or len(tags) > 8:
+            return False
+
+        seen_tags = set()
+        for tag in tags:
+            if (
+                type(tag) is not str
+                or _TAG_RE.fullmatch(tag) is None
+                or tag in seen_tags
+            ):
+                return False
+            seen_tags.add(tag)
+
+    return True
+
+
+def _validate_array(records):
+    if type(records) is not list or len(records) > 50:
+        return None
+
+    seen_ids = set()
+    for record in records:
+        if not _validate_record(record, seen_ids):
+            return None
+    return records
+
+
+def solve(payload):
+    if type(payload) is not dict or set(payload.keys()) != _TOP_LEVEL_KEYS:
+        return {"error": "invalid"}
+
+    as_of = payload["as_of"]
+    if not _valid_int(as_of, 0, 1_000_000):
+        return {"error": "invalid"}
+
+    base = _validate_array(payload["base"])
+    if base is None:
+        return {"error": "invalid"}
+
+    incoming = _validate_array(payload["incoming"])
+    if incoming is None:
+        return {"error": "invalid"}
+
+    best = {}
+
+    for source_rank, records in ((0, base), (1, incoming)):
+        for record in records:
+            if record["updated_at"] > as_of:
+                continue
+
+            record_id = record["id"]
+            candidate_key = (
+                record["version"],
+                record["updated_at"],
+                source_rank,
+            )
+
+            current = best.get(record_id)
+            if current is None or candidate_key > current[0]:
+                best[record_id] = (candidate_key, record)
+
+    result = []
+    for record_id in sorted(best):
+        record = best[record_id][1]
+        if record["deleted"]:
+            continue
+
+        value = record["value"]
+        result.append(
+            {
+                "id": record_id,
+                "version": record["version"],
+                "updated_at": record["updated_at"],
+                "value": {
+                    "name": value["name"],
+                    "tags": sorted(value["tags"]),
+                },
+            }
+        )
+
+    return {"records": result}

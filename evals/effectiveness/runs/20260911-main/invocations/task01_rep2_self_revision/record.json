@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "983360768c9b4ef1e6c8c57d70c64fa4dd4bfe7c8855fce00b6f2342f5100c07",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T19:29:59.506963Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1126851,
+  "pid_recorded_at_utc": "2026-09-11T19:28:31.224486Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "d816b4460e162db1dafe3cbd1abb430f0a8ffc450977f2114f1cdcc08f925e3a",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 01: dependency scheduler\n\nImplement a pure Python function `solve(payload)` that accepts and returns JSON-compatible values.\n\nThe valid input is an object with an integer `workers` in `1..80` and a `tasks` array of at most 80 tasks. Each task is an object with a unique non-empty string `id` of at most 40 Unicode characters, a positive integer `duration` in `1..100000`, and a `deps` array of distinct string task IDs. Every dependency must name a task in the same array. An empty task array is valid. A self-dependency, a dependency cycle, missing required field, wrong type, duplicate ID, duplicate dependency, or any other violation of these rules returns exactly `{\"error\":\"invalid\"}`. Booleans are not integers for this contract. Unknown object keys are ignored.\n\nSchedule the tasks on `workers` identical workers. Time starts at zero and is integral. A task becomes ready only after every dependency has finished. At each time when one or more tasks finish, finish all of them before starting new work. Also perform the initial starts at time zero. If several ready tasks compete for slots, choose the lexicographically smallest `id` first using Python/Unicode string ordering. Start as many chosen tasks as there are free workers. A task occupies a worker for exactly its duration; tasks that finish at the same time free their slots together. Repeat until all tasks finish.\n\nReturn an object with `order` (task IDs in start order), `start` (ID to start time), `finish` (ID to finish time), and `makespan` (the greatest finish time, or `0` for no tasks). No extra keys are needed. JSON object key order is irrelevant.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"finish\": {\n        \"a\": 3,\n        \"b\": 2,\n        \"c\": 4\n      },\n      \"makespan\": 4,\n      \"order\": [\n        \"a\",\n        \"b\",\n        \"c\"\n      ],\n      \"start\": {\n        \"a\": 0,\n        \"b\": 0,\n        \"c\": 3\n      }\n    },\n    \"input\": {\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 3,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 2,\n          \"id\": \"b\"\n        },\n        {\n          \"deps\": [\n            \"a\",\n            \"b\"\n          ],\n          \"duration\": 1,\n          \"id\": \"c\"\n        }\n      ],\n      \"workers\": 2\n    }\n  },\n  {\n    \"expected\": {\n      \"finish\": {\n        \"a\": 2,\n        \"m\": 3,\n        \"z\": 4\n      },\n      \"makespan\": 4,\n      \"order\": [\n        \"a\",\n        \"m\",\n        \"z\"\n      ],\n      \"start\": {\n        \"a\": 0,\n        \"m\": 2,\n        \"z\": 3\n      }\n    },\n    \"input\": {\n      \"tasks\": [\n        {\n          \"deps\": [],\n          \"duration\": 1,\n          \"id\": \"z\"\n        },\n        {\n          \"deps\": [],\n          \"duration\": 2,\n          \"id\": \"a\"\n        },\n        {\n          \"deps\": [\n            \"a\"\n          ],\n          \"duration\": 1,\n          \"id\": \"m\"\n        }\n      ],\n      \"workers\": 1\n    }\n  },\n  {\n    \"expected\": {\n      \"finish\": {},\n      \"makespan\": 0,\n      \"order\": [],\n      \"start\": {}\n    },\n    \"input\": {\n      \"tasks\": [],\n      \"workers\": 3\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\n```python\nimport heapq\n\n\ndef solve(payload):\n    if not isinstance(payload, dict):\n        return {\"error\": \"invalid\"}\n\n    if \"workers\" not in payload or \"tasks\" not in payload:\n        return {\"error\": \"invalid\"}\n\n    workers = payload[\"workers\"]\n    tasks = payload[\"tasks\"]\n\n    if type(workers) is not int or not 1 <= workers <= 80:\n        return {\"error\": \"invalid\"}\n\n    if not isinstance(tasks, list) or len(tasks) > 80:\n        return {\"error\": \"invalid\"}\n\n    records = {}\n\n    for task in tasks:\n        if not isinstance(task, dict):\n            return {\"error\": \"invalid\"}\n\n        if \"id\" not in task or \"duration\" not in task or \"deps\" not in task:\n            return {\"error\": \"invalid\"}\n\n        task_id = task[\"id\"]\n        duration = task[\"duration\"]\n        deps = task[\"deps\"]\n\n        if (\n            not isinstance(task_id, str)\n            or not task_id\n            or len(task_id) > 40\n            or task_id in records\n        ):\n            return {\"error\": \"invalid\"}\n\n        if type(duration) is not int or not 1 <= duration <= 100000:\n            return {\"error\": \"invalid\"}\n\n        if not isinstance(deps, list):\n            return {\"error\": \"invalid\"}\n\n        seen = set()\n        for dep in deps:\n            if not isinstance(dep, str) or dep in seen:\n                return {\"error\": \"invalid\"}\n            seen.add(dep)\n\n        records[task_id] = (duration, tuple(deps))\n\n    dependents = {task_id: [] for task_id in records}\n    remaining = {}\n\n    for task_id, (_, deps) in records.items():\n        remaining[task_id] = len(deps)\n        for dep in deps:\n            if dep not in records or dep == task_id:\n                return {\"error\": \"invalid\"}\n            dependents[dep].append(task_id)\n\n    ready = [task_id for task_id, count in remaining.items() if count == 0]\n    heapq.heapify(ready)\n\n    running = []\n    order = []\n    start = {}\n    finish = {}\n    completed = 0\n\n    def start_ready(now):\n        slots = workers - len(running)\n        while slots > 0 and ready:\n            task_id = heapq.heappop(ready)\n            task_finish = now + records[task_id][0]\n            order.append(task_id)\n            start[task_id] = now\n            finish[task_id] = task_finish\n            heapq.heappush(running, (task_finish, task_id))\n            slots -= 1\n\n    start_ready(0)\n\n    while running:\n        now = running[0][0]\n        finished_now = []\n\n        while running and running[0][0] == now:\n            _, task_id = heapq.heappop(running)\n            finished_now.append(task_id)\n            completed += 1\n\n        for task_id in finished_now:\n            for dependent in dependents[task_id]:\n                remaining[dependent] -= 1\n                if remaining[dependent] == 0:\n                    heapq.heappush(ready, dependent)\n\n        start_ready(now)\n\n    if completed != len(records):\n        return {\"error\": \"invalid\"}\n\n    return {\n        \"order\": order,\n        \"start\": start,\n        \"finish\": finish,\n        \"makespan\": max(finish.values(), default=0),\n    }\n```\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091f1-699e-7453-9f58-2c1cbb8e60f6",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 9,
+    "call_index": 34,
+    "repetition": 2,
+    "stage": "self_revision",
+    "task_id": "task01"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T19:28:30.973895Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task01",
+  "thread_id": "01a091f1-699e-7453-9f58-2c1cbb8e60f6",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 17152,
+    "input_tokens": 24869,
+    "output_tokens": 2745,
+    "reasoning_tokens": null
+  }
+}

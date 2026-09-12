@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "47252a55bb638f2a9bf4ce6491f95e6d4b7ddfd4bbc58966acab895ae5b7a8ee",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T18:57:01.458415Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1028308,
+  "pid_recorded_at_utc": "2026-09-11T18:55:10.403800Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "f08bf6d52c258299c9385f878cb1791154b512dab3baf4a3af13e03ce5ec2777",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 08: ordered record event reconciliation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly the keys as_of and events. as_of is\nan integer from 0 through 1000000 inclusive; booleans are not integers.\nevents is an array of at most 80 event objects. Every event has the five\ncommon keys id, source, seq, at, and op. id is a non-empty string of at most\n16 Unicode code points. source is exactly primary or replica. seq is an\ninteger from 1 through 1000000. at is an integer from 0 through 1000000.\nop is exactly set, patch, or delete. For each (source, id) pair, seq values\nmust be unique. Future events still must be well-formed and still participate\nin this uniqueness rule.\n\nA set event has exactly one additional key, value. A value has exactly name\nand qty: name is a non-empty string of at most 32 code points and qty is an\ninteger from 0 through 10000; booleans are not integers. A patch event also\nhas exactly one additional key, value, but its value is a non-empty object\nwhose keys are a subset of name and qty, with the same field rules. A delete\nevent has no value key. Any missing or extra key, wrong type, duplicate\nsequence, out-of-range value, or other violation returns exactly\n{\"error\":\"invalid\"}. The input object and all nested objects reject unknown\nkeys. There are no implicit defaults.\n\nIgnore events with at > as_of after validating them. For each remaining ID,\nsort its events by (at, seq, source_rank), where source_rank is 0 for primary\nand 1 for replica. Apply them in that order. set replaces the complete current\nrecord. patch changes only the named fields if the ID is currently live; a\npatch for an absent or deleted ID is ignored. delete removes the current\nrecord. A later set can create a record again.\n\nReturn exactly {\"records\": [...]}. Each surviving record is\n{\"id\": id, \"name\": name, \"qty\": qty}, and records are sorted by ID using\nPython/Unicode string ordering. An empty result has \"records\": [].\n\nThe stated event, string, and integer limits are the complete evaluation size\nenvelope and permit bounded in-memory processing.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"a\",\n          \"name\": \"AA\",\n          \"qty\": 7\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 2,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"a\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"A\",\n            \"qty\": 5\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"a\",\n          \"op\": \"patch\",\n          \"seq\": 1,\n          \"source\": \"replica\",\n          \"value\": {\n            \"qty\": 7\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"a\",\n          \"op\": \"patch\",\n          \"seq\": 2,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"AA\"\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"b\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"B\",\n            \"qty\": 1\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"b\",\n          \"op\": \"delete\",\n          \"seq\": 2,\n          \"source\": \"primary\"\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"x\",\n          \"name\": \"Replica\",\n          \"qty\": 2\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 1,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"replica\",\n          \"value\": {\n            \"name\": \"Replica\",\n            \"qty\": 2\n          }\n        },\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"Primary\",\n            \"qty\": 3\n          }\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": []\n    },\n    \"input\": {\n      \"as_of\": 0,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"future\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"F\",\n            \"qty\": 1\n          }\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"as_of\": 3,\n      \"events\": [\n        {\n          \"at\": 1,\n          \"id\": \"x\",\n          \"op\": \"set\",\n          \"seq\": 1,\n          \"source\": \"primary\",\n          \"value\": {\n            \"name\": \"X\",\n            \"qty\": 1\n          }\n        },\n        {\n          \"at\": 2,\n          \"id\": \"x\",\n          \"op\": \"delete\",\n          \"seq\": 1,\n          \"source\": \"primary\"\n        }\n      ]\n    }\n  }\n]\n\nProduce your complete implementation.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a091d2-e214-70e3-99ad-7feb85b6b5b8",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 5,
+    "call_index": 17,
+    "repetition": 2,
+    "stage": "single",
+    "task_id": "task08"
+  },
+  "schema_version": 1,
+  "stage": "single",
+  "started_at_utc": "2026-09-11T18:55:10.077273Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task08",
+  "thread_id": "01a091d2-e214-70e3-99ad-7feb85b6b5b8",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 9984,
+    "input_tokens": 24566,
+    "output_tokens": 3890,
+    "reasoning_tokens": null
+  }
+}

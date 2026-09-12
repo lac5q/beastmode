@@ -1,0 +1,37 @@
+[
+  {
+    "input": {
+      "capacity": 5,
+      "requests": [
+        {"id": "a", "units": 2, "benefit": 6},
+        {"id": "b", "units": 3, "benefit": 7},
+        {"id": "c", "units": 4, "benefit": 9}
+      ]
+    },
+    "expected": {"selected": ["a", "b"], "used": 5, "benefit": 13}
+  },
+  {
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {"id": "a", "units": 2, "benefit": 5},
+        {"id": "b", "units": 1, "benefit": 5}
+      ]
+    },
+    "expected": {"selected": ["b"], "used": 1, "benefit": 5}
+  },
+  {
+    "input": {"capacity": 0, "requests": []},
+    "expected": {"selected": [], "used": 0, "benefit": 0}
+  },
+  {
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {"id": "x", "units": 1, "benefit": 1},
+        {"id": "x", "units": 1, "benefit": 2}
+      ]
+    },
+    "expected": {"error": "invalid"}
+  }
+]

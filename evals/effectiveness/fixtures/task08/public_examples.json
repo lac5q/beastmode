@@ -1,0 +1,44 @@
+[
+  {
+    "input": {
+      "as_of": 2,
+      "events": [
+        {"id": "a", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "A", "qty": 5}},
+        {"id": "a", "source": "replica", "seq": 1, "at": 1, "op": "patch", "value": {"qty": 7}},
+        {"id": "a", "source": "primary", "seq": 2, "at": 2, "op": "patch", "value": {"name": "AA"}},
+        {"id": "b", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "B", "qty": 1}},
+        {"id": "b", "source": "primary", "seq": 2, "at": 2, "op": "delete"}
+      ]
+    },
+    "expected": {"records": [{"id": "a", "name": "AA", "qty": 7}]}
+  },
+  {
+    "input": {
+      "as_of": 1,
+      "events": [
+        {"id": "x", "source": "replica", "seq": 1, "at": 1, "op": "set", "value": {"name": "Replica", "qty": 2}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "Primary", "qty": 3}}
+      ]
+    },
+    "expected": {"records": [{"id": "x", "name": "Replica", "qty": 2}]}
+  },
+  {
+    "input": {
+      "as_of": 0,
+      "events": [
+        {"id": "future", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "F", "qty": 1}}
+      ]
+    },
+    "expected": {"records": []}
+  },
+  {
+    "input": {
+      "as_of": 3,
+      "events": [
+        {"id": "x", "source": "primary", "seq": 1, "at": 1, "op": "set", "value": {"name": "X", "qty": 1}},
+        {"id": "x", "source": "primary", "seq": 1, "at": 2, "op": "delete"}
+      ]
+    },
+    "expected": {"error": "invalid"}
+  }
+]

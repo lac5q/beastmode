@@ -1,0 +1,10 @@
+PUBLIC SPECIFICATION
+{{public_spec}}
+
+PUBLIC EXAMPLES
+{{public_examples}}
+
+INITIAL IMPLEMENTATION
+{{initial_code}}
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

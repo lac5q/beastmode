@@ -1,0 +1,10 @@
+[
+  {
+    "name": "mutant-1",
+    "source": "def solve(payload):\n    cpu = payload.get('cpu', 0)\n    memory = payload.get('memory', 0)\n    rows = sorted(payload.get('jobs', []), key=lambda row: (-row.get('priority', 0), row.get('id', '')))\n    selected = []\n    used_cpu = used_memory = priority = 0\n    for row in rows:\n        if used_cpu + row.get('cpu', 0) <= cpu and used_memory + row.get('memory', 0) <= memory:\n            selected.append(row.get('id'))\n            used_cpu += row.get('cpu', 0)\n            used_memory += row.get('memory', 0)\n            priority += row.get('priority', 0)\n    return {'selected': sorted(selected), 'used': {'cpu': used_cpu, 'memory': used_memory}, 'priority': priority}"
+  },
+  {
+    "name": "mutant-2",
+    "source": "def solve(payload):\n    rows = payload.get('jobs', [])\n    cpu = payload.get('cpu', 0)\n    memory = payload.get('memory', 0)\n    best = []\n    for row in rows:\n        if row.get('cpu', 0) <= cpu and row.get('memory', 0) <= memory:\n            best.append(row)\n    best.sort(key=lambda row: (-row.get('priority', 0), row.get('id', '')))\n    selected = [row.get('id') for row in best]\n    return {'selected': sorted(selected), 'used': {'cpu': sum(row.get('cpu', 0) for row in best), 'memory': sum(row.get('memory', 0) for row in best)}, 'priority': sum(row.get('priority', 0) for row in best)}"
+  }
+]

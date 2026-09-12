@@ -1,0 +1,9 @@
+{
+  "error": "Target 'score_candidate' not found",
+  "target": {
+    "name": "score_candidate"
+  },
+  "direction": "upstream",
+  "impactedCount": null,
+  "risk": "UNKNOWN"
+}

@@ -1,0 +1,106 @@
+def solve(payload):
+    def valid_int(value, lower, upper):
+        return (
+            isinstance(value, int)
+            and not isinstance(value, bool)
+            and lower <= value <= upper
+        )
+
+    def invalid():
+        return {"error": "invalid"}
+
+    if not isinstance(payload, dict):
+        return invalid()
+
+    if set(payload.keys()) != {"capacity", "requests"}:
+        return invalid()
+
+    capacity = payload["capacity"]
+    requests = payload["requests"]
+
+    if not valid_int(capacity, 0, 120):
+        return invalid()
+
+    if not isinstance(requests, list) or len(requests) > 40:
+        return invalid()
+
+    parsed = []
+    identifiers = set()
+
+    for request in requests:
+        if not isinstance(request, dict):
+            return invalid()
+
+        if set(request.keys()) != {"id", "units", "benefit"}:
+            return invalid()
+
+        identifier = request["id"]
+        units = request["units"]
+        benefit = request["benefit"]
+
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or len(identifier) > 16
+            or not valid_int(units, 1, 30)
+            or not valid_int(benefit, 1, 1000)
+            or identifier in identifiers
+        ):
+            return invalid()
+
+        identifiers.add(identifier)
+        parsed.append((identifier, units, benefit))
+
+    parsed.sort(key=lambda item: item[0])
+
+    states = [None] * (capacity + 1)
+    states[0] = (0, ())
+
+    for identifier, units, benefit in parsed:
+        for used in range(capacity - units, -1, -1):
+            state = states[used]
+            if state is None:
+                continue
+
+            new_used = used + units
+            candidate = (state[0] + benefit, state[1] + (identifier,))
+            current = states[new_used]
+
+            if (
+                current is None
+                or candidate[0] > current[0]
+                or (
+                    candidate[0] == current[0]
+                    and candidate[1] < current[1]
+                )
+            ):
+                states[new_used] = candidate
+
+    best_used = 0
+    best_benefit = 0
+    best_ids = ()
+
+    for used, state in enumerate(states):
+        if state is None:
+            continue
+
+        state_benefit, state_ids = state
+        if (
+            state_benefit > best_benefit
+            or (
+                state_benefit == best_benefit
+                and (
+                    used < best_used
+                    or (used == best_used and state_ids < best_ids)
+                )
+            )
+        ):
+            best_used = used
+            best_benefit = state_benefit
+            best_ids = state_ids
+
+    return {
+        "selected": list(best_ids),
+        "used": best_used,
+        "benefit": best_benefit,
+    }

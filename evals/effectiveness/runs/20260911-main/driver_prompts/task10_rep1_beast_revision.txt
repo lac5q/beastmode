@@ -1,0 +1,371 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 10: typed telemetry CSV parser
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly one key, text. text is a string of
+at most 4096 Unicode code points. Split it at line-feed characters. A
+carriage return is allowed only immediately before a line feed and is removed.
+The final line may be empty. A line containing only spaces or tabs is ignored.
+A line whose first non-space/tab character is # is also ignored. Other lines
+are records, with at most 80 records. A bare carriage return anywhere else is
+invalid.
+
+Each record is exactly five CSV fields in this order: timestamp, level, code,
+message, tags. CSV quoting is strict: a quote may begin a field only at its
+first character; inside a quoted field, a doubled quote represents one quote;
+after a closing quote only a comma or end of line is allowed. Unquoted fields
+cannot contain quotes. Newlines are not allowed inside quoted fields.
+
+timestamp is an ASCII decimal integer from 0 through 1000000000. level is
+exactly INFO, WARN, or ERROR. code matches
+[A-Z][A-Z0-9_]{1,7}. message is any decoded string of at most 80 code points,
+including the empty string. tags is empty or a semicolon-separated list of
+distinct tags, each matching [a-z][a-z0-9_-]{0,11}. Tags are canonicalized
+into Python/Unicode sorted order in the output. Any malformed record, wrong
+field count, duplicate tag, extra payload key, or other violation returns
+exactly {"error":"invalid"}.
+
+Return exactly an object with these standalone fields:
+* events: records in ascending (timestamp, input_record_order) order, each
+  represented as {"at": timestamp, "level": level, "code": code,
+  "message": message, "tags": sorted_tags}.
+* counts: an object with exactly INFO, WARN, and ERROR integer counts,
+  including zero counts.
+* latest_by_code: for each code, the event with greatest
+  (timestamp, input_record_order), represented as {"at": timestamp,
+  "level": level}. A code absent from the input is absent from this object.
+
+An empty or comment-only document returns empty events, zero counts, and an
+empty latest_by_code. The stated text, record, field, and string limits are
+the complete evaluation size envelope.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 1,
+        "INFO": 1,
+        "WARN": 1
+      },
+      "events": [
+        {
+          "at": 1,
+          "code": "CPU",
+          "level": "WARN",
+          "message": "warm",
+          "tags": [
+            "host"
+          ]
+        },
+        {
+          "at": 2,
+          "code": "BOOT",
+          "level": "INFO",
+          "message": "ready",
+          "tags": [
+            "core",
+            "fast"
+          ]
+        },
+        {
+          "at": 2,
+          "code": "BOOT",
+          "level": "ERROR",
+          "message": "failed",
+          "tags": [
+            "core"
+          ]
+        }
+      ],
+      "latest_by_code": {
+        "BOOT": {
+          "at": 2,
+          "level": "ERROR"
+        },
+        "CPU": {
+          "at": 1,
+          "level": "WARN"
+        }
+      }
+    },
+    "input": {
+      "text": "2,INFO,BOOT,\"ready\",core;fast\n1,WARN,CPU,\"warm\",host\n2,ERROR,BOOT,\"failed\",core"
+    }
+  },
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 0,
+        "INFO": 1,
+        "WARN": 0
+      },
+      "events": [
+        {
+          "at": 0,
+          "code": "MSG",
+          "level": "INFO",
+          "message": "say \"hi\", now",
+          "tags": [
+            "a",
+            "b"
+          ]
+        }
+      ],
+      "latest_by_code": {
+        "MSG": {
+          "at": 0,
+          "level": "INFO"
+        }
+      }
+    },
+    "input": {
+      "text": "0,INFO,MSG,\"say \"\"hi\"\", now\",a;b\n"
+    }
+  },
+  {
+    "expected": {
+      "counts": {
+        "ERROR": 0,
+        "INFO": 0,
+        "WARN": 0
+      },
+      "events": [],
+      "latest_by_code": {}
+    },
+    "input": {
+      "text": "  # comment\n\n"
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "text": "1,INFO,BAD,\"unclosed,x"
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 10
+
+Acceptance: strict single-line CSV decoding followed by typed field validation, stable event ordering, complete zero-inclusive counts, and latest-per-code selection by timestamp then input record order. Avoid permissive CSV defaults that admit malformed quote placement.
+
+Validate exact payload key and text size. Reject any CR that is not immediately followed by LF before ignoring comments/blank lines; then normalize CRLF to LF and split lines. Ignore only lines blank under space/tab or whose first non-space/tab character is '#'. Do not trim record fields: whitespace in typed fields must satisfy their exact grammar. Enforce the record count.
+
+Implement a finite-state CSV scan for each record: field start may open quotes; quoted fields decode doubled quotes; closing quote must be followed by comma or line end; unquoted fields reject any quote. Preserve empty fields, including final tags. Require exactly5 decoded fields. Validate ASCII decimal timestamp and bound (leading zeros are not prohibited), exact level, full code regex (minimum2 characters), decoded message length, and distinct full-matching semicolon tags. Sort tags; empty tags field means [].
+
+Create events with their original record index. Stable sort by (timestamp,index), removing index from output. Counts include every input record and all three level keys at zero when absent. latest_by_code selects max(timestamp,index), not last textual row regardless of time; return only at/level there. Review probes: quoted commas and doubled quotes; empty message/tags; duplicate timestamp tie; input unsorted by time; quote after an unquoted prefix; junk after closing quote; bare CR even in comment; one-character code invalid. No multiline CSV is permitted.
+
+
+INITIAL IMPLEMENTATION
+def _parse_csv_line(line):
+    fields = []
+    length = len(line)
+    index = 0
+
+    while True:
+        if index < length and line[index] == '"':
+            index += 1
+            chars = []
+
+            while True:
+                if index >= length:
+                    return None
+
+                char = line[index]
+                if char == '"':
+                    if index + 1 < length and line[index + 1] == '"':
+                        chars.append('"')
+                        index += 2
+                    else:
+                        index += 1
+                        if index < length and line[index] != ",":
+                            return None
+                        break
+                else:
+                    chars.append(char)
+                    index += 1
+
+            fields.append("".join(chars))
+        else:
+            start = index
+            while index < length and line[index] != ",":
+                if line[index] == '"':
+                    return None
+                index += 1
+            fields.append(line[start:index])
+
+        if index == length:
+            return fields
+
+        index += 1
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+
+    number = 0
+    for char in value:
+        codepoint = ord(char)
+        if codepoint < 48 or codepoint > 57:
+            return None
+        number = number * 10 + codepoint - 48
+        if number > 1000000000:
+            return None
+
+    return number
+
+
+def _valid_code(value):
+    if len(value) < 2 or len(value) > 8:
+        return False
+
+    first = ord(value[0])
+    if first < 65 or first > 90:
+        return False
+
+    for char in value[1:]:
+        codepoint = ord(char)
+        if not (
+            65 <= codepoint <= 90
+            or 48 <= codepoint <= 57
+            or char == "_"
+        ):
+            return False
+
+    return True
+
+
+def _parse_tags(value):
+    if value == "":
+        return []
+
+    tags = value.split(";")
+    seen = set()
+
+    for tag in tags:
+        if len(tag) < 1 or len(tag) > 12 or tag in seen:
+            return None
+
+        first = ord(tag[0])
+        if first < 97 or first > 122:
+            return None
+
+        for char in tag[1:]:
+            codepoint = ord(char)
+            if not (
+                97 <= codepoint <= 122
+                or 48 <= codepoint <= 57
+                or char in "_-"
+            ):
+                return None
+
+        seen.add(tag)
+
+    return sorted(seen)
+
+
+def solve(payload):
+    if not isinstance(payload, dict) or len(payload) != 1 or "text" not in payload:
+        return {"error": "invalid"}
+
+    text = payload["text"]
+    if not isinstance(text, str) or len(text) > 4096:
+        return {"error": "invalid"}
+
+    normalized_chars = []
+    for index, char in enumerate(text):
+        if char == "\r":
+            if index + 1 >= len(text) or text[index + 1] != "\n":
+                return {"error": "invalid"}
+            continue
+        normalized_chars.append(char)
+
+    lines = "".join(normalized_chars).split("\n")
+    records = []
+
+    for line in lines:
+        if not line or all(char in " \t" for char in line):
+            continue
+
+        if line.lstrip(" \t").startswith("#"):
+            continue
+
+        if len(records) >= 80:
+            return {"error": "invalid"}
+
+        fields = _parse_csv_line(line)
+        if fields is None or len(fields) != 5:
+            return {"error": "invalid"}
+
+        timestamp = _parse_timestamp(fields[0])
+        level = fields[1]
+        code = fields[2]
+        message = fields[3]
+        tags = _parse_tags(fields[4])
+
+        if timestamp is None:
+            return {"error": "invalid"}
+
+        if level not in ("INFO", "WARN", "ERROR"):
+            return {"error": "invalid"}
+
+        if not _valid_code(code):
+            return {"error": "invalid"}
+
+        if len(message) > 80:
+            return {"error": "invalid"}
+
+        if tags is None:
+            return {"error": "invalid"}
+
+        records.append(
+            (timestamp, len(records), level, code, message, tags)
+        )
+
+    ordered = sorted(records, key=lambda record: (record[0], record[1]))
+
+    events = []
+    counts = {"INFO": 0, "WARN": 0, "ERROR": 0}
+    latest_by_code = {}
+
+    for timestamp, _, level, code, message, tags in ordered:
+        events.append(
+            {
+                "at": timestamp,
+                "level": level,
+                "code": code,
+                "message": message,
+                "tags": tags,
+            }
+        )
+        counts[level] += 1
+        latest_by_code[code] = {
+            "at": timestamp,
+            "level": level,
+        }
+
+    return {
+        "events": events,
+        "counts": counts,
+        "latest_by_code": latest_by_code,
+    }
+
+DIRECTOR CONTRACT REVIEW
+# Director review: task10 repetition 1
+
+Reviewed only the public specification, prewritten director plan, and this Beastmode initial candidate. No baseline output or held-out cases/results were consulted.
+
+I found no necessary correction. The CSV scanner preserves trailing empty fields, rejects misplaced quotes and suffix text after closing quotes, and decodes doubled quotes. CR validation precedes comment filtering. Typed validation uses ASCII ranges and the specified bounds, including two-character minimum codes and distinct tags. Incremental timestamp parsing also accommodates long leading-zero strings within the text envelope. Sorting by timestamp and original record index makes the latest-per-code overwrite correct for ties and out-of-order input. Counts include all three levels. The 80-record limit applies after ignored lines.
+
+Recheck the implementation against the public contract and return the complete final code. Preserve these semantics; no speculative rewrite is requested.
+
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

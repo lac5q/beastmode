@@ -1,0 +1,253 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 11: bounded single-budget allocation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly the keys capacity and requests.
+capacity is an integer from 0 through 120 inclusive; booleans are not
+integers. requests is an array of at most 40 request objects. Each request has
+exactly id, units, and benefit. id is a non-empty string of at most 16 Unicode
+code points and is unique across requests. units is an integer from 1 through
+30. benefit is an integer from 1 through 1000. Any missing or extra key, wrong
+type, duplicate ID, or out-of-range value returns exactly
+{"error":"invalid"}. The stated limits are the complete evaluation size
+envelope.
+
+Choose a subset of requests, using each request at most once, whose total
+units is at most capacity. Maximize the sum of benefit. If several subsets
+have the same benefit, choose the one with the smaller total units. If they
+still tie, sort each subset's IDs by Python/Unicode string ordering and choose
+the lexicographically smaller ID list. The empty subset is always allowed.
+
+Return exactly {"selected": [...], "used": integer, "benefit": integer}.
+selected is the chosen ID list in sorted order. used and benefit are the sums
+for that subset. No other output fields are allowed. A zero capacity or empty
+request array therefore returns selected [], used 0, benefit 0.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "benefit": 13,
+      "selected": [
+        "a",
+        "b"
+      ],
+      "used": 5
+    },
+    "input": {
+      "capacity": 5,
+      "requests": [
+        {
+          "benefit": 6,
+          "id": "a",
+          "units": 2
+        },
+        {
+          "benefit": 7,
+          "id": "b",
+          "units": 3
+        },
+        {
+          "benefit": 9,
+          "id": "c",
+          "units": 4
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "benefit": 5,
+      "selected": [
+        "b"
+      ],
+      "used": 1
+    },
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {
+          "benefit": 5,
+          "id": "a",
+          "units": 2
+        },
+        {
+          "benefit": 5,
+          "id": "b",
+          "units": 1
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "benefit": 0,
+      "selected": [],
+      "used": 0
+    },
+    "input": {
+      "capacity": 0,
+      "requests": []
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "capacity": 2,
+      "requests": [
+        {
+          "benefit": 1,
+          "id": "x",
+          "units": 1
+        },
+        {
+          "benefit": 2,
+          "id": "x",
+          "units": 1
+        }
+      ]
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 11
+
+Acceptance: solve exact 0/1 subset optimization, then apply all tie-breakers in order: highest benefit, lowest used units, lexicographically smallest sorted ID list. A greedy benefit/units ratio does not satisfy this contract.
+
+Validate exact object keys, capacity and request bounds with bool excluded, request object field sets, and unique bounded string IDs before optimizing. Sort requests by ID. Dynamic programming by exact used capacity needs only121 states: each state stores best benefit and sorted selected-ID tuple at that exact usage. Start with only usage0=(benefit0,empty tuple). For each request, iterate used capacity DOWNWARD so that request cannot be reused, or derive a new table from the previous table. Update a state for larger benefit or equal benefit with lexicographically smaller ID tuple. Sorting requests makes appending its ID maintain tuple order.
+
+After all requests, compare reachable states globally by (-benefit, used, id_tuple); choose the minimum. Do not choose exact capacity by default or accidentally prefer a fuller subset. Return the three specified fields with selected converted to list. Positive request costs and benefits make the empty-capacity case straightforward.
+
+Review probes: a greedy ratio counterexample, optimum below capacity, equal benefit with lower usage, equal benefit/usage with ID tie, request larger than capacity, shuffled input, duplicate ID, bool numeric, maximum40 requests. Complexity O(requests*capacity) up to tuple comparison costs; never enumerate2^40 subsets.
+
+
+INITIAL IMPLEMENTATION
+def solve(payload):
+    invalid = {"error": "invalid"}
+
+    if not isinstance(payload, dict) or set(payload.keys()) != {"capacity", "requests"}:
+        return invalid
+
+    capacity = payload["capacity"]
+    requests = payload["requests"]
+
+    if (
+        isinstance(capacity, bool)
+        or not isinstance(capacity, int)
+        or capacity < 0
+        or capacity > 120
+        or not isinstance(requests, list)
+        or len(requests) > 40
+    ):
+        return invalid
+
+    seen = set()
+    items = []
+
+    for request in requests:
+        if not isinstance(request, dict) or set(request.keys()) != {
+            "id",
+            "units",
+            "benefit",
+        }:
+            return invalid
+
+        identifier = request["id"]
+        units = request["units"]
+        benefit = request["benefit"]
+
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or len(identifier) > 16
+            or identifier in seen
+            or isinstance(units, bool)
+            or not isinstance(units, int)
+            or units < 1
+            or units > 30
+            or isinstance(benefit, bool)
+            or not isinstance(benefit, int)
+            or benefit < 1
+            or benefit > 1000
+        ):
+            return invalid
+
+        seen.add(identifier)
+        items.append((identifier, units, benefit))
+
+    items.sort(key=lambda item: item[0])
+
+    states = [None] * (capacity + 1)
+    states[0] = (0, ())
+
+    for identifier, units, benefit in items:
+        if units > capacity:
+            continue
+
+        for used in range(capacity - units, -1, -1):
+            state = states[used]
+            if state is None:
+                continue
+
+            new_used = used + units
+            new_benefit = state[0] + benefit
+            new_ids = state[1] + (identifier,)
+            current = states[new_used]
+
+            if (
+                current is None
+                or new_benefit > current[0]
+                or (
+                    new_benefit == current[0]
+                    and new_ids < current[1]
+                )
+            ):
+                states[new_used] = (new_benefit, new_ids)
+
+    best_used = 0
+    best_benefit = 0
+    best_ids = ()
+
+    for used, state in enumerate(states):
+        if state is None:
+            continue
+
+        benefit, ids = state
+        if (
+            benefit > best_benefit
+            or (
+                benefit == best_benefit
+                and (
+                    used < best_used
+                    or (used == best_used and ids < best_ids)
+                )
+            )
+        ):
+            best_used = used
+            best_benefit = benefit
+            best_ids = ids
+
+    return {
+        "selected": list(best_ids),
+        "used": best_used,
+        "benefit": best_benefit,
+    }
+
+DIRECTOR CONTRACT REVIEW
+# Director review: task11 repetition 2
+
+Reviewed this candidate against the public specification and frozen director plan only. No baseline candidates or held-out cases/results were consulted.
+
+No necessary correction identified. Validation rejects unknown/missing keys, wrong types, Boolean numeric values, duplicate IDs and all out-of-range values before optimization. The explicit oversized-item skip occurs only after validation. Descending capacity updates implement 0/1 selection. States retain best benefit and lexicographically smallest sorted ID tuple at each exact usage; sorted processing preserves ID order. Positive benefits exclude a proper-prefix tie between equal-benefit states, preserving lexicographic preference under future appends. The final state scan applies maximum benefit, minimum total units, then ID-list order. Empty input and zero capacity return the required zero solution, and processing stays bounded by request count times capacity without mutating input.
+
+Recheck the public contract and return complete final code. Preserve these semantics; no speculative rewrite is requested.
+
+
+Check the review against the public specification and correct any defects. Preserve correct behavior. The public specification is authoritative. Return the complete final implementation even if the review found no necessary change. No hidden-test feedback is available.

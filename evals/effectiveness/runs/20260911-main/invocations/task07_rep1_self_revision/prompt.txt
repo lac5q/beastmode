@@ -1,0 +1,375 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 07: timestamped record reconciliation
+
+Implement a pure Python function solve(payload) that accepts and returns JSON-compatible values.
+
+The payload must be an object with exactly these keys: as_of, base, and
+incoming. as_of is an integer from 0 through 1000000 inclusive; booleans are
+not integers. base and incoming are arrays of at most 50 records. Record IDs
+are unique within each array.
+
+Every record has the four required common keys id, version, updated_at, and
+deleted. id is a
+non-empty string of at most 16 Unicode code points. version is an integer from
+1 through 1000000. updated_at is an integer from 0 through 1000000. deleted is
+a boolean. A live record (deleted false) also has a value key and no other
+keys; a tombstone (deleted true) has no value key. A value has exactly name and
+tags: name is a non-empty string of at most 32 code points, and tags is an
+array of at most 8 distinct strings. Each tag matches
+[a-z][a-z0-9_-]{0,11}. Arrays and objects must otherwise follow these types.
+Any missing key, extra key, wrong type, out-of-range number, duplicate ID,
+duplicate tag, or other violation returns exactly {"error":"invalid"}.
+
+Only records with updated_at <= as_of are eligible. For each ID present in
+either array, choose the eligible record with the greatest tuple
+(version, updated_at, source_rank), where source_rank is 0 for base and 1 for
+incoming. Thus an incoming record wins an exact version/time tie. A winning
+tombstone removes the ID; an ID with no eligible record is absent.
+
+Return exactly {"records": [...]}. The records array is sorted by ID using
+Python/Unicode string ordering. Each surviving record is represented as
+{"id": id, "version": version, "updated_at": updated_at, "value": value}.
+The returned value has the same name and its tags sorted by Python/Unicode
+string ordering. No tombstones are returned. An empty result has
+"records": [].
+
+The input object and every nested object reject unknown keys. The input is
+limited to the stated array, string, and integer bounds so a solver may use
+bounded in-memory processing.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "records": [
+        {
+          "id": "b",
+          "updated_at": 3,
+          "value": {
+            "name": "Beta",
+            "tags": []
+          },
+          "version": 2
+        },
+        {
+          "id": "d",
+          "updated_at": 10,
+          "value": {
+            "name": "Delta",
+            "tags": [
+              "a",
+              "m"
+            ]
+          },
+          "version": 3
+        }
+      ]
+    },
+    "input": {
+      "as_of": 10,
+      "base": [
+        {
+          "deleted": false,
+          "id": "a",
+          "updated_at": 5,
+          "value": {
+            "name": "Alpha",
+            "tags": [
+              "z",
+              "a"
+            ]
+          },
+          "version": 1
+        },
+        {
+          "deleted": false,
+          "id": "b",
+          "updated_at": 3,
+          "value": {
+            "name": "Beta",
+            "tags": []
+          },
+          "version": 2
+        },
+        {
+          "deleted": false,
+          "id": "c",
+          "updated_at": 20,
+          "value": {
+            "name": "Future",
+            "tags": [
+              "x"
+            ]
+          },
+          "version": 1
+        }
+      ],
+      "incoming": [
+        {
+          "deleted": true,
+          "id": "a",
+          "updated_at": 5,
+          "version": 1
+        },
+        {
+          "deleted": false,
+          "id": "b",
+          "updated_at": 9,
+          "value": {
+            "name": "Old",
+            "tags": [
+              "q"
+            ]
+          },
+          "version": 1
+        },
+        {
+          "deleted": false,
+          "id": "d",
+          "updated_at": 10,
+          "value": {
+            "name": "Delta",
+            "tags": [
+              "m",
+              "a"
+            ]
+          },
+          "version": 3
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "records": [
+        {
+          "id": "x",
+          "updated_at": 0,
+          "value": {
+            "name": "New",
+            "tags": [
+              "a"
+            ]
+          },
+          "version": 2
+        }
+      ]
+    },
+    "input": {
+      "as_of": 0,
+      "base": [
+        {
+          "deleted": false,
+          "id": "x",
+          "updated_at": 0,
+          "value": {
+            "name": "Base",
+            "tags": [
+              "b"
+            ]
+          },
+          "version": 1
+        },
+        {
+          "deleted": false,
+          "id": "y",
+          "updated_at": 1,
+          "value": {
+            "name": "Future",
+            "tags": []
+          },
+          "version": 1
+        }
+      ],
+      "incoming": [
+        {
+          "deleted": false,
+          "id": "x",
+          "updated_at": 0,
+          "value": {
+            "name": "New",
+            "tags": [
+              "a"
+            ]
+          },
+          "version": 2
+        },
+        {
+          "deleted": true,
+          "id": "z",
+          "updated_at": 0,
+          "version": 1
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "error": "invalid"
+    },
+    "input": {
+      "as_of": 4,
+      "base": [
+        {
+          "deleted": false,
+          "id": "a",
+          "updated_at": 1,
+          "value": {
+            "name": "A",
+            "tags": []
+          },
+          "version": 1
+        },
+        {
+          "deleted": false,
+          "id": "a",
+          "updated_at": 2,
+          "value": {
+            "name": "Duplicate",
+            "tags": []
+          },
+          "version": 2
+        }
+      ],
+      "incoming": []
+    }
+  }
+]
+
+INITIAL IMPLEMENTATION
+import re
+
+_TAG_RE = re.compile(r"[a-z][a-z0-9_-]{0,11}\Z")
+_PAYLOAD_KEYS = {"as_of", "base", "incoming"}
+_COMMON_KEYS = {"id", "version", "updated_at", "deleted"}
+_LIVE_KEYS = _COMMON_KEYS | {"value"}
+_VALUE_KEYS = {"name", "tags"}
+
+
+def _invalid():
+    return {"error": "invalid"}
+
+
+def _validate_value(value):
+    if type(value) is not dict or set(value.keys()) != _VALUE_KEYS:
+        return None
+
+    name = value["name"]
+    tags = value["tags"]
+
+    if type(name) is not str or not name or len(name) > 32:
+        return None
+    if type(tags) is not list or len(tags) > 8:
+        return None
+
+    seen = set()
+    for tag in tags:
+        if type(tag) is not str or _TAG_RE.fullmatch(tag) is None:
+            return None
+        if tag in seen:
+            return None
+        seen.add(tag)
+
+    return value
+
+
+def _validate_record(record):
+    if type(record) is not dict:
+        return None
+
+    keys = set(record.keys())
+    if keys != _COMMON_KEYS and keys != _LIVE_KEYS:
+        return None
+
+    record_id = record["id"]
+    version = record["version"]
+    updated_at = record["updated_at"]
+    deleted = record["deleted"]
+
+    if type(record_id) is not str or not record_id or len(record_id) > 16:
+        return None
+    if type(version) is not int or not 1 <= version <= 1000000:
+        return None
+    if type(updated_at) is not int or not 0 <= updated_at <= 1000000:
+        return None
+    if type(deleted) is not bool:
+        return None
+
+    if deleted:
+        if keys != _COMMON_KEYS:
+            return None
+        value = None
+    else:
+        if keys != _LIVE_KEYS:
+            return None
+        value = _validate_value(record["value"])
+        if value is None:
+            return None
+
+    return record_id, version, updated_at, deleted, value
+
+
+def solve(payload):
+    if type(payload) is not dict or set(payload.keys()) != _PAYLOAD_KEYS:
+        return _invalid()
+
+    as_of = payload["as_of"]
+    base = payload["base"]
+    incoming = payload["incoming"]
+
+    if type(as_of) is not int or not 0 <= as_of <= 1000000:
+        return _invalid()
+    if type(base) is not list or len(base) > 50:
+        return _invalid()
+    if type(incoming) is not list or len(incoming) > 50:
+        return _invalid()
+
+    chosen = {}
+
+    for source_rank, records in enumerate((base, incoming)):
+        seen_ids = set()
+
+        for record in records:
+            validated = _validate_record(record)
+            if validated is None:
+                return _invalid()
+
+            record_id, version, updated_at, deleted, value = validated
+
+            if record_id in seen_ids:
+                return _invalid()
+            seen_ids.add(record_id)
+
+            if updated_at > as_of:
+                continue
+
+            ranking = (version, updated_at, source_rank)
+            existing = chosen.get(record_id)
+
+            if existing is None or ranking > existing[0]:
+                chosen[record_id] = (ranking, deleted, value)
+
+    result = []
+    for record_id in sorted(chosen):
+        _, deleted, value = chosen[record_id]
+        if deleted:
+            continue
+
+        result.append(
+            {
+                "id": record_id,
+                "version": chosen[record_id][0][0],
+                "updated_at": chosen[record_id][0][1],
+                "value": {
+                    "name": value["name"],
+                    "tags": sorted(value["tags"]),
+                },
+            }
+        )
+
+    return {"records": result}
+
+Independently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.

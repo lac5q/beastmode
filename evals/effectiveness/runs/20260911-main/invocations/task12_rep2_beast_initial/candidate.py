@@ -1,0 +1,184 @@
+def solve(payload):
+    def exact_keys(value, expected):
+        return (
+            type(value) is dict
+            and len(value) == len(expected)
+            and all(key in value for key in expected)
+        )
+
+    def invalid():
+        return {"error": "invalid"}
+
+    if not exact_keys(payload, ("cpu", "memory", "jobs")):
+        return invalid()
+
+    capacity_cpu = payload["cpu"]
+    capacity_memory = payload["memory"]
+    jobs = payload["jobs"]
+
+    if type(capacity_cpu) is not int or not 0 <= capacity_cpu <= 64:
+        return invalid()
+    if type(capacity_memory) is not int or not 0 <= capacity_memory <= 64:
+        return invalid()
+    if type(jobs) is not list or len(jobs) > 16:
+        return invalid()
+
+    job_ids = []
+    job_cpus = []
+    job_memories = []
+    job_priorities = []
+    raw_deps = []
+    seen_ids = set()
+
+    for job in jobs:
+        if not exact_keys(job, ("id", "cpu", "memory", "priority", "deps")):
+            return invalid()
+
+        job_id = job["id"]
+        job_cpu = job["cpu"]
+        job_memory = job["memory"]
+        job_priority = job["priority"]
+        deps = job["deps"]
+
+        if type(job_id) is not str or not job_id or len(job_id) > 16:
+            return invalid()
+        if job_id in seen_ids:
+            return invalid()
+        seen_ids.add(job_id)
+
+        if type(job_cpu) is not int or not 1 <= job_cpu <= 32:
+            return invalid()
+        if type(job_memory) is not int or not 1 <= job_memory <= 32:
+            return invalid()
+        if type(job_priority) is not int or not 1 <= job_priority <= 1000:
+            return invalid()
+        if type(deps) is not list or len(deps) > 16:
+            return invalid()
+
+        dep_set = set()
+        for dep in deps:
+            if type(dep) is not str or dep in dep_set:
+                return invalid()
+            dep_set.add(dep)
+
+        job_ids.append(job_id)
+        job_cpus.append(job_cpu)
+        job_memories.append(job_memory)
+        job_priorities.append(job_priority)
+        raw_deps.append(deps)
+
+    count = len(jobs)
+    id_to_index = {job_id: i for i, job_id in enumerate(job_ids)}
+    dependencies = []
+
+    for i, deps in enumerate(raw_deps):
+        indices = []
+        for dep in deps:
+            if dep not in id_to_index:
+                return invalid()
+            dep_index = id_to_index[dep]
+            if dep_index == i:
+                return invalid()
+            indices.append(dep_index)
+        dependencies.append(indices)
+
+    state = [0] * count
+
+    def visit(node):
+        if state[node] == 1:
+            return False
+        if state[node] == 2:
+            return True
+
+        state[node] = 1
+        for dependency in dependencies[node]:
+            if not visit(dependency):
+                return False
+        state[node] = 2
+        return True
+
+    for node in range(count):
+        if not visit(node):
+            return invalid()
+
+    order = sorted(range(count), key=lambda i: job_ids[i])
+    old_to_new = {old: new for new, old in enumerate(order)}
+
+    sorted_ids = [job_ids[old] for old in order]
+    sorted_cpus = [job_cpus[old] for old in order]
+    sorted_memories = [job_memories[old] for old in order]
+    sorted_priorities = [job_priorities[old] for old in order]
+
+    direct_dependency_masks = [0] * count
+    for new_index, old_index in enumerate(order):
+        mask = 0
+        for dependency in dependencies[old_index]:
+            mask |= 1 << old_to_new[dependency]
+        direct_dependency_masks[new_index] = mask
+
+    limit = 1 << count
+    cpu_sums = [0] * limit
+    memory_sums = [0] * limit
+    priority_sums = [0] * limit
+    dependency_unions = [0] * limit
+
+    best_mask = 0
+    best_priority = 0
+    best_cost = 0
+    best_ids = ()
+
+    for mask in range(1, limit):
+        low_bit = mask & -mask
+        index = low_bit.bit_length() - 1
+        previous = mask ^ low_bit
+
+        used_cpu = cpu_sums[previous] + sorted_cpus[index]
+        used_memory = memory_sums[previous] + sorted_memories[index]
+        total_priority = priority_sums[previous] + sorted_priorities[index]
+        required = dependency_unions[previous] | direct_dependency_masks[index]
+
+        cpu_sums[mask] = used_cpu
+        memory_sums[mask] = used_memory
+        priority_sums[mask] = total_priority
+        dependency_unions[mask] = required
+
+        if used_cpu > capacity_cpu or used_memory > capacity_memory:
+            continue
+        if required & ~mask:
+            continue
+
+        cost = used_cpu + used_memory
+
+        if total_priority > best_priority:
+            better = True
+        elif total_priority < best_priority:
+            better = False
+        elif cost < best_cost:
+            better = True
+        elif cost > best_cost:
+            better = False
+        else:
+            candidate_ids = tuple(
+                sorted_ids[i] for i in range(count) if mask & (1 << i)
+            )
+            better = candidate_ids < best_ids
+
+        if better:
+            best_mask = mask
+            best_priority = total_priority
+            best_cost = cost
+            best_ids = tuple(
+                sorted_ids[i] for i in range(count) if mask & (1 << i)
+            )
+
+    used_cpu = cpu_sums[best_mask]
+    used_memory = memory_sums[best_mask]
+
+    return {
+        "selected": list(best_ids),
+        "used": {
+            "cpu": used_cpu,
+            "memory": used_memory,
+        },
+        "priority": best_priority,
+    }

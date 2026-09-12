@@ -1,0 +1,222 @@
+[
+  {
+    "id": "t07-01",
+    "input": {"as_of": 0, "base": [], "incoming": []},
+    "expected": {"records": []}
+  },
+  {
+    "id": "t07-02",
+    "input": {
+      "as_of": 7,
+      "base": [{"id": "r", "version": 1, "updated_at": 7, "deleted": false, "value": {"name": "R", "tags": ["z", "a", "m"]}}],
+      "incoming": []
+    },
+    "expected": {"records": [{"id": "r", "version": 1, "updated_at": 7, "value": {"name": "R", "tags": ["a", "m", "z"]}}]}
+  },
+  {
+    "id": "t07-03",
+    "input": {
+      "as_of": 3,
+      "base": [{"id": "r", "version": 8, "updated_at": 4, "deleted": false, "value": {"name": "Future", "tags": []}}],
+      "incoming": []
+    },
+    "expected": {"records": []}
+  },
+  {
+    "id": "t07-04",
+    "input": {
+      "as_of": 20,
+      "base": [{"id": "r", "version": 2, "updated_at": 19, "deleted": false, "value": {"name": "Base", "tags": []}}],
+      "incoming": [{"id": "r", "version": 3, "updated_at": 1, "deleted": false, "value": {"name": "New", "tags": ["n"]}}]
+    },
+    "expected": {"records": [{"id": "r", "version": 3, "updated_at": 1, "value": {"name": "New", "tags": ["n"]}}]}
+  },
+  {
+    "id": "t07-05",
+    "input": {
+      "as_of": 20,
+      "base": [{"id": "r", "version": 2, "updated_at": 5, "deleted": false, "value": {"name": "Old", "tags": []}}],
+      "incoming": [{"id": "r", "version": 2, "updated_at": 6, "deleted": false, "value": {"name": "Later", "tags": []}}]
+    },
+    "expected": {"records": [{"id": "r", "version": 2, "updated_at": 6, "value": {"name": "Later", "tags": []}}]}
+  },
+  {
+    "id": "t07-06",
+    "input": {
+      "as_of": 20,
+      "base": [{"id": "r", "version": 2, "updated_at": 6, "deleted": false, "value": {"name": "Base", "tags": []}}],
+      "incoming": [{"id": "r", "version": 2, "updated_at": 6, "deleted": false, "value": {"name": "Incoming", "tags": []}}]
+    },
+    "expected": {"records": [{"id": "r", "version": 2, "updated_at": 6, "value": {"name": "Incoming", "tags": []}}]}
+  },
+  {
+    "id": "t07-07",
+    "input": {
+      "as_of": 20,
+      "base": [{"id": "r", "version": 2, "updated_at": 6, "deleted": false, "value": {"name": "Base", "tags": []}}],
+      "incoming": [{"id": "r", "version": 3, "updated_at": 1, "deleted": true}]
+    },
+    "expected": {"records": []}
+  },
+  {
+    "id": "t07-08",
+    "input": {
+      "as_of": 20,
+      "base": [{"id": "r", "version": 4, "updated_at": 2, "deleted": false, "value": {"name": "Live", "tags": []}}],
+      "incoming": [{"id": "r", "version": 3, "updated_at": 20, "deleted": true}]
+    },
+    "expected": {"records": [{"id": "r", "version": 4, "updated_at": 2, "value": {"name": "Live", "tags": []}}]}
+  },
+  {
+    "id": "t07-09",
+    "input": {
+      "as_of": 10,
+      "base": [{"id": "gone", "version": 1, "updated_at": 0, "deleted": true}],
+      "incoming": []
+    },
+    "expected": {"records": []}
+  },
+  {
+    "id": "t07-10",
+    "input": {
+      "as_of": 10,
+      "base": [
+        {"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": []}},
+        {"id": "x", "version": 2, "updated_at": 1, "deleted": false, "value": {"name": "X2", "tags": []}}
+      ],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-11",
+    "input": {
+      "as_of": 10,
+      "base": [],
+      "incoming": [
+        {"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": []}},
+        {"id": "x", "version": 2, "updated_at": 1, "deleted": true}
+      ]
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-12",
+    "input": {"as_of": 0, "base": [], "incoming": [], "extra": 1},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-13",
+    "input": {"as_of": false, "base": [], "incoming": []},
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-14",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": true, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": []}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-15",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": -1, "deleted": false, "value": {"name": "X", "tags": []}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-16",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": []}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-17",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": ["Bad"]}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-18",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": ["a", "a"]}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-19",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "X", "tags": [], "extra": 1}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-20",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": 0, "deleted": true, "value": {"name": "X", "tags": []}}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-21",
+    "input": {
+      "as_of": 1,
+      "base": [{"id": "x", "version": 1, "updated_at": 0, "deleted": false}],
+      "incoming": []
+    },
+    "expected": {"error": "invalid"}
+  },
+  {
+    "id": "t07-22",
+    "input": {
+      "as_of": 10,
+      "base": [
+        {"id": "é", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "E", "tags": []}},
+        {"id": "z", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "Z", "tags": []}},
+        {"id": "aa", "version": 1, "updated_at": 0, "deleted": false, "value": {"name": "AA", "tags": []}}
+      ],
+      "incoming": []
+    },
+    "expected": {
+      "records": [
+        {"id": "aa", "version": 1, "updated_at": 0, "value": {"name": "AA", "tags": []}},
+        {"id": "z", "version": 1, "updated_at": 0, "value": {"name": "Z", "tags": []}},
+        {"id": "é", "version": 1, "updated_at": 0, "value": {"name": "E", "tags": []}}
+      ]
+    }
+  },
+  {
+    "id": "t07-23",
+    "input": {
+      "as_of": 5,
+      "base": [{"id": "x", "version": 2, "updated_at": 6, "deleted": true}],
+      "incoming": [{"id": "y", "version": 1, "updated_at": 6, "deleted": false, "value": {"name": "Y", "tags": []}}]
+    },
+    "expected": {"records": []}
+  },
+  {
+    "id": "t07-24",
+    "input": {
+      "as_of": 10,
+      "base": [{"id": "x", "version": 5, "updated_at": 10, "deleted": false, "value": {"name": "Keep", "tags": []}}],
+      "incoming": [{"id": "x", "version": 5, "updated_at": 10, "deleted": true}]
+    },
+    "expected": {"records": []}
+  }
+]

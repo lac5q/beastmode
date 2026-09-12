@@ -1,0 +1,149 @@
+Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.
+
+PUBLIC SPECIFICATION
+# Task 02: critical-path build scheduler
+
+Implement a pure Python `solve(payload)` function with JSON-compatible input and output.
+
+The valid input is an object with integer `lanes` in `1..80` and a `tasks` array of at most 80 tasks. Each task has a unique non-empty string `id` of at most 40 Unicode characters, a positive integer `duration` in `1..100000`, and a `deps` array of distinct string IDs. Every dependency must occur in the array. Empty `tasks` is valid. Booleans do not count as integers. For a missing field, wrong type, duplicate ID or dependency, unknown dependency, self-dependency, cycle, or any other violation, return exactly `{"error":"invalid"}`. Unknown object keys are ignored.
+
+Tasks run on `lanes` identical build lanes. Time is integral and begins at zero. A task is ready only when all dependencies have finished. For every ready task, first compute its critical length as its own duration plus the largest critical length among its direct dependants; a task with no dependant has critical length equal to its duration. At each time when tasks finish, finish all of them before starting work. At time zero do the same start step. When slots compete, choose ready tasks by descending critical length, then lexicographically ascending ID. Start as many as fit. Tasks that finish together release all their lanes together.
+
+Return `order` (IDs in the exact order they started), `start` (each ID to its integer start time), `finish` (each ID to its integer finish time), `makespan` (the greatest finish time, or `0` for no tasks), and `critical` (each ID to its computed critical length). No extra keys are needed; object key order is irrelevant.
+
+
+PUBLIC EXAMPLES
+[
+  {
+    "expected": {
+      "critical": {
+        "a": 6,
+        "b": 2,
+        "c": 4,
+        "d": 1
+      },
+      "finish": {
+        "a": 2,
+        "b": 1,
+        "c": 6,
+        "d": 2
+      },
+      "makespan": 6,
+      "order": [
+        "a",
+        "b",
+        "d",
+        "c"
+      ],
+      "start": {
+        "a": 0,
+        "b": 0,
+        "c": 2,
+        "d": 1
+      }
+    },
+    "input": {
+      "lanes": 2,
+      "tasks": [
+        {
+          "deps": [],
+          "duration": 2,
+          "id": "a"
+        },
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "b"
+        },
+        {
+          "deps": [
+            "a"
+          ],
+          "duration": 4,
+          "id": "c"
+        },
+        {
+          "deps": [
+            "b"
+          ],
+          "duration": 1,
+          "id": "d"
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "critical": {
+        "a": 1,
+        "q": 3,
+        "z": 4
+      },
+      "finish": {
+        "a": 5,
+        "q": 4,
+        "z": 1
+      },
+      "makespan": 5,
+      "order": [
+        "z",
+        "q",
+        "a"
+      ],
+      "start": {
+        "a": 4,
+        "q": 1,
+        "z": 0
+      }
+    },
+    "input": {
+      "lanes": 1,
+      "tasks": [
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "z"
+        },
+        {
+          "deps": [],
+          "duration": 1,
+          "id": "a"
+        },
+        {
+          "deps": [
+            "z"
+          ],
+          "duration": 3,
+          "id": "q"
+        }
+      ]
+    }
+  },
+  {
+    "expected": {
+      "critical": {},
+      "finish": {},
+      "makespan": 0,
+      "order": [],
+      "start": {}
+    },
+    "input": {
+      "lanes": 3,
+      "tasks": []
+    }
+  }
+]
+
+DIRECTOR ACCEPTANCE AND IMPLEMENTATION PLAN
+# Director plan: Task 02
+
+Acceptance: validate the entire graph before returning a schedule; compute the stated downstream critical length, then obey descending critical length and ascending ID at each dispatch event. The priority is fixed from the full DAG, not recomputed as remaining duration.
+
+Validate object/container types and reject bool for numeric fields. Build all IDs before resolving dependencies, reject duplicates/unknown IDs/self-edges, and find a topological order to reject cycles anywhere. Follow the public policy on extra fields and bounds. Traverse topological order in reverse: critical[id] = duration[id] + max(critical[child] for direct dependants, default 0). A shared descendant contributes through max, never a sum.
+
+Maintain indegrees for dispatch separately from those consumed by topological validation. Ready heap key is (-critical[id], id); running heap key is (finish_time, id). Dispatch until lanes are full. Jump to the next completion time, pop every task finishing then, and update all dependants before dispatching again. This avoids a same-time completion interleaving bug. Record start order, per-ID start/finish, makespan, and critical map, including the specified empty result.
+
+Review probes: equal critical priorities resolved by ID; shorter task with longer downstream path outranking a long leaf; fan-out and reconverging paths; later-listed dependencies; simultaneous completions; invalid bool or cycle. The public specification outranks this plan if wording differs. Use event jumps rather than unit-time iteration.
+
+
+Implement the public specification using this plan. The public specification is authoritative if the plan contains a mistake. Return your complete implementation.

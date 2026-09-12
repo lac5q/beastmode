@@ -1,0 +1,4 @@
+[
+  {"name": "closed_endpoints", "source": "def solve(payload):\n    xs = sorted(payload.get('intervals', []))\n    merged=[]\n    for a,b in xs:\n        if not merged or a > merged[-1][1] + 1: merged.append([a,b])\n        else: merged[-1][1] = max(merged[-1][1], b)\n    return {'merged': merged, 'total': sum(b-a for a,b in merged), 'overlaps': [0 for _ in payload.get('queries', [])]}"},
+  {"name": "ignore_union_overlap_in_queries", "source": "def solve(payload):\n    xs=payload.get('intervals',[])\n    return {'merged': xs, 'total': sum(b-a for a,b in xs), 'overlaps': [sum(max(0,min(y,b)-max(x,a)) for a,b in xs) for x,y in payload.get('queries',[])]}"}
+]

@@ -1,0 +1,64 @@
+{
+  "candidate_path": "candidate.py",
+  "candidate_sha256": "0d9ae8ae41a593dbf75be295092df6b5a911e6996f0ca8f42da93b2ef02d5f55",
+  "exit_code": 0,
+  "final_output_path": "final_output.txt",
+  "finished_at_utc": "2026-09-11T20:53:06.150326Z",
+  "launch_error": null,
+  "parse_error": null,
+  "pid": 1389981,
+  "pid_recorded_at_utc": "2026-09-11T20:51:34.901376Z",
+  "prompt_path": "prompt.txt",
+  "prompt_sha256": "5d2565ef6173b68a604857d046bb0175a27bba0be0ce7f3bf49582db3db97371",
+  "raw_jsonl_path": "raw.jsonl",
+  "repetition": 2,
+  "requested": {
+    "cli_version": "codex-cli 0.153.4",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-5.6-luna",
+      "-c",
+      "model_reasoning_effort=\"max\"",
+      "-s",
+      "read-only",
+      "--json",
+      "Implement the programming contract below in Python 3 using only the standard library. Think carefully about all requirements, edge cases, and interactions. Your output must be a complete Python module exposing solve(payload). Input and output must be JSON-compatible as specified. Do not read or write files, use network access, call tools, delegate, inspect the environment, or seek reference solutions. This is a code-output-only trial; any model tool call invalidates the attempt. Do not print anything from the module. Return only the Python source, optionally enclosed in one Python Markdown code fence, with no surrounding prose. You may use your full reasoning allowance internally. The same restrictions apply to every trial arm.\n\nPUBLIC SPECIFICATION\n# Task 07: timestamped record reconciliation\n\nImplement a pure Python function solve(payload) that accepts and returns JSON-compatible values.\n\nThe payload must be an object with exactly these keys: as_of, base, and\nincoming. as_of is an integer from 0 through 1000000 inclusive; booleans are\nnot integers. base and incoming are arrays of at most 50 records. Record IDs\nare unique within each array.\n\nEvery record has the four required common keys id, version, updated_at, and\ndeleted. id is a\nnon-empty string of at most 16 Unicode code points. version is an integer from\n1 through 1000000. updated_at is an integer from 0 through 1000000. deleted is\na boolean. A live record (deleted false) also has a value key and no other\nkeys; a tombstone (deleted true) has no value key. A value has exactly name and\ntags: name is a non-empty string of at most 32 code points, and tags is an\narray of at most 8 distinct strings. Each tag matches\n[a-z][a-z0-9_-]{0,11}. Arrays and objects must otherwise follow these types.\nAny missing key, extra key, wrong type, out-of-range number, duplicate ID,\nduplicate tag, or other violation returns exactly {\"error\":\"invalid\"}.\n\nOnly records with updated_at <= as_of are eligible. For each ID present in\neither array, choose the eligible record with the greatest tuple\n(version, updated_at, source_rank), where source_rank is 0 for base and 1 for\nincoming. Thus an incoming record wins an exact version/time tie. A winning\ntombstone removes the ID; an ID with no eligible record is absent.\n\nReturn exactly {\"records\": [...]}. The records array is sorted by ID using\nPython/Unicode string ordering. Each surviving record is represented as\n{\"id\": id, \"version\": version, \"updated_at\": updated_at, \"value\": value}.\nThe returned value has the same name and its tags sorted by Python/Unicode\nstring ordering. No tombstones are returned. An empty result has\n\"records\": [].\n\nThe input object and every nested object reject unknown keys. The input is\nlimited to the stated array, string, and integer bounds so a solver may use\nbounded in-memory processing.\n\n\nPUBLIC EXAMPLES\n[\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"b\",\n          \"updated_at\": 3,\n          \"value\": {\n            \"name\": \"Beta\",\n            \"tags\": []\n          },\n          \"version\": 2\n        },\n        {\n          \"id\": \"d\",\n          \"updated_at\": 10,\n          \"value\": {\n            \"name\": \"Delta\",\n            \"tags\": [\n              \"a\",\n              \"m\"\n            ]\n          },\n          \"version\": 3\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 10,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 5,\n          \"value\": {\n            \"name\": \"Alpha\",\n            \"tags\": [\n              \"z\",\n              \"a\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"b\",\n          \"updated_at\": 3,\n          \"value\": {\n            \"name\": \"Beta\",\n            \"tags\": []\n          },\n          \"version\": 2\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"c\",\n          \"updated_at\": 20,\n          \"value\": {\n            \"name\": \"Future\",\n            \"tags\": [\n              \"x\"\n            ]\n          },\n          \"version\": 1\n        }\n      ],\n      \"incoming\": [\n        {\n          \"deleted\": true,\n          \"id\": \"a\",\n          \"updated_at\": 5,\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"b\",\n          \"updated_at\": 9,\n          \"value\": {\n            \"name\": \"Old\",\n            \"tags\": [\n              \"q\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"d\",\n          \"updated_at\": 10,\n          \"value\": {\n            \"name\": \"Delta\",\n            \"tags\": [\n              \"m\",\n              \"a\"\n            ]\n          },\n          \"version\": 3\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"records\": [\n        {\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"New\",\n            \"tags\": [\n              \"a\"\n            ]\n          },\n          \"version\": 2\n        }\n      ]\n    },\n    \"input\": {\n      \"as_of\": 0,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"Base\",\n            \"tags\": [\n              \"b\"\n            ]\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"y\",\n          \"updated_at\": 1,\n          \"value\": {\n            \"name\": \"Future\",\n            \"tags\": []\n          },\n          \"version\": 1\n        }\n      ],\n      \"incoming\": [\n        {\n          \"deleted\": false,\n          \"id\": \"x\",\n          \"updated_at\": 0,\n          \"value\": {\n            \"name\": \"New\",\n            \"tags\": [\n              \"a\"\n            ]\n          },\n          \"version\": 2\n        },\n        {\n          \"deleted\": true,\n          \"id\": \"z\",\n          \"updated_at\": 0,\n          \"version\": 1\n        }\n      ]\n    }\n  },\n  {\n    \"expected\": {\n      \"error\": \"invalid\"\n    },\n    \"input\": {\n      \"as_of\": 4,\n      \"base\": [\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 1,\n          \"value\": {\n            \"name\": \"A\",\n            \"tags\": []\n          },\n          \"version\": 1\n        },\n        {\n          \"deleted\": false,\n          \"id\": \"a\",\n          \"updated_at\": 2,\n          \"value\": {\n            \"name\": \"Duplicate\",\n            \"tags\": []\n          },\n          \"version\": 2\n        }\n      ],\n      \"incoming\": []\n    }\n  }\n]\n\nINITIAL IMPLEMENTATION\n```python\ndef _is_int(value):\n    return isinstance(value, int) and not isinstance(value, bool)\n\n\ndef _has_keys(obj, expected):\n    return isinstance(obj, dict) and set(obj.keys()) == expected\n\n\ndef _valid_range_int(value, low, high):\n    return _is_int(value) and low <= value <= high\n\n\ndef _valid_tag(tag):\n    if not isinstance(tag, str) or not 1 <= len(tag) <= 12:\n        return False\n    if not (\"a\" <= tag[0] <= \"z\"):\n        return False\n    return all(\n        (\"a\" <= char <= \"z\")\n        or (\"0\" <= char <= \"9\")\n        or char in \"_-\"\n        for char in tag[1:]\n    )\n\n\ndef _valid_value(value):\n    if not _has_keys(value, {\"name\", \"tags\"}):\n        return False\n\n    name = value[\"name\"]\n    tags = value[\"tags\"]\n\n    if not isinstance(name, str) or not 1 <= len(name) <= 32:\n        return False\n    if not isinstance(tags, list) or len(tags) > 8:\n        return False\n    if not all(_valid_tag(tag) for tag in tags):\n        return False\n    return len(set(tags)) == len(tags)\n\n\ndef _valid_record(record):\n    if not isinstance(record, dict):\n        return False\n\n    common = {\"id\", \"version\", \"updated_at\", \"deleted\"}\n    if \"deleted\" not in record:\n        return False\n\n    deleted = record[\"deleted\"]\n\n    if deleted is True:\n        if not _has_keys(record, common):\n            return False\n    elif deleted is False:\n        if not _has_keys(record, common | {\"value\"}):\n            return False\n        if not _valid_value(record[\"value\"]):\n            return False\n    else:\n        return False\n\n    return (\n        isinstance(record[\"id\"], str)\n        and 1 <= len(record[\"id\"]) <= 16\n        and _valid_range_int(record[\"version\"], 1, 1000000)\n        and _valid_range_int(record[\"updated_at\"], 0, 1000000)\n    )\n\n\ndef solve(payload):\n    if not _has_keys(payload, {\"as_of\", \"base\", \"incoming\"}):\n        return {\"error\": \"invalid\"}\n\n    as_of = payload[\"as_of\"]\n    base = payload[\"base\"]\n    incoming = payload[\"incoming\"]\n\n    if not _valid_range_int(as_of, 0, 1000000):\n        return {\"error\": \"invalid\"}\n\n    if (\n        not isinstance(base, list)\n        or not isinstance(incoming, list)\n        or len(base) > 50\n        or len(incoming) > 50\n    ):\n        return {\"error\": \"invalid\"}\n\n    base_ids = set()\n    for record in base:\n        if not _valid_record(record) or record[\"id\"] in base_ids:\n            return {\"error\": \"invalid\"}\n        base_ids.add(record[\"id\"])\n\n    incoming_ids = set()\n    for record in incoming:\n        if not _valid_record(record) or record[\"id\"] in incoming_ids:\n            return {\"error\": \"invalid\"}\n        incoming_ids.add(record[\"id\"])\n\n    best = {}\n\n    for source_rank, records in ((0, base), (1, incoming)):\n        for record in records:\n            if record[\"updated_at\"] > as_of:\n                continue\n\n            key = (\n                record[\"version\"],\n                record[\"updated_at\"],\n                source_rank,\n            )\n            record_id = record[\"id\"]\n\n            if record_id not in best or key > best[record_id][0]:\n                best[record_id] = (key, record)\n\n    result = []\n    for record_id in sorted(best):\n        record = best[record_id][1]\n        if record[\"deleted\"]:\n            continue\n\n        result.append(\n            {\n                \"id\": record[\"id\"],\n                \"version\": record[\"version\"],\n                \"updated_at\": record[\"updated_at\"],\n                \"value\": {\n                    \"name\": record[\"value\"][\"name\"],\n                    \"tags\": sorted(record[\"value\"][\"tags\"]),\n                },\n            }\n        )\n\n    return {\"records\": result}\n```\n\nIndependently check this implementation against the entire contract. Correct any defects you find. Preserve correct behavior. Return the complete final implementation even if you find no necessary change. No hidden-test feedback is available.\n"
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "max",
+    "sandbox": "read-only",
+    "tools": "forbidden"
+  },
+  "runtime": {
+    "effort": "max",
+    "model": "gpt-5.6-luna",
+    "source": "turn_context",
+    "thread_id": "01a0923d-759e-72d0-bad5-7feff24a364a",
+    "verified": true
+  },
+  "schedule_entry": {
+    "arm": "baseline",
+    "block_index": 17,
+    "call_index": 68,
+    "repetition": 2,
+    "stage": "self_revision",
+    "task_id": "task07"
+  },
+  "schema_version": 1,
+  "stage": "self_revision",
+  "started_at_utc": "2026-09-11T20:51:34.616224Z",
+  "status": "completed",
+  "stderr_path": "stderr.log",
+  "task_id": "task07",
+  "thread_id": "01a0923d-759e-72d0-bad5-7feff24a364a",
+  "timed_out": false,
+  "tool_used": false,
+  "usage": {
+    "cached_input_tokens": 17152,
+    "input_tokens": 25636,
+    "output_tokens": 3353,
+    "reasoning_tokens": null
+  }
+}

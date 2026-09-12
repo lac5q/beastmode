@@ -1,0 +1,4 @@
+[
+  {"name": "strict_boundary_release", "source": "def solve(payload):\n    xs=sorted(payload.get('intervals',[]), key=lambda x:(x['start'],x['id']))\n    active=[]; out={}; n=0\n    for x in xs:\n        active=[e for e in active if e[0] > x['start']]\n        if active: room=2\n        else: n+=1; room=n\n        active.append((x['end'],room)); out[x['id']]=room\n    return {'rooms':n,'assignment':out,'order':[x['id'] for x in xs]}"},
+  {"name": "input_order_tie", "source": "def solve(payload):\n    xs=sorted(payload.get('intervals',[]), key=lambda x:x['start'])\n    return {'rooms': len(xs), 'assignment': {x['id']:i+1 for i,x in enumerate(xs)}, 'order':[x['id'] for x in xs]}"}
+]
