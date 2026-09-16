@@ -6,6 +6,7 @@
 | ACN Unification (v2.2.0) | **shipped** — see below; hardened in v2.3.0 | this file, `ACCEPTANCE.md` |
 | Beastmode on LangGraph (v2.4.0) | **shipped on public `main`** — P0–P7S complete; optional LangGraph/LangSmith runtime, capability-preserving hardening, exact-commit security scan, generated-artifact checks, and remote CI are green | `langgraph/ROADMAP.md`, `langgraph/REQUIREMENTS.md`, `langgraph/ACCEPTANCE.md`, `langgraph/OPEN-QUESTIONS.md` |
 | Run visibility (`acn-trace`) | **planned** — independent of LangGraph, works on every harness today | `observability/ROADMAP.md` |
+| Native goal lifecycle and operations | **planned** — persistent goals, inspect/resume/approval, supervision, verified outcomes, optional jobs/notifications; Dagu integration conditional | [Phases GL0–GL7 and acceptance](goal-lifecycle/ROADMAP.md) |
 | CrewAI binding | **deferred** — gated on the LangGraph effort's evolver phase | `langgraph/ROADMAP.md` §P9 |
 
 ---

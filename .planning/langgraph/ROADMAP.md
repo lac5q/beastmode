@@ -615,6 +615,11 @@ Release evidence: public commit
 
 ## P8 — `graphs/forever.py` (separate effort, gated)
 
+Coordination (2026-09-16): the [native goal lifecycle effort](../goal-lifecycle/ROADMAP.md)
+reuses this runtime's checkpoints and supplies the shared bounded-goal supervision
+contract. Coordinate P8 supervision with that effort; do not build competing goal
+registries or supervisors. Its roadmap does not authorize P8 implementation.
+
 Not the same thing as P3, and worth stating plainly: P3 ports the *existing*
 fixed loop. P8 is the **new capability** — the continuously-cooking evolver that
 keeps a project moving for days, with a graph that cycles rather than

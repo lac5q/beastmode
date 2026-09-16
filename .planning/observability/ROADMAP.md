@@ -3,6 +3,14 @@
 **Status:** planned, not started. Independent of the LangGraph effort — nothing
 here needs LangGraph, and it works on every harness beastmode already supports.
 
+## Lifecycle coordination (2026-09-16)
+
+The [native goal lifecycle roadmap](../goal-lifecycle/ROADMAP.md) owns persistent
+goal IDs, lifecycle events and operational inspection. This effort consumes those
+identities for optional tracing; it does not become the source of run state or
+acceptance. LangGraph P0–P7S has shipped; references below to that effort being
+several phases away are historical context, not its current status.
+
 ## The problem
 
 Today you can't see what a beastmode run is doing. Work happens across parallel
