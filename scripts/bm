@@ -15,6 +15,8 @@
 #   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
 #      --attestor-command /trusted/attest --validator-command /trusted/validate \
 #      --reviewer-command /trusted/review
+#   bm goal run "<goal>" [flags]             # durable, inspectable, resumable goal
+#   bm goal runs|inspect|logs|approve|reject|pause|resume|cancel|reconcile
 #
 # The goal can appear anywhere on the command line; flags are parsed first
 # and the remaining args are joined into the goal string.
@@ -109,6 +111,22 @@ case "${1:-}" in
     fi
     BM_CMD="$1"; shift
     exec "$BM_INSTALLER" "$BM_CMD" "$@"
+    ;;
+  goal)
+    # Native goal lifecycle (schema/goal-lifecycle.json). Namespaced under
+    # `goal` so a goal whose text starts with "inspect" or "run" is never
+    # hijacked; only `bm goal <known verb>` is reserved.
+    case "${2:-}" in
+      run|runs|inspect|logs|approve|reject|pause|resume|cancel|reconcile|schedule|capabilities|help|-h|--help|"")
+        BM_GOAL="$SCRIPT_DIR/bm-goal"
+        if [ ! -x "$BM_GOAL" ]; then
+          echo "bm: missing $BM_GOAL (is this a partial checkout?)" >&2
+          exit 2
+        fi
+        shift
+        exec python3 "$BM_GOAL" "$@"
+        ;;
+    esac
     ;;
 esac
 
@@ -428,6 +446,14 @@ INTERVIEW_PROMPT=""
 [ "$INTERVIEW_MODE" != "off" ] && INTERVIEW_PROMPT="$(bm_interview_prompt "$INTERVIEW_MODE")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
 SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
+# Under `bm goal run` the supervisor exports BM_RUN_DIR; the director then
+# writes receipts and durable gate/review handshakes there instead of
+# reporting them only in the transcript.
+LIFECYCLE_PROMPT=""
+if [ -n "${BM_RUN_DIR:-}" ] && [ "$HARNESS" != "langgraph" ]; then
+  LIFECYCLE_PROMPT="$(bm_lifecycle_prompt "$BM_RUN_DIR" "${BM_GOAL_ID:-unknown}" "${BM_ATTEMPT_ID:-a1}")"
+  SEAT_PROMPT="$SEAT_PROMPT $LIFECYCLE_PROMPT"
+fi
 # Headless Beastmode must explicitly trust the project-local skill and policy
 # on every run.  This is a trust/loading invariant, not a permission bypass;
 # the canonical project policy still governs tools, paths, and bash commands.
@@ -531,6 +557,12 @@ case "$HARNESS" in
     [ -n "$REVIEWER_COMMAND" ] && LG_ARGS+=(--reviewer-command "$REVIEWER_COMMAND")
     [ "$ALLOW_WORKER_NETWORK" = "1" ] && LG_ARGS+=(--allow-worker-network)
     [ -n "$WORKTREE_ROOT" ] && LG_ARGS+=(--worktree-root "$WORKTREE_ROOT")
+    # `bm goal run` pins the checkpoint thread, database and run directory to
+    # the goal record so a later `bm goal resume` re-opens the same thread.
+    [ -n "${BM_GOAL_ID:-}" ] && LG_ARGS+=(--thread-id "$BM_GOAL_ID")
+    [ -n "${BM_LANGGRAPH_DB:-}" ] && LG_ARGS+=(--database "$BM_LANGGRAPH_DB")
+    [ -n "${BM_RUN_DIR:-}" ] && LG_ARGS+=(--run-dir "$BM_RUN_DIR")
+    [ -n "${BM_RESUME:-}" ] && LG_ARGS+=(--resume "$BM_RESUME")
     exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
     ;;
   pi)

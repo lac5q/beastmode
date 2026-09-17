@@ -19,13 +19,22 @@ expected_hash() {
   sed -n "s|^[[:space:]]*${name}) HASH=\"\([0-9a-f]\{64\}\)\" ;*|\1|p" "$INSTALLER"
 }
 
-for name in bm claude-pro check-pi-agent-policy lib/prompts.sh; do
+for name in bm claude-pro check-pi-agent-policy lib/prompts.sh bm-goal lib/goal_lifecycle.py lib/acn_meta.py; do
   expected="$(expected_hash "$name")"
   [ -n "$expected" ] || fail "installer has no pinned hash for $name"
   actual="$(sha256sum "$ROOT/scripts/$name" | awk '{print $1}')"
   [ "$actual" = "$expected" ] \
     || fail "$name hash mismatch: installer=$expected actual=$actual"
   echo "ok: installer hash matches scripts/$name"
+done
+
+for name in goal-lifecycle.json acn-contract.json; do
+  expected="$(expected_hash "$name")"
+  [ -n "$expected" ] || fail "installer has no pinned hash for schema/$name"
+  actual="$(sha256sum "$ROOT/schema/$name" | awk '{print $1}')"
+  [ "$actual" = "$expected" ] \
+    || fail "schema/$name hash mismatch: installer=$expected actual=$actual"
+  echo "ok: installer hash matches schema/$name"
 done
 
 for path in \

@@ -1,6 +1,13 @@
 # ROADMAP — Native goal lifecycle and operations
 
-**Status:** planned, not started. Added 2026-09-16 at the operator's request.
+**Status:** GL0–GL6 implemented 2026-09-17 (`schema/goal-lifecycle.json`,
+`scripts/lib/goal_lifecycle.py`, `scripts/bm-goal`, `bm goal <verb>`,
+`references/goal-lifecycle.md`); GL7 closed as not needed
+([DAGU-DECISION.md](DAGU-DECISION.md)). Evidence: `tests/test-goal-lifecycle.sh`
+(fake-harness pilot, part of `tests/run-all.sh`) and
+`python/tests/test_goal_lifecycle.py`. Capability-specific claims only: shell
+harnesses resume by prompt continuation, LangGraph by checkpoint; remote dispatch is
+unsupported under the supervisor. Added 2026-09-16 at the operator's request.
 Version assignment follows implementation readiness; this is not a release claim.
 
 ## Goal and decision
@@ -47,28 +54,32 @@ autonomy enforcement and verified outcomes. Optional schedulers own triggers and
 outer workflow attempts. Notifications and trace exporters consume events and
 cannot approve work. Preserve one scheduler of record per recurring job.
 
-## Proposed command surface
+## Command surface
 
-These are planned interfaces, not commands available today:
+Implemented under the `bm goal` namespace (the top-level spellings proposed earlier
+were not aliased because `bm inspect` already means model inspection and `bm status`
+stays installation status):
 
 ```text
-bm run "Implement the next slice"
-bm runs
-bm inspect <goal-id>
-bm logs <goal-id>
-bm approve <goal-id>
-bm resume <goal-id>
-bm cancel <goal-id>
+bm goal run "Implement the next slice"
+bm goal runs
+bm goal inspect <goal-id>
+bm goal logs <goal-id>
+bm goal approve <goal-id> | reject <goal-id>
+bm goal pause <goal-id> | resume <goal-id> | cancel <goal-id>
+bm goal reconcile
+bm goal schedule <goal-id> --at ISO | --every SECONDS
+bm goal harvest
+bm goal capabilities
 ```
 
-P0 specifies durable pause/reject operations and machine-readable modes alongside
-these commands. Preserve `bm status` as installation status; goal inspection gets
-its own command. Approval records a scoped decision; resume continues execution
-only after required decisions are satisfied.
+Pause/reject are durable operations and every command has `--json`. Approval
+records a scoped decision; resume continues execution only after required
+decisions are satisfied. See `references/goal-lifecycle.md`.
 
 ## Phases and acceptance
 
-All phases below are unchecked. Phase exits are future acceptance criteria.
+Phase exits below are met by the pilot except where a row says otherwise.
 
 | Phase | Scope | Deterministic exit |
 |---|---|---|

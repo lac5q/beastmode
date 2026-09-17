@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "description": "Native goal lifecycle contract. Every Beastmode goal started through `bm goal run` is a durable record that can be listed, inspected, approved, resumed, cancelled and proven complete without reading a chat transcript. scripts/lib/goal_lifecycle.py is the only writer; scripts/bm-goal and `bm goal <verb>` are the CLI surface.",
+  "identity": {
+    "goal_id": "stable identity assigned once at `bm goal run`; format g<UTC yyyymmddThhmmss>-<6 hex>",
+    "attempt_id": "one supervised harness process; format a<n>, monotonically increasing per goal. Completion and evidence bind to an attempt AND a revision, never to the goal alone",
+    "contract_digest": "sha256 of the normalized goal text + seats + autonomy + harness. A decision or completion recorded under one digest is stale under another",
+    "revision": "git rev-parse HEAD of the target worktree at the moment a decision or completion is recorded"
+  },
+  "states": [
+    "queued",
+    "paused",
+    "running",
+    "awaiting_approval",
+    "blocked",
+    "failed",
+    "cancelled",
+    "succeeded"
+  ],
+  "terminal_states": [
+    "cancelled",
+    "succeeded"
+  ],
+  "transitions": {
+    "queued": [
+      "running",
+      "paused",
+      "cancelled"
+    ],
+    "paused": [
+      "queued",
+      "cancelled"
+    ],
+    "running": [
+      "awaiting_approval",
+      "blocked",
+      "failed",
+      "cancelled",
+      "succeeded"
+    ],
+    "awaiting_approval": [
+      "running",
+      "failed",
+      "cancelled"
+    ],
+    "blocked": [
+      "running",
+      "failed",
+      "cancelled"
+    ],
+    "failed": [
+      "running",
+      "cancelled"
+    ],
+    "cancelled": [],
+    "succeeded": []
+  },
+  "outcomes": {
+    "succeeded": "final revision passed every verify command, the provenance gate returned ok for every expected child, and a bound watcher review approved the same revision",
+    "awaiting_approval": "the harness stopped at a durable gate (control/gate.json or a LangGraph interrupt) and recorded the question",
+    "validation_failed": "a verify command exited non-zero at the final revision",
+    "provenance_failed": "scripts/lib/acn_meta.py returned drift or unverifiable for at least one child",
+    "review_missing": "no watcher review bound to the final revision and attempt; `no watcher, no validated`",
+    "harness_failed": "the harness process exited non-zero without a gate handshake",
+    "infrastructure_failed": "the harness could not be started (missing binary, spawn error) or the supervisor died; retryable",
+    "stalled": "no output, receipts, or heartbeat for the configured stall window; retryable",
+    "budget_exhausted": "attempt, elapsed-time or token budget reached; further attempts are refused until the operator raises the budget",
+    "cancelled": "operator cancellation; cleanup is recorded as `confirmed` or `uncertain`",
+    "rejected": "operator rejected the pending decision",
+    "supervisor_lost": "the record said running but the supervisor process is gone; effects are unknown until reconciled"
+  },
+  "retryable_outcomes": [
+    "infrastructure_failed",
+    "stalled",
+    "supervisor_lost"
+  ],
+  "resume_modes": {
+    "checkpoint": "LangGraph checkpoint resume: the graph continues from the interrupt with Command(resume=decision); no work is repeated",
+    "prompt_continuation": "shell harnesses restart the harness process in the same worktree with the recorded decisions injected into the prompt; file-system state persists, conversation state does not. Never presented as checkpoint-exact"
+  },
+  "capabilities": {
+    "pi": {
+      "pause_running": false,
+      "approve": true,
+      "resume": "prompt_continuation",
+      "cancel": "process_group",
+      "remote": false
+    },
+    "hermes": {
+      "pause_running": false,
+      "approve": true,
+      "resume": "prompt_continuation",
+      "cancel": "process_group",
+      "remote": false
+    },
+    "claude": {
+      "pause_running": false,
+      "approve": true,
+      "resume": "prompt_continuation",
+      "cancel": "process_group",
+      "remote": false
+    },
+    "codex": {
+      "pause_running": false,
+      "approve": true,
+      "resume": "prompt_continuation",
+      "cancel": "process_group",
+      "remote": false
+    },
+    "langgraph": {
+      "pause_running": false,
+      "approve": true,
+      "resume": "checkpoint",
+      "cancel": "process_group",
+      "remote": false
+    }
+  },
+  "commands": [
+    "bm goal run <goal> [bm flags] [--max-attempts N] [--max-seconds N] [--max-tokens N] [--stall-seconds N] [--verify-cmd CMD]... [--expect ID,...] [--attestations PATH] [--notify-cmd CMD] [--queue-only] [--json]",
+    "bm goal runs [--state S] [--json]",
+    "bm goal inspect <goal-id> [--json]",
+    "bm goal logs <goal-id> [--attempt a<n>] [--tail N]",
+    "bm goal approve <goal-id> [--decision ID] [--answer KEY=VALUE]... [--actor NAME]",
+    "bm goal reject <goal-id> [--reason TEXT]",
+    "bm goal pause <goal-id>",
+    "bm goal resume <goal-id> [--restart] [--acknowledge-partial-effects]",
+    "bm goal cancel <goal-id> [--grace-seconds N]",
+    "bm goal reconcile [--json]",
+    "bm goal schedule <goal-id> --at ISO8601|--every SECONDS --export cron|launchd|json",
+    "bm goal run --from-template <goal-id> --occurrence TOKEN [--queue-only] [--json]",
+    "bm goal harvest [--since ISO8601] [--out FILE] [--json]",
+    "bm goal capabilities"
+  ],
+  "exit_codes": {
+    "0": "command succeeded / goal succeeded",
+    "1": "goal failed or blocked (validation, provenance, review, harness, stall, budget)",
+    "2": "usage or configuration error",
+    "3": "breaker: refused by a fail-closed policy (bm model preflight, Claude OAuth seat, remote dispatch)",
+    "4": "goal is awaiting approval; run `bm goal inspect <id>` then approve/reject and resume",
+    "5": "goal was cancelled",
+    "6": "operation unsupported for this harness (see capabilities)",
+    "7": "conflict: repository lock held, illegal state transition, stale approval, or another supervisor owns the goal"
+  },
+  "control_files": {
+    "$BM_RUN_DIR/control/gate.json": {
+      "gate": "string (plan|execute|verify|provenance|merge|interview)",
+      "phase": "string",
+      "question": "string",
+      "options": "array (optional)",
+      "recommended": "string (optional)"
+    },
+    "$BM_RUN_DIR/control/review.json": {
+      "goal_id": "string",
+      "attempt_id": "string",
+      "revision": "string",
+      "reviewer_id": "child id whose meta.json + trusted attestation prove the watcher model",
+      "approved": "boolean",
+      "summary": "string"
+    },
+    "$BM_RUN_DIR/<child>/meta.json": "per-child receipt per schema/acn-contract.json"
+  },
+  "records": {
+    "goal.json": [
+      "version",
+      "goal_id",
+      "goal",
+      "contract_digest",
+      "repo",
+      "worktree",
+      "harness",
+      "autonomy",
+      "seats",
+      "state",
+      "outcome",
+      "reason",
+      "created_at",
+      "updated_at",
+      "base_revision",
+      "current_attempt",
+      "attempts",
+      "budget",
+      "pending_decision",
+      "decisions",
+      "completion",
+      "supervisor"
+    ],
+    "events.jsonl": [
+      "seq",
+      "ts",
+      "type",
+      "goal_id",
+      "attempt_id",
+      "from",
+      "to",
+      "reason",
+      "actor",
+      "data"
+    ],
+    "attempts/<attempt_id>/attempt.json": [
+      "attempt_id",
+      "goal_id",
+      "started_at",
+      "finished_at",
+      "pid",
+      "pgid",
+      "host",
+      "heartbeat_at",
+      "exit_code",
+      "outcome",
+      "resume_mode",
+      "run_dir",
+      "usage"
+    ],
+    "attempts/<attempt_id>/result.json": [
+      "version",
+      "goal_id",
+      "attempt_id",
+      "outcome",
+      "revision",
+      "contract_digest",
+      "validation",
+      "provenance",
+      "review",
+      "recorded_at"
+    ]
+  },
+  "hard_rules": [
+    "goal.json is replaced atomically (write temp, fsync, rename); events.jsonl is append-only",
+    "an illegal transition is refused with exit 7 and never partially applied",
+    "completion never equals merge; succeeded means the acceptance record exists for the final revision",
+    "an approval is bound to goal_id + attempt_id + revision + contract_digest; a resume under a different revision refuses with exit 7 and records approval_stale",
+    "a restart of a partially completed goal is never called resume: it requires --restart and either a retryable outcome or --acknowledge-partial-effects",
+    "cancellation records cleanup as confirmed only when the process group is observed gone; otherwise uncertain",
+    "unprovable provenance and a missing watcher review fail closed exactly as in schema/acn-contract.json",
+    "the state root lives outside the target repository (XDG_STATE_HOME/beastmode/goals) and is never scanned to answer a goal-id lookup",
+    "a notification or scheduler trigger never approves, resumes or completes a goal; only bm goal approve/resume/cancel change state",
+    "recurring schedules create a fresh goal per occurrence; overlapping or duplicate occurrences are refused, never queued silently"
+  ],
+  "scheduling": {
+    "owner": "the OS scheduler (cron/launchd) owns triggers; Beastmode owns goal state and every gate",
+    "one_shot": "--at resumes the same queued/paused goal once",
+    "recurring": "--every treats the goal as a template; each trigger runs `run --from-template <goal-id> --occurrence <UTC yyyymmddTHHMM>` which creates a fresh goal `<goal-id>-<occurrence>`",
+    "timezone": "UTC (cron export emits CRON_TZ=UTC; launchd calendar entries are rendered host-local and annotated)",
+    "overlap_policy": "reject: the repository lock refuses a second running goal in the same worktree (exit 7); concurrency one never implies no backlog because every skipped occurrence is a visible refusal",
+    "duplicate_policy": "reject: a repeated trigger for the same occurrence token finds the goal id already recorded (exit 7)",
+    "missed_trigger_policy": {
+      "cron": "skip (no catch-up)",
+      "launchd": "coalesce: one run on wake"
+    }
+  },
+  "notifications": {
+    "hook": "--notify-cmd CMD receives one JSON payload on stdin per (attempt, outcome)",
+    "payload": [
+      "notification_id",
+      "goal_id",
+      "attempt_id",
+      "state",
+      "outcome",
+      "reason",
+      "goal",
+      "event_seq"
+    ],
+    "retries": 3,
+    "dedup": "notification_id = goal_id:attempt_id:outcome; delivered ids are recorded on the goal",
+    "failure": "recorded as a notification_failed event with the bounded error; the verdict is unchanged",
+    "cannot_approve": "a notification consumer has no lifecycle authority; approval only happens via bm goal approve",
+    "secrets": "payloads contain no credentials; the command reads its own secrets from the environment, never from the goal record"
+  },
+  "learning_harvest": {
+    "command": "bm goal harvest",
+    "input": "terminal, failed and blocked goal records",
+    "output": "a Markdown/JSON proposal of skill and config changes",
+    "applies_changes": false
+  }
+}

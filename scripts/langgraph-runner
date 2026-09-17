@@ -15,6 +15,7 @@ import os
 import shlex
 import stat
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -295,7 +296,92 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume,
     )
     print(json.dumps(result, indent=2, default=str))
-    return 0 if result.get("status") == "merged" else 1
+    return _exit_code(result, _write_lifecycle_summary(result))
+
+
+def _interrupt_payloads(result: Mapping[str, Any]) -> list[Any]:
+    interrupts = result.get("__interrupt__")
+    if not isinstance(interrupts, (list, tuple)):
+        return []
+    payloads: list[Any] = []
+    for item in interrupts[:8]:
+        value = getattr(item, "value", item)
+        payloads.append(value if isinstance(value, (dict, str, int, float, bool)) or value is None else str(value))
+    return payloads
+
+
+def _write_lifecycle_summary(result: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Under `bm goal run` the supervisor names a parent-owned summary path.
+
+    The summary is the trusted bridge between the graph's final state and the
+    goal record: interrupts become awaiting_approval, the provenance verdict
+    and review report become the revision-bound acceptance record. It is
+    written only where the supervisor asked (outside the worker run_dir).
+    """
+    target = os.environ.get("BM_LIFECYCLE_SUMMARY")
+    if not target:
+        return None
+    path = Path(target).expanduser().absolute()
+    if not path.parent.is_dir():
+        raise SystemExit(f"langgraph-runner: BM_LIFECYCLE_SUMMARY parent missing: {path.parent}")
+    validation = result.get("validation_report")
+    review = result.get("review_report")
+    summary = {
+        "contract_version": "1.0",
+        "status": result.get("status"),
+        "phase": result.get("phase"),
+        "interrupt": _interrupt_payloads(result),
+        "preflight_ok": result.get("preflight_ok") is True,
+        "validation_report": dict(validation) if isinstance(validation, Mapping) else None,
+        "provenance_verdict": result.get("provenance_verdict") or "unverifiable",
+        "provenance_messages": [str(m)[:1024] for m in (result.get("provenance_messages") or [])[:32]],
+        "ok_children": [
+            str(item.get("id"))
+            for item in (result.get("task_results") or [])[:64]
+            if isinstance(item, Mapping) and item.get("status") == "completed"
+        ],
+        "review_report": dict(review) if isinstance(review, Mapping) else None,
+        "merge_decision": result.get("merge_decision"),
+        "merged": result.get("status") == "merged",
+    }
+    body = json.dumps(summary, indent=2, default=str, sort_keys=True)
+    tmp = path.with_name(path.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(body)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+    return summary
+
+
+def _exit_code(result: Mapping[str, Any], summary: Mapping[str, Any] | None) -> int:
+    """Exit codes follow schema/goal-lifecycle.json when supervised.
+
+    Standalone invocations keep the historical contract (0 only after a
+    merge). Under `bm goal run` a pending interrupt exits 4 and a validated,
+    reviewed goal exits 0 whether or not it was also merged: completion is an
+    acceptance record, not a merge.
+    """
+    if summary is None:
+        return 0 if result.get("status") == "merged" else 1
+    if summary["interrupt"]:
+        return 4
+    if result.get("status") == "merged":
+        return 0
+    validation = summary.get("validation_report")
+    review = summary.get("review_report")
+    if (
+        summary.get("preflight_ok")
+        and isinstance(validation, Mapping)
+        and validation.get("passed") is True
+        and summary.get("provenance_verdict") == "ok"
+        and isinstance(review, Mapping)
+        and review.get("approved") is True
+        and result.get("status") == "ready_to_merge"
+    ):
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
