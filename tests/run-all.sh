@@ -47,7 +47,8 @@ syntax_check() {
     bash -n "$f" || rc=1
   done
   python3 -m py_compile scripts/acn-report scripts/phase-estimate \
-      scripts/cache-hitrate scripts/lib/acn_meta.py || rc=1
+      scripts/cache-hitrate scripts/lib/acn_meta.py scripts/lib/goal_lifecycle.py \
+      scripts/bm-goal scripts/langgraph-runner || rc=1
   return $rc
 }
 
@@ -72,6 +73,7 @@ run_step "dependency integrity" ./tests/test-dependency-integrity.sh
 run_step "ACN trace security" ./tests/test-acn-trace.sh
 run_step "public artifact guard" ./tests/test-public-artifact-guard.sh
 run_step "Pi security regressions" ./tests/test-pi-security.sh
+run_step "goal lifecycle pilot" ./tests/test-goal-lifecycle.sh
 
 # ---- summary ----
 echo

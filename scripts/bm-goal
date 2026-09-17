@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""bm-goal — native goal lifecycle CLI (also reachable as `bm goal <verb>`).
+
+Durable goal records live under $XDG_STATE_HOME/beastmode/goals. See
+schema/goal-lifecycle.json for states, transitions, exit codes and the
+harness capability matrix; references/goal-lifecycle.md for the operator guide.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+
+import goal_lifecycle  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(goal_lifecycle.main())

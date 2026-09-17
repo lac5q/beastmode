@@ -197,7 +197,7 @@ The provenance gate is fail-closed in both directions: a child whose independent
 ## Files
 
 - `SKILL.md` — The complete beastmode framework (start here)
-- `schema/` — Machine source of truth: `families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`
+- `schema/` — Machine source of truth: `families.json`, `tiers.json`, `seats.json`, `autonomy-levels.json`, `acn-contract.json`, `goal-lifecycle.json`
 - `adapters/hermes/SKILL.md` — Hermes ACN adapter (`delegate_task` background/batch)
 - `adapters/claude-code/SKILL.md` — Claude Code adapter (Task, `/batch`, one `claude -p` watcher)
 - `adapters/codex/SKILL.md` — Codex adapter (parallel `codex exec`, external worker lanes; supersedes beastmode-cloud / beastmode-qwen-cloud)
@@ -206,12 +206,14 @@ The provenance gate is fail-closed in both directions: a child whose independent
 - `references/model-routing.md` — Tier definitions, per-phase routing table, design package template, escalation ladder, provider config sketches
 - `references/autonomy-levels.md` — `low` / `medium` (default) / `high` autonomy levels, mapped to pi/Hermes/Claude/Codex flags and surface rules
 - `references/acn-contract.md` — The ACN fan-out contract (batch shape, child meta.json, shared rules)
+- `references/goal-lifecycle.md` — `bm goal run|runs|inspect|logs|approve|reject|pause|resume|cancel|reconcile|schedule|harvest`: durable goal records, revision-bound approvals and acceptance, supervisor recovery, optional cron/launchd scheduling and notifications
 - `references/families-tiers-seats.md` — Human view of the schema vocabulary
 - `references/orchestration-comparison.md` — Evolution from early prototypes to v2.x
 - `references/context-rot-mitigation.md` — MemroOS-style goal-state capsules, compact/resume rules, and MofA decision memory
 - `references/public-sharing-checklist.md` — Guidelines for publishing beastmode skills publicly
 - `pi/SKILL.md` — Pi harness adapter (`pi-coding-agent` ≥ 0.80.6 + 6 companion npm packages)
 - `scripts/bm` — Runner CLI for one-shot goals with harness/tier picks, phase reports, and `--on` dispatch; also self-manages via `bm install` / `upgrade` / `status` / `doctor` / `version` / `uninstall`
+- `scripts/bm-goal` — Goal lifecycle CLI behind `bm goal <verb>` (`scripts/lib/goal_lifecycle.py`)
 - `scripts/install-beastmode.sh` — The 🚀 GSD-style installer: idempotent, versioned snapshots, manifest-driven clean uninstall, `--global` / `--local` / `--runtimes`
 - `scripts/enforce-models` — Model preflight/postflight (drift fail-closed) shared by all harnesses
 - `scripts/acn-report` — Normalize ACN child metas into the phase usage report

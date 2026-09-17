@@ -94,3 +94,14 @@ EOF
       ;;
   esac
 }
+
+# bm_lifecycle_prompt <run-dir> <goal-id> <attempt-id>
+# Durable handshake used only under `bm goal run` (schema/goal-lifecycle.json
+# control_files). A gate that is only reported in the transcript cannot be
+# resumed; a review that is not bound to the final revision proves nothing.
+bm_lifecycle_prompt() {
+  local run_dir="${1:?run dir}" goal_id="${2:-unknown}" attempt_id="${3:-a1}"
+  cat <<EOF
+Goal lifecycle: this run is goal $goal_id attempt $attempt_id, supervised by bm goal. Persist every child's meta.json under $run_dir/<child-id>/meta.json. If $run_dir/control/decisions.json exists, read it first: it holds the operator's recorded answers to earlier gates; never re-ask them and continue from the phase they unblock. When you STOP at a gate, first write $run_dir/control/gate.json as {"gate": "<plan|execute|verify|merge|interview>", "phase": "<name>", "question": "<what needs approval>", "options": [...], "recommended": "<option>"} and then exit; the operator approves with bm goal approve and resumes with bm goal resume. When the goal is complete, have the watcher write $run_dir/control/review.json as {"goal_id": "$goal_id", "attempt_id": "$attempt_id", "revision": "<git rev-parse HEAD>", "reviewer_id": "<watcher child id whose meta.json is in the run dir>", "approved": true|false, "summary": "<one paragraph>"}. Do not write gate.json when finishing, and never write review.json with approved true for a revision the watcher did not inspect.
+EOF
+}

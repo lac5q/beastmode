@@ -148,17 +148,20 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
 bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy lib/prompts.sh; do
+for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy lib/prompts.sh bm-goal lib/goal_lifecycle.py lib/acn_meta.py; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="72431758b5f70d6959a5e316ed025300a9686e2340a606efe3a5f1b8bac69455" ;;
+    bm) HASH="25d063cceb7b04a7c9edd4f400e66de2602865919542aa56b117e2cf68c2a97a" ;;
     tier-aliases.json) HASH="0d1496a649ae41da492a99dc56ba10b8f8e07c89417b6d459755d613637399e5" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="68dadf141030bf3c3c6b00c332a5528582d2532e1d8aa06ed67fae66b364ef15" ;;
     check-pi-agent-policy) HASH="0173f561520831381738f955fb8fb2eda9c33ab2ecc4637f263a1ca579deac23" ;;
-    lib/prompts.sh) HASH="577fb743016a9b9cf194cdd087e558fad01f887a9fadcc18560ce03ba2db4950" ;;
+    lib/prompts.sh) HASH="57a7c988e1c7ad2976b65f80cb7956ffab755339e4917f51b66e062b3ab0823f" ;;
+    bm-goal) HASH="802d339dff89c07ddd21b44be216c3d65a74a57a9a857c4b43297bd505734542" ;;
+    lib/goal_lifecycle.py) HASH="573c110ca7a7f358b0eab4750885050753c2069ce4f38d72cb08eba6b4981fc0" ;;
+    lib/acn_meta.py) HASH="31b7443c1533293582b9fd349b12e8a389b3efac01acd0d952827a3cce1f106a" ;;
   esac
   if fetch_pinned "$URL" "$DEST" "$HASH"; then
     chmod +x "$DEST" 2>/dev/null || true
@@ -167,6 +170,21 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
     err "could not fetch or verify $f from $URL"
     exit 1
   fi
+done
+
+# 6b. lifecycle contracts (bm-goal refuses to start without them)
+bold "Install lifecycle contracts"
+mkdir -p "${BM_DIR}/schema"
+for f in goal-lifecycle.json acn-contract.json; do
+  URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/schema/${f}"
+  DEST="${BM_DIR}/schema/${f}"
+  case "$f" in
+    goal-lifecycle.json) HASH="9ce47ee431d2c2bbd03a599b21e1aa0571e1c7314cf15e43316b4f4edb24f132" ;;
+    acn-contract.json) HASH="450bfa49707ba9060176dd13d3b6ed4b963bce0e4682b028da246bc6a50c332e" ;;
+  esac
+  fetch_pinned "$URL" "$DEST" "$HASH" \
+    && ok "fetched and verified schema/$f" \
+    || { err "could not fetch or verify $f from $URL"; exit 1; }
 done
 
 # 7. agentType marker for the Claude Pro lane (pi workflow subagent registry)
