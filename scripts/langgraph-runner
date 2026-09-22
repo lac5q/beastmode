@@ -243,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     # Keep the graph's default aligned with the shell/Pi runners: every
     # economy child is explicitly pinned to Luna Max unless the caller names
     # another reviewed lane.
-    executor_model = args.economy or "openai-codex/gpt-5.6-luna"
+    executor_model = args.economy or "openai-codex/gpt-6-luna"
     executor = WorktreeSubprocessExecutor(
         repo=project_root,
         command=command,

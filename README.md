@@ -8,7 +8,7 @@ Exact search aliases: **beastmode**, **MofA**, **Mixture of Agents**, **memroos*
 
 **In plain English, Beastmode:**
 
-- 💸 **Saves you a small fortune** — routes implementation *and mechanical validation* to the pinned Luna Max economy lane (`gpt-5.6-luna`) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for the design, judgment, and review only geniuses should sign off on.
+- 💸 **Saves you a small fortune** — routes implementation *and mechanical validation* to the pinned Luna Max economy lane (`gpt-6-luna`) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for the design, judgment, and review only geniuses should sign off on.
 - 🧠 **Improves quality** — mandatory acceptance contracts, adversarial review, and merge gates that actually mean something.
 - 📈 **Gets better over time** — a self-improvement loop that writes down its lessons and promotes the patterns that keep winning into skills/config.
 - 🧩 **Works anywhere** — harness-agnostic across Ultraswarm, GSD, `delegate_task`, Claude Code subagents, LangGraph, manual git, or `pi-coding-agent`.
@@ -71,7 +71,7 @@ The routing rule underneath: a task goes to a cheap model exactly when its outpu
 ## Model Tiers
 
 - **Design tier (frontier):** Claude Fable, Kimi 3, Opus, frontier Codex/GPT — architecture, acceptance contracts, judgment review, escalations
-- **Execution tier (economy):** Luna Max (`gpt-5.6-luna`) by default — implementation, tests, docs, and mechanical validation (running verification commands, producing pass/fail reports)
+- **Execution tier (economy):** Luna Max (`gpt-6-luna`) by default — implementation, tests, docs, and mechanical validation (running verification commands, producing pass/fail reports)
 
 See `references/model-routing.md` for the per-phase routing table and escalation ladder.
 

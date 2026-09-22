@@ -4,7 +4,7 @@ Moved out of always-on AGENTS.md on 2026-09-12 so Astra/Sol/Hermes sessions
 do not pay this on every email. Load with skill `beastmode`.
 
 Luis standing rule: menial work goes to a Luna Max coworker. The current
-agent stays director, reviewer, and merge gate. GPT-5.6 Luna is the bounded
+agent stays director, reviewer, and merge gate. GPT-6 Luna is the bounded
 worker and must run with maximum reasoning.
 
 This is automatic while Beastmode is in play. Classify each unit of work as
@@ -40,7 +40,7 @@ director. When unsure, downshift with a tighter scope and review the result.
 
 - Run the dispatch test unprompted when this skill is loaded.
 - Route menial work to Luna Max when that lane is live. Prefer
-  `bin/beast-luna` in memroos-product (pins `gpt-5.6-luna`, max reasoning).
+  `bin/beast-luna` in memroos-product (pins `gpt-6-luna`, max reasoning).
   Codex adapter lanes: `beastmode/adapters/codex/SKILL.md`.
 - Maximum reasoning on Luna Max workers. Verify the live model before sending.
 - Hand the worker a bounded slice: scope, allowed files, acceptance checks.
