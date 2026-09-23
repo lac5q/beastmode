@@ -79,7 +79,7 @@ goal to a mid-run crash. Skip with `BM_SKIP_MODEL_CHECK=1` (CI / scripted
 runs where `pi` may not be installed).
 
 For Pi, the friendly `luna-max` seat stays on the canonical authenticated
-`openai-codex/gpt-5.6-luna` provider. Do not infer that an installed
+`openai-codex/gpt-6-luna` provider. Do not infer that an installed
 `pi-vibeproxy` extension is authenticated: a provider can appear in
 `pi --list-models` and still reject the run at dispatch time. A host that has
 independently verified VibeProxy authentication may opt in with
@@ -116,7 +116,7 @@ printf '%s\n' 'Reply with exactly: CLAUDE OK' | \
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
-smoke gate. Keep automatic worker routing on Luna Max (`gpt-5.6-luna`,
+smoke gate. Keep automatic worker routing on Luna Max (`gpt-6-luna`,
 reasoning `max`); use a frontier director or watcher only when the user
 explicitly names it. Anthropic director seats are the deliberate exception:
 `bm` automatically selects the single-seat `claude -p --permission-mode plan`
@@ -140,7 +140,7 @@ etc.) and that pool is rate-limited. Routing Claude work through
 The hard rule is enforced by:
 
 - `~/.pi/workflows/model-tiers.json` — every automatic tier maps to the
-  **approved cheap lane** (small/medium/big → `openai-codex/gpt-5.6-luna`). No
+  **approved cheap lane** (small/medium/big → `openai-codex/gpt-6-luna`). No
   automatic tier maps to Claude or another frontier model. Any
   frontier/Codex worker must be
   explicitly named by the user and pinned by exact `model:`.

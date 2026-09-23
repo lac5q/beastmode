@@ -6,7 +6,7 @@
     },
     "openai-codex": {
       "providers": ["openai-codex"],
-      "notes": "GPT/Codex frontier incl. terra/sol profiles; gpt-5.6-luna is the approved economy worker"
+      "notes": "GPT/Codex frontier incl. terra/sol profiles; gpt-6-luna is the approved economy worker (gpt-5.6-luna stays as the explicit luna-5.6 legacy lane)"
     },
     "kimi": {
       "providers": ["kimi-coding"],

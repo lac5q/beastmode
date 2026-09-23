@@ -54,6 +54,10 @@ FRONTIER=""
 # worker instead of inheriting a host/session default. Callers can override it
 # with --economy for a deliberate alternate lane.
 ECONOMY="luna-max"
+# Bare model id behind the `luna-max` alias. The provider-translation guards
+# below compare against this so a model bump is a one-line change here plus
+# scripts/tier-aliases.json.
+LUNA_MODEL="gpt-6-luna"
 ECONOMY_EXPLICIT=0
 # Keep the input form separate from the resolved provider/model. Hermes uses
 # a different authenticated provider namespace for Luna, so a friendly alias
@@ -296,17 +300,17 @@ if [ -n "$ECONOMY" ] && ! ECONOMY="$(resolve_alias "$ECONOMY")"; then exit 2; fi
 # operator's explicit provider/model override. A qualified input remains
 # explicit.
 if [ "$HARNESS" = "hermes" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
-  && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
-  ECONOMY="vibeproxy/gpt-5.6-luna"
+  && [ "$ECONOMY" = "openai-codex/$LUNA_MODEL" ]; then
+  ECONOMY="vibeproxy/$LUNA_MODEL"
 fi
 # Pi hosts in this fleet have the managed pi-vibeproxy extension.  Its
 # OpenAI-compatible Chat Completions route is reachable from Main-Mac and
 # Maeve, while the ChatGPT Responses endpoint used by openai-codex can hang
-# behind those hosts' egress path.  Keep the model pin (GPT-5.6 Luna, max
+# behind those hosts' egress path.  Keep the model pin (GPT-6 Luna, max
 # reasoning) but use the reachable provider for the implicit/friendly worker
 # seat.  A qualified provider/model remains an explicit operator choice.
 if [ "$HARNESS" = "pi" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
-  && [ "$ECONOMY" = "openai-codex/gpt-5.6-luna" ]; then
+  && [ "$ECONOMY" = "openai-codex/$LUNA_MODEL" ]; then
   PI_LUNA_PROVIDER="${BM_PI_LUNA_PROVIDER:-vibeproxy}"
   case "$PI_LUNA_PROVIDER" in
     vibeproxy|openai-codex) ;;
@@ -315,7 +319,7 @@ if [ "$HARNESS" = "pi" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
       exit 2
       ;;
   esac
-  ECONOMY="$PI_LUNA_PROVIDER/gpt-5.6-luna"
+  ECONOMY="$PI_LUNA_PROVIDER/$LUNA_MODEL"
 fi
 if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
 
@@ -464,7 +468,7 @@ elif [ -n "$ECONOMY" ]; then
   PI_ARGS+=(--model "$ECONOMY")
 else
   # Pin the unqualified Beastmode path to the approved cheap worker.
-  PI_ARGS+=(--model "openai-codex/gpt-5.6-luna")
+  PI_ARGS+=(--model "openai-codex/$LUNA_MODEL")
 fi
 # ponytail: build the --models list from the seats that were actually set.
 # `--models "$FRONTIER,$ECONOMY"` handed pi a leading comma whenever --economy

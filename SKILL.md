@@ -26,7 +26,7 @@ Beastmode is a structured approach to multi-agent software development that sepa
 
 - **Director/Lead (Design tier):** Frontier model (Claude Fable, Kimi 3, or Opus) owns intent, architecture, creative judgment, and final sign-off. Codex is an explicit opt-in lane only.
 - **Watcher/Reviewer:** Adversarial reviewer (frontier or mid-tier: Fable/Kimi 3/Opus) challenges plans, gates merges, and catches scope creep. Codex is used here only when explicitly named.
-- **Executor (Execution tier):** Luna Max (`openai-codex/gpt-5.6-luna`, reasoning `max`) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees. Legacy MiniMax/Qwen lanes remain explicit overrides only.
+- **Executor (Execution tier):** Luna Max (`openai-codex/gpt-6-luna`, reasoning `max`) handles routine implementation *and mechanical validation* (running tests, lint, typecheck, diff summaries) in isolated worktrees. Legacy MiniMax/Qwen lanes remain explicit overrides only.
 - **Harness:** Any orchestration tool (Ultraswarm, GSD, `delegate_task`, Claude Code subagents, or manual git workflow).
 - **Memory:** Self-improvement loop records lessons and promotes repeated patterns into skills/config.
 
@@ -39,7 +39,7 @@ Beastmode routes every unit of work to a tier, not a specific model. Pick the be
 | Tier | Example models | Owns |
 |------|---------------|------|
 | **Design (frontier)** | Claude Fable (`claude-fable-5`), Kimi 3, Claude Opus, Codex/GPT frontier | Intent interpretation, architecture, API/data-model design, tradeoff decisions, acceptance contracts, final review sign-off, escalations |
-| **Execution (economy)** | Luna Max (`gpt-5.6-luna`); explicit legacy MiniMax/Qwen/Haiku overrides | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
+| **Execution (economy)** | Luna Max (`gpt-6-luna`); explicit legacy MiniMax/Qwen/Haiku overrides | Implementation, tests, docs, refactors, scripts, **mechanical validation** (run test suites, lint, typecheck, build, produce structured pass/fail reports) |
 
 **The routing principle: verification cost, not task type.**
 
@@ -137,7 +137,7 @@ The shared rules (all harnesses):
 
 ### Luna Max throughput and Claude subscription validation
 
-`luna-max` resolves to `openai-codex/gpt-5.6-luna` with `reasoning=max`.
+`luna-max` resolves to `openai-codex/gpt-6-luna` with `reasoning=max`.
 
 Grok is budget-gated. The `bm` launcher treats `40%` weekly remaining as a
 hard floor and fails closed to `luna-max` for any explicit Grok seat unless
@@ -171,7 +171,7 @@ Parses `--harness hermes|pi|claude|codex|langgraph` (default `pi`), `--gsd`,
 `--on local|<host>`, `--autonomy low|medium|high` (default `medium`). Tier
 aliases resolve via `scripts/tier-aliases.json` — `kimi3` →
 `kimi-coding/k3`, `fable` → `anthropic/claude-fable-5`, `luna-max` →
-`openai-codex/gpt-5.6-luna`, `grok` → `xai/grok-4.5`, etc. Override per-repo
+`openai-codex/gpt-6-luna`, `grok` → `xai/grok-4.5`, etc. Override per-repo
 with the user-global `~/.beastmode/tier-aliases.json`. Repository-local
 aliases are ignored unless the operator explicitly sets
 `BM_TRUST_REPO_ALIASES=1` after review. See `scripts/bm` and

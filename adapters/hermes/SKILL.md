@@ -22,7 +22,7 @@ wire them together.
 |---|---|
 | Director / Lead (frontier tier) | The Hermes session itself - frontier model |
 | Watcher (adversarial review, frontier) | A second `delegate_task` on a frontier model only after the user explicitly names it |
-| Executor (economy tier) | `delegate_task` children pinned to Luna Max (`vibeproxy/gpt-5.6-luna`) |
+| Executor (economy tier) | `delegate_task` children pinned to Luna Max (`vibeproxy/gpt-6-luna`) |
 | Loop engine (continues until done) | The agent's own phase loop (director prompts itself between subagent results) |
 | Anti-spin circuit breaker | Director judgment + the run's usage / wall-clock budget; abort on 3 identical blockers |
 | Worker-contract enforcer | `~/.hermes/config.yaml` `permissions` / `toolsets` denials + a starter worker contract in the prompt |
@@ -65,7 +65,7 @@ the child model. Edit `~/.hermes/config.yaml`:
 ```yaml
 delegation:
  provider: vibeproxy
- model: gpt-5.6-luna
+ model: gpt-6-luna
  max_concurrent_children: 3
 ```
 

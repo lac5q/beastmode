@@ -82,7 +82,7 @@ bm "read-only review of the phase report and diff" \
 ```
 
 `--claude-subscription` requires exactly one Claude seat and fails closed for
-multi-seat fan-out. Keep Luna Max (`gpt-5.6-luna`, reasoning `max`) as the
+multi-seat fan-out. Keep Luna Max (`gpt-6-luna`, reasoning `max`) as the
 parallel economy/executor lane; reserve this Claude invocation for one
 watcher/verifier pass.
 

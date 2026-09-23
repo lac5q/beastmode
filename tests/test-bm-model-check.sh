@@ -29,8 +29,10 @@ if [ "$1" = "--list-models" ]; then
 provider      model                                      context  max-out  thinking  images
 anthropic     claude-opus-4-7                            1M       128K     yes       yes
 anthropic     claude-sonnet-4-6                          1M       128K     yes       yes
-openai-codex  gpt-5.6-luna                              1M       128K     yes       yes
-vibeproxy     gpt-5.6-luna                              1M       128K     yes       yes
+openai-codex  gpt-6-luna                                1M       128K     yes       yes
+vibeproxy     gpt-6-luna                                1M       128K     yes       yes
+openai-codex  gpt-6-luna                              1M       128K     yes       yes
+vibeproxy     gpt-6-luna                              1M       128K     yes       yes
 TABLE
   exit 0
 fi
@@ -114,15 +116,15 @@ echo "$out" | grep -q "BREAKER: blocked Claude OAuth seat" \
 ok "Claude print preference held without API OAuth authorization"
 
 # Test 3: missing non-Anthropic frontier → bm exits 2 with alternatives listed.
-echo "Test 3: missing frontier (openai-codex/gpt-5.6-luna-missing)"
+echo "Test 3: missing frontier (openai-codex/gpt-6-luna-missing)"
 set +e
-out="$(run_bm "do a thing" --frontier openai-codex/gpt-5.6-luna-missing 2>&1)"
+out="$(run_bm "do a thing" --frontier openai-codex/gpt-6-luna-missing 2>&1)"
 code=$?
 set -e
 [ "$code" = "2" ] || fail "expected exit 2, got $code"
-echo "$out" | grep -q "openai-codex/gpt-5.6-luna-missing" || fail "did not name the missing model"
+echo "$out" | grep -q "openai-codex/gpt-6-luna-missing" || fail "did not name the missing model"
 echo "$out" | grep -q "anthropic/claude-opus-4-7"  || fail "did not list claude-opus-4-7 as alternative"
-echo "$out" | grep -q "openai-codex/gpt-5.6-luna"  || fail "did not list Luna Max as alternative"
+echo "$out" | grep -q "openai-codex/gpt-6-luna"  || fail "did not list Luna Max as alternative"
 echo "$out" | grep -qE "BM_SKIP_MODEL_CHECK|skip-model-check|skip model check" || fail "did not mention the bypass env var"
 ok "missing frontier rejected with clear alternatives"
 
@@ -134,13 +136,13 @@ echo "$out" | grep -q "requested model(s) not available" \
 ok "BM_SKIP_MODEL_CHECK=1 bypassed the check"
 
 # Test 5: missing economy → exit 2.
-echo "Test 5: missing economy (openai-codex/gpt-5.6-luna-missing)"
+echo "Test 5: missing economy (openai-codex/gpt-6-luna-missing)"
 set +e
-out="$(run_bm "do a thing" --economy openai-codex/gpt-5.6-luna-missing 2>&1)"
+out="$(run_bm "do a thing" --economy openai-codex/gpt-6-luna-missing 2>&1)"
 code=$?
 set -e
 [ "$code" = "2" ] || fail "expected exit 2, got $code"
-echo "$out" | grep -q "openai-codex/gpt-5.6-luna-missing" || fail "did not name the missing economy model"
+echo "$out" | grep -q "openai-codex/gpt-6-luna-missing" || fail "did not name the missing economy model"
 ok "missing economy rejected"
 
 # Test 6: an installed symlink still resolves the runner's sibling files.
@@ -149,7 +151,7 @@ ok "missing economy rejected"
 echo "Test 6: symlinked bm resolves its support files"
 ln -s "$ROOT/scripts/bm" "$TMP/bin/bm-symlink"
 set +e
-out="$(PATH="$TMP/bin:$PATH" "$TMP/bin/bm-symlink" "do a thing" --economy openai-codex/gpt-5.6-luna-missing 2>&1)"
+out="$(PATH="$TMP/bin:$PATH" "$TMP/bin/bm-symlink" "do a thing" --economy openai-codex/gpt-6-luna-missing 2>&1)"
 code=$?
 set -e
 [ "$code" = "2" ] || fail "expected symlinked bm to reach model preflight, got $code"
@@ -173,7 +175,7 @@ pi_args="$TMP/pi-args"
 out="$(BM_SKIP_MODEL_CHECK=0 BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" \
   --autonomy low --interview off 2>&1)"
 grep -Fxq -- '--model' "$pi_args" || fail "Pi invocation omitted the model pin"
-grep -Fxq 'openai-codex/gpt-5.6-luna' "$pi_args" \
+grep -Fxq 'openai-codex/gpt-6-luna' "$pi_args" \
   || fail "Pi friendly Luna seat did not use openai-codex"
 ok "Pi friendly Luna alias retained openai-codex"
 
@@ -184,7 +186,7 @@ pi_args="$TMP/pi-vibeproxy-args"
 out="$(BM_SKIP_MODEL_CHECK=0 BM_PI_LUNA_PROVIDER=vibeproxy \
   BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" \
   --autonomy low --interview off 2>&1)"
-grep -Fxq 'vibeproxy/gpt-5.6-luna' "$pi_args" \
+grep -Fxq 'vibeproxy/gpt-6-luna' "$pi_args" \
   || fail "Pi Luna provider override did not use vibeproxy"
 ok "Pi Luna provider override preserved"
 
@@ -205,7 +207,7 @@ echo "Test 9: Hermes friendly Luna alias uses vibeproxy"
 hermes_args="$TMP/hermes-args"
 out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
   BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes --economy luna-max 2>&1)"
-grep -q 'economy=vibeproxy/gpt-5.6-luna' "$hermes_args" \
+grep -q 'economy=vibeproxy/gpt-6-luna' "$hermes_args" \
   || fail "friendly Luna alias did not translate to vibeproxy in the worker seat"
 ok "Hermes friendly Luna alias translated to vibeproxy"
 
@@ -214,10 +216,10 @@ ok "Hermes friendly Luna alias translated to vibeproxy"
 echo "Test 10: Hermes qualified Luna provider remains explicit"
 out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
   BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes \
-    --economy openai-codex/gpt-5.6-luna 2>&1)"
-grep -q 'economy=openai-codex/gpt-5.6-luna' "$hermes_args" \
+    --economy openai-codex/gpt-6-luna 2>&1)"
+grep -q 'economy=openai-codex/gpt-6-luna' "$hermes_args" \
   || fail "explicit Hermes provider was rewritten"
-if grep -q 'economy=vibeproxy/gpt-5.6-luna' "$hermes_args"; then
+if grep -q 'economy=vibeproxy/gpt-6-luna' "$hermes_args"; then
   fail "explicit qualified Hermes provider was rewritten to vibeproxy"
 fi
 ok "Hermes qualified provider remained explicit"
@@ -294,7 +296,7 @@ echo "$out" | grep -q "Grok weekly budget is below 40% or unverified" \
   || fail "missing Grok fail-closed guard message"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
   && fail "Grok seat was still passed to pi without a verified budget"
-grep -Fxq 'openai-codex/gpt-5.6-luna' "$grok_args" \
+grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" \
   || fail "Grok seat did not switch to Luna Max"
 ok "unverified Grok budget switched to Luna Max"
 
@@ -326,7 +328,7 @@ echo "$out" | grep -q "Grok weekly budget is below 40% or unverified/stale" \
   || fail "stale Grok reading did not fail closed"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
   && fail "stale Grok reading was still passed to pi"
-grep -Fxq 'openai-codex/gpt-5.6-luna' "$grok_args" \
+grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" \
   || fail "stale Grok reading did not switch to Luna Max"
 ok "stale Grok reading switched to Luna Max"
 
