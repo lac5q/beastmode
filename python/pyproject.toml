@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beastmode"
-version = "2.4.0"
+version = "2.4.1"
 description = "Mixture-of-Agents orchestration primitives with an optional LangGraph binding"
 readme = "README.md"
 requires-python = ">=3.11"

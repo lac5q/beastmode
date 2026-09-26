@@ -106,6 +106,7 @@ ok "Anthropic director used the single-seat Claude print lane"
 echo "Test 2: Claude print preference does not require API OAuth authorization"
 set +e
 out="$(env -u BM_ALLOW_CLAUDE_OAUTH -u ANTHROPIC_API_KEY \
+  -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL \
   BM_TEST_CLAUDE_ARGS="$claude_args" PATH="$TMP/bin:$PATH" \
   "$ROOT/scripts/bm" "do a thing" --frontier opus --autonomy low --interview off 2>&1)"
 code=$?
@@ -114,6 +115,25 @@ set -e
 echo "$out" | grep -q "BREAKER: blocked Claude OAuth seat" \
   && fail "Anthropic route fell through to the API OAuth breaker"
 ok "Claude print preference held without API OAuth authorization"
+
+# Test 2b: an unauthorized Claude worker still blocks before skipped preflight.
+echo "Test 2b: unauthorized Anthropic economy seat cannot launch"
+rm -f "$claude_args" "$claude_stdin" "$pi_args"
+set +e
+out="$(env -u BM_ALLOW_CLAUDE_OAUTH -u ANTHROPIC_API_KEY \
+  -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL \
+  BM_SKIP_MODEL_CHECK=1 BM_TEST_CLAUDE_ARGS="$claude_args" \
+  BM_TEST_CLAUDE_STDIN="$claude_stdin" BM_TEST_PI_ARGS="$pi_args" PATH="$TMP/bin:$PATH" \
+  "$ROOT/scripts/bm" "do a thing" --harness pi --frontier sol --economy haiku \
+  --autonomy low --interview off 2>&1)"
+code=$?
+set -e
+[ "$code" = "3" ] || fail "expected OAuth breaker exit 3, got $code"
+echo "$out" | grep -q "BREAKER: blocked Claude OAuth seat" \
+  || fail "unauthorized worker did not trigger the OAuth breaker"
+[ ! -e "$claude_args" ] && [ ! -e "$claude_stdin" ] && [ ! -e "$pi_args" ] \
+  || fail "a provider launched before worker authorization"
+ok "unauthorized Anthropic economy seat blocked before provider dispatch"
 
 # Test 3: missing non-Anthropic frontier → bm exits 2 with alternatives listed.
 echo "Test 3: missing frontier (openai-codex/gpt-6-luna-missing)"
@@ -128,12 +148,17 @@ echo "$out" | grep -q "openai-codex/gpt-6-luna"  || fail "did not list Luna Max 
 echo "$out" | grep -qE "BM_SKIP_MODEL_CHECK|skip-model-check|skip model check" || fail "did not mention the bypass env var"
 ok "missing frontier rejected with clear alternatives"
 
-# Test 4: BM_SKIP_MODEL_CHECK=1 bypasses the check for a Claude route.
+# Test 4: explicit fake authorization lets the preflight bypass reach Claude.
 echo "Test 4: BM_SKIP_MODEL_CHECK=1 bypass"
-out="$(BM_SKIP_MODEL_CHECK=1 run_bm "do a thing" --frontier opus 2>&1)"
+claude_skip_args="$TMP/claude-skip-args"
+out="$(BM_ALLOW_CLAUDE_OAUTH=1 BM_SKIP_MODEL_CHECK=1 \
+  BM_TEST_CLAUDE_ARGS="$claude_skip_args" run_bm "do a thing" \
+  --harness claude --frontier opus 2>&1)"
 echo "$out" | grep -q "requested model(s) not available" \
   && fail "bypass env var did not bypass"
-ok "BM_SKIP_MODEL_CHECK=1 bypassed the check"
+grep -Fxq -- '-p' "$claude_skip_args" \
+  || fail "preflight bypass did not reach the authorized fake Claude provider"
+ok "BM_SKIP_MODEL_CHECK=1 bypassed the check and reached the fake provider"
 
 # Test 5: missing economy → exit 2.
 echo "Test 5: missing economy (openai-codex/gpt-6-luna-missing)"
@@ -168,12 +193,12 @@ echo "$out" | grep -q "requested model(s) not available" \
   && fail "implicit Luna Max preflight failed"
 ok "implicit Luna Max economy seat passed preflight"
 
-# Test 8: Pi keeps its friendly Luna worker seat on the canonical authenticated
-# openai-codex provider unless a fleet host explicitly opts into another lane.
+# Test 8: a host can select the authenticated openai-codex provider without
+# changing the friendly Luna alias or model pin.
 echo "Test 8: Pi friendly Luna alias uses openai-codex"
 pi_args="$TMP/pi-args"
-out="$(BM_SKIP_MODEL_CHECK=0 BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" \
-  --autonomy low --interview off 2>&1)"
+out="$(BM_SKIP_MODEL_CHECK=0 BM_PI_LUNA_PROVIDER=openai-codex \
+  BM_TEST_PI_ARGS="$pi_args" run_bm "do a thing" --autonomy low --interview off 2>&1)"
 grep -Fxq -- '--model' "$pi_args" || fail "Pi invocation omitted the model pin"
 grep -Fxq 'openai-codex/gpt-6-luna' "$pi_args" \
   || fail "Pi friendly Luna seat did not use openai-codex"
@@ -343,6 +368,31 @@ set -e
 echo "$out" | grep -q "must be a number from 0 to 100" \
   || fail "malformed Grok budget reading was not explained"
 ok "malformed Grok budget reading rejected"
+
+# Test 20: a percentage alone, a future timestamp, or malformed time is unverified.
+echo "Test 20: unusable Grok timestamps fail closed"
+for observed in "" "$((grok_now + 3600))" "not-a-timestamp"; do
+  out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=90 BEASTMODE_GROK_WEEKLY_REMAINING_AT="$observed" \
+    BM_SKIP_MODEL_CHECK=1 BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" \
+    --frontier grok --autonomy low --interview off 2>&1)"
+  grep -Fxq 'xai/grok-4.5' "$grok_args" && fail "unusable Grok timestamp was accepted"
+  grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" || fail "unusable timestamp did not select Luna"
+done
+ok "missing, future, and malformed Grok timestamps fail closed"
+
+# Test 21: an environment override cannot lower the budget floor.
+echo "Test 21: Grok budget floor cannot be lowered"
+rm -f "$grok_args"
+set +e
+out="$(BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT=0 BEASTMODE_GROK_WEEKLY_REMAINING_PCT=39 \
+  BEASTMODE_GROK_WEEKLY_REMAINING_AT="$grok_now" BM_SKIP_MODEL_CHECK=1 \
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+code=$?
+set -e
+[ "$code" = "2" ] || fail "lowered Grok floor returned $code"
+[ ! -e "$grok_args" ] || fail "provider launched with a lowered Grok floor"
+echo "$out" | grep -q "fixed at 40%" || fail "fixed Grok floor was not explained"
+ok "lowered Grok budget floor is rejected"
 
 echo ""
 echo "All model-availability tests passed."
