@@ -1,0 +1,9 @@
+{
+  "provider": "simplejev",
+  "reason": "default urllib client received HTTP403 code1010; explicit benchmark user-agent smoke returned200",
+  "scientific_prompt_changed": false,
+  "original_receipts": "simplejev.*",
+  "rerun_receipts": "simplejev-identified.*",
+  "old_runner_sha256": "dd342e9b3190b53d5889914232d25afd44b1a42fc7fa82cea905b209c2274604",
+  "new_runner_sha256": "21f7749b3b02961226b7623dacefd3cf71e49de843b31432e83977a56d297487"
+}

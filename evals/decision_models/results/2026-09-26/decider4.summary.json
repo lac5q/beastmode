@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "provider": "local",
+  "model": "Mapika/decider-4b@v2:Q4_K_M",
+  "counts": {
+    "records": 60,
+    "unique_cases": 30,
+    "repeats": [
+      1,
+      2
+    ],
+    "valid": 60,
+    "invalid": 0,
+    "model_mismatches": 0
+  },
+  "accuracy": {
+    "unique_cases": {
+      "correct": 24,
+      "denominator": 30,
+      "accuracy": 0.8,
+      "valid": 30,
+      "invalid": 0,
+      "valid_accuracy": 0.8,
+      "model_matches": 30
+    },
+    "repeats": {
+      "correct": 48,
+      "denominator": 60,
+      "accuracy": 0.8,
+      "valid": 60,
+      "invalid": 0,
+      "valid_accuracy": 0.8,
+      "model_matches": 60
+    }
+  },
+  "latency_ms": {
+    "measured": 60,
+    "total": 60,
+    "complete": true,
+    "median_ms": 22523.748370469548,
+    "p95_ms": 63860.12274998939
+  },
+  "per_pass": {
+    "1": {
+      "accuracy": {
+        "correct": 24,
+        "denominator": 30,
+        "accuracy": 0.8,
+        "valid": 30,
+        "invalid": 0,
+        "valid_accuracy": 0.8,
+        "model_matches": 30
+      },
+      "latency_ms": {
+        "measured": 30,
+        "total": 30,
+        "complete": true,
+        "median_ms": 19210.1671390119,
+        "p95_ms": 63860.12274998939
+      }
+    },
+    "2": {
+      "accuracy": {
+        "correct": 24,
+        "denominator": 30,
+        "accuracy": 0.8,
+        "valid": 30,
+        "invalid": 0,
+        "valid_accuracy": 0.8,
+        "model_matches": 30
+      },
+      "latency_ms": {
+        "measured": 30,
+        "total": 30,
+        "complete": true,
+        "median_ms": 23086.988944996847,
+        "p95_ms": 64106.191619008314
+      }
+    }
+  },
+  "per_category": {
+    "ads": {
+      "accuracy": {
+        "correct": 10,
+        "denominator": 12,
+        "accuracy": 0.8333333333333334,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.8333333333333334,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 17321.88223398407,
+        "p95_ms": 64106.191619008314
+      }
+    },
+    "evidence": {
+      "accuracy": {
+        "correct": 12,
+        "denominator": 12,
+        "accuracy": 1.0,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 1.0,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 30782.261171989376,
+        "p95_ms": 63860.12274998939
+      }
+    },
+    "retry": {
+      "accuracy": {
+        "correct": 8,
+        "denominator": 12,
+        "accuracy": 0.6666666666666666,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.6666666666666666,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 24317.036107968306,
+        "p95_ms": 78492.79440299142
+      }
+    },
+    "routing": {
+      "accuracy": {
+        "correct": 10,
+        "denominator": 12,
+        "accuracy": 0.8333333333333334,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.8333333333333334,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 22395.240979007212,
+        "p95_ms": 85149.39201099332
+      }
+    },
+    "tools": {
+      "accuracy": {
+        "correct": 8,
+        "denominator": 12,
+        "accuracy": 0.6666666666666666,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.6666666666666666,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 22657.20324596623,
+        "p95_ms": 56538.55083300732
+      }
+    }
+  },
+  "tokens": {
+    "prompt_tokens": {
+      "sum": 8544,
+      "measured": 60,
+      "total": 60,
+      "complete": true
+    },
+    "completion_tokens": {
+      "sum": 60,
+      "measured": 60,
+      "total": 60,
+      "complete": true
+    }
+  },
+  "cost": {
+    "sum_usd": null,
+    "measured": 0,
+    "total": 60,
+    "complete": false,
+    "source_counts": {}
+  },
+  "cost_estimate": {
+    "applicable": false,
+    "rate_usd_per_million_prompt_tokens": null,
+    "prompt_tokens": null,
+    "estimated_cost_usd": null,
+    "complete": false
+  },
+  "warmup": {
+    "included_in_metrics": false,
+    "present": false,
+    "record": null
+  }
+}

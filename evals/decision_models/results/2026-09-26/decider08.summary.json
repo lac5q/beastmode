@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "provider": "local",
+  "model": "Mapika/decider-0.8b@a0a01d6f8135298f400a8c856b355793012ae971:Q4_K_M",
+  "counts": {
+    "records": 60,
+    "unique_cases": 30,
+    "repeats": [
+      1,
+      2
+    ],
+    "valid": 60,
+    "invalid": 0,
+    "model_mismatches": 0
+  },
+  "accuracy": {
+    "unique_cases": {
+      "correct": 16,
+      "denominator": 30,
+      "accuracy": 0.5333333333333333,
+      "valid": 30,
+      "invalid": 0,
+      "valid_accuracy": 0.5333333333333333,
+      "model_matches": 30
+    },
+    "repeats": {
+      "correct": 32,
+      "denominator": 60,
+      "accuracy": 0.5333333333333333,
+      "valid": 60,
+      "invalid": 0,
+      "valid_accuracy": 0.5333333333333333,
+      "model_matches": 60
+    }
+  },
+  "latency_ms": {
+    "measured": 60,
+    "total": 60,
+    "complete": true,
+    "median_ms": 628.2603540166747,
+    "p95_ms": 4311.996699019801
+  },
+  "per_pass": {
+    "1": {
+      "accuracy": {
+        "correct": 16,
+        "denominator": 30,
+        "accuracy": 0.5333333333333333,
+        "valid": 30,
+        "invalid": 0,
+        "valid_accuracy": 0.5333333333333333,
+        "model_matches": 30
+      },
+      "latency_ms": {
+        "measured": 30,
+        "total": 30,
+        "complete": true,
+        "median_ms": 608.6976615188178,
+        "p95_ms": 791.7590640136041
+      }
+    },
+    "2": {
+      "accuracy": {
+        "correct": 16,
+        "denominator": 30,
+        "accuracy": 0.5333333333333333,
+        "valid": 30,
+        "invalid": 0,
+        "valid_accuracy": 0.5333333333333333,
+        "model_matches": 30
+      },
+      "latency_ms": {
+        "measured": 30,
+        "total": 30,
+        "complete": true,
+        "median_ms": 740.8376350067556,
+        "p95_ms": 4418.88203000417
+      }
+    }
+  },
+  "per_category": {
+    "ads": {
+      "accuracy": {
+        "correct": 6,
+        "denominator": 12,
+        "accuracy": 0.5,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.5,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 752.4761020031292,
+        "p95_ms": 826.6542539931834
+      }
+    },
+    "evidence": {
+      "accuracy": {
+        "correct": 10,
+        "denominator": 12,
+        "accuracy": 0.8333333333333334,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.8333333333333334,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 736.3448425021488,
+        "p95_ms": 4418.88203000417
+      }
+    },
+    "retry": {
+      "accuracy": {
+        "correct": 2,
+        "denominator": 12,
+        "accuracy": 0.16666666666666666,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.16666666666666666,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 674.0055629925337,
+        "p95_ms": 4614.14469499141
+      }
+    },
+    "routing": {
+      "accuracy": {
+        "correct": 6,
+        "denominator": 12,
+        "accuracy": 0.5,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.5,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 586.5665494929999,
+        "p95_ms": 702.4677739827894
+      }
+    },
+    "tools": {
+      "accuracy": {
+        "correct": 8,
+        "denominator": 12,
+        "accuracy": 0.6666666666666666,
+        "valid": 12,
+        "invalid": 0,
+        "valid_accuracy": 0.6666666666666666,
+        "model_matches": 12
+      },
+      "latency_ms": {
+        "measured": 12,
+        "total": 12,
+        "complete": true,
+        "median_ms": 597.1121559850872,
+        "p95_ms": 751.6624249983579
+      }
+    }
+  },
+  "tokens": {
+    "prompt_tokens": {
+      "sum": 8544,
+      "measured": 60,
+      "total": 60,
+      "complete": true
+    },
+    "completion_tokens": {
+      "sum": 60,
+      "measured": 60,
+      "total": 60,
+      "complete": true
+    }
+  },
+  "cost": {
+    "sum_usd": null,
+    "measured": 0,
+    "total": 60,
+    "complete": false,
+    "source_counts": {}
+  },
+  "cost_estimate": {
+    "applicable": false,
+    "rate_usd_per_million_prompt_tokens": null,
+    "prompt_tokens": null,
+    "estimated_cost_usd": null,
+    "complete": false
+  },
+  "warmup": {
+    "included_in_metrics": false,
+    "present": false,
+    "record": null
+  }
+}

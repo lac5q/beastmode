@@ -1,0 +1,569 @@
+{
+  "dataset": {
+    "case_count": 30,
+    "cases_path": "evals/decision_models/cases.json",
+    "rawfile_sha256": {
+      "cases": "f8fd2c484aeb7e9ebde260c158458c8e369729636b9b5709845000e3ffb90c01",
+      "results": {
+        "decider08": "79db469a234e1f0015f061f29f552b946eba0faea033ccb4e781035995f2afb9",
+        "decider4": "3831da392b3ac0782c8cac335aad2df7d3e779d144a5e95594ca479975f783a3",
+        "jev": "db6ea5c87b1300458f7db5fe8f324c976a9f7d00d389e0ad00d98b77eb2fa691",
+        "openrouter": "0e1068192fc9780e0f626728ed335e5364544a96eeee6cf0f381d42fa2631be3",
+        "simplejev-identified": "1d108ae1fea668f665ae3a5efd5d3bd0a2ad9d1bf3ead90fd828612d3917963c"
+      }
+    },
+    "repeats": [
+      1,
+      2
+    ]
+  },
+  "economics_reference": {
+    "jev_estimated_input_usd": 0.001031688,
+    "nano_provider_reported_usd": 0.0029381000000000003,
+    "utilization_assumption": 1.0
+  },
+  "models": {
+    "decider08": {
+      "accuracy": {
+        "first_pass": {
+          "accuracy": 0.5333333333333333,
+          "correct": 16,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        },
+        "overall": {
+          "accuracy": 0.5333333333333333,
+          "correct": 32,
+          "model_matches": 60,
+          "total": 60,
+          "valid": 60
+        },
+        "per_category": {
+          "ads": {
+            "accuracy": 0.5,
+            "correct": 6,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "evidence": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "retry": {
+            "accuracy": 0.16666666666666666,
+            "correct": 2,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "routing": {
+            "accuracy": 0.5,
+            "correct": 6,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "tools": {
+            "accuracy": 0.6666666666666666,
+            "correct": 8,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          }
+        },
+        "second_pass": {
+          "accuracy": 0.5333333333333333,
+          "correct": 16,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        }
+      },
+      "cost": {
+        "jev_estimated_input_usd": null,
+        "local_assumed_usd": null,
+        "provider_reported_usd": null
+      },
+      "latency_ms": {
+        "mean": 1073.0106057861121,
+        "p50": 628.2603540166747,
+        "p95": 4311.996699019801
+      },
+      "local_economics": {
+        "assumed_hourly_rate_usd": null,
+        "break_even_hourly_usd_vs_jev": 0.0576893459078624,
+        "break_even_hourly_usd_vs_nano": 0.16429101357376505,
+        "cost_per_call_usd": null,
+        "mean_wall_ms": 1073.0106057861121,
+        "utilization": 1.0
+      },
+      "models": [
+        "Mapika/decider-0.8b@a0a01d6f8135298f400a8c856b355793012ae971:Q4_K_M"
+      ],
+      "per_pass_latency_ms": {
+        "first_pass": {
+          "mean": 630.8182944718283,
+          "p50": 608.6976615188178,
+          "p95": 791.7590640136041
+        },
+        "second_pass": {
+          "mean": 1515.202917100396,
+          "p50": 740.8376350067556,
+          "p95": 4418.88203000417
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.3333333333333333,
+        "covered": 20,
+        "note": "descriptive; not calibrated",
+        "probability_rows": 60,
+        "threshold": 0.9,
+        "wrong_decisions": 4
+      },
+      "provider": "local",
+      "records": 60,
+      "tokens": {
+        "completion_mean": 1.0,
+        "completion_total": 60.0,
+        "prompt_mean": 142.4,
+        "prompt_total": 8544.0,
+        "total_mean": 143.4,
+        "total_total": 8604.0
+      }
+    },
+    "decider4": {
+      "accuracy": {
+        "first_pass": {
+          "accuracy": 0.8,
+          "correct": 24,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        },
+        "overall": {
+          "accuracy": 0.8,
+          "correct": 48,
+          "model_matches": 60,
+          "total": 60,
+          "valid": 60
+        },
+        "per_category": {
+          "ads": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "evidence": {
+            "accuracy": 1.0,
+            "correct": 12,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "retry": {
+            "accuracy": 0.6666666666666666,
+            "correct": 8,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "routing": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "tools": {
+            "accuracy": 0.6666666666666666,
+            "correct": 8,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          }
+        },
+        "second_pass": {
+          "accuracy": 0.8,
+          "correct": 24,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        }
+      },
+      "cost": {
+        "jev_estimated_input_usd": null,
+        "local_assumed_usd": null,
+        "provider_reported_usd": null
+      },
+      "latency_ms": {
+        "mean": 26633.034119047807,
+        "p50": 22523.748370469548,
+        "p95": 63860.12274998939
+      },
+      "local_economics": {
+        "assumed_hourly_rate_usd": null,
+        "break_even_hourly_usd_vs_jev": 0.002324229365805848,
+        "break_even_hourly_usd_vs_nano": 0.006619073110934859,
+        "cost_per_call_usd": null,
+        "mean_wall_ms": 26633.034119047807,
+        "utilization": 1.0
+      },
+      "models": [
+        "Mapika/decider-4b@v2:Q4_K_M"
+      ],
+      "per_pass_latency_ms": {
+        "first_pass": {
+          "mean": 25038.630590195924,
+          "p50": 19210.1671390119,
+          "p95": 63860.12274998939
+        },
+        "second_pass": {
+          "mean": 28227.43764789969,
+          "p50": 23086.988944996847,
+          "p95": 64106.191619008314
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.6,
+        "covered": 36,
+        "note": "descriptive; not calibrated",
+        "probability_rows": 60,
+        "threshold": 0.9,
+        "wrong_decisions": 2
+      },
+      "provider": "local",
+      "records": 60,
+      "tokens": {
+        "completion_mean": 1.0,
+        "completion_total": 60.0,
+        "prompt_mean": 142.4,
+        "prompt_total": 8544.0,
+        "total_mean": 143.4,
+        "total_total": 8604.0
+      }
+    },
+    "jev": {
+      "accuracy": {
+        "first_pass": {
+          "accuracy": 0.8333333333333334,
+          "correct": 25,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        },
+        "overall": {
+          "accuracy": 0.85,
+          "correct": 51,
+          "model_matches": 60,
+          "total": 60,
+          "valid": 60
+        },
+        "per_category": {
+          "ads": {
+            "accuracy": 1.0,
+            "correct": 12,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "evidence": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "retry": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "routing": {
+            "accuracy": 0.6666666666666666,
+            "correct": 8,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "tools": {
+            "accuracy": 0.9166666666666666,
+            "correct": 11,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          }
+        },
+        "second_pass": {
+          "accuracy": 0.8666666666666667,
+          "correct": 26,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        }
+      },
+      "cost": {
+        "jev_estimated_input_usd": 0.001031688,
+        "local_assumed_usd": null,
+        "provider_reported_usd": null
+      },
+      "latency_ms": {
+        "mean": 238.1278514910567,
+        "p50": 235.3810665081255,
+        "p95": 297.64860100112855
+      },
+      "models": [
+        "jev-1.13.0"
+      ],
+      "per_pass_latency_ms": {
+        "first_pass": {
+          "mean": 230.407711683074,
+          "p50": 229.8027405049652,
+          "p95": 283.7895529810339
+        },
+        "second_pass": {
+          "mean": 245.84799129903936,
+          "p50": 244.73824503365904,
+          "p95": 310.10439002420753
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.7833333333333333,
+        "covered": 47,
+        "note": "descriptive; not calibrated",
+        "probability_rows": 60,
+        "threshold": 0.9,
+        "wrong_decisions": 2
+      },
+      "provider": "jev",
+      "records": 60,
+      "tokens": {
+        "completion_mean": 42.56666666666667,
+        "completion_total": 2554.0,
+        "prompt_mean": 409.4,
+        "prompt_total": 24564.0,
+        "total_mean": 451.96666666666664,
+        "total_total": 27118.0
+      }
+    },
+    "openrouter": {
+      "accuracy": {
+        "first_pass": {
+          "accuracy": 0.8333333333333334,
+          "correct": 25,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        },
+        "overall": {
+          "accuracy": 0.85,
+          "correct": 51,
+          "model_matches": 60,
+          "total": 60,
+          "valid": 60
+        },
+        "per_category": {
+          "ads": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "evidence": {
+            "accuracy": 0.75,
+            "correct": 9,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "retry": {
+            "accuracy": 0.9166666666666666,
+            "correct": 11,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "routing": {
+            "accuracy": 0.75,
+            "correct": 9,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "tools": {
+            "accuracy": 1.0,
+            "correct": 12,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          }
+        },
+        "second_pass": {
+          "accuracy": 0.8666666666666667,
+          "correct": 26,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        }
+      },
+      "cost": {
+        "jev_estimated_input_usd": null,
+        "local_assumed_usd": null,
+        "provider_reported_usd": 0.0029381000000000003
+      },
+      "latency_ms": {
+        "mean": 920.1488646038342,
+        "p50": 884.3607010203414,
+        "p95": 1261.5605150349438
+      },
+      "models": [
+        "openai/gpt-5.4-nano"
+      ],
+      "per_pass_latency_ms": {
+        "first_pass": {
+          "mean": 932.3066472716164,
+          "p50": 879.5007245207671,
+          "p95": 1359.6567150088958
+        },
+        "second_pass": {
+          "mean": 907.9910819360521,
+          "p50": 887.0762330188882,
+          "p95": 1194.28727903869
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.0,
+        "covered": 0,
+        "note": "descriptive; not calibrated",
+        "probability_rows": 0,
+        "threshold": 0.9,
+        "wrong_decisions": 0
+      },
+      "provider": "openrouter",
+      "records": 60,
+      "tokens": {
+        "completion_mean": 12.7,
+        "completion_total": 762.0,
+        "prompt_mean": 165.46666666666667,
+        "prompt_total": 9928.0,
+        "total_mean": 178.16666666666666,
+        "total_total": 10690.0
+      }
+    },
+    "simplejev-identified": {
+      "accuracy": {
+        "first_pass": {
+          "accuracy": 0.8666666666666667,
+          "correct": 26,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        },
+        "overall": {
+          "accuracy": 0.8666666666666667,
+          "correct": 52,
+          "model_matches": 60,
+          "total": 60,
+          "valid": 60
+        },
+        "per_category": {
+          "ads": {
+            "accuracy": 1.0,
+            "correct": 12,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "evidence": {
+            "accuracy": 1.0,
+            "correct": 12,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "retry": {
+            "accuracy": 0.6666666666666666,
+            "correct": 8,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "routing": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          },
+          "tools": {
+            "accuracy": 0.8333333333333334,
+            "correct": 10,
+            "model_matches": 12,
+            "total": 12,
+            "valid": 12
+          }
+        },
+        "second_pass": {
+          "accuracy": 0.8666666666666667,
+          "correct": 26,
+          "model_matches": 30,
+          "total": 30,
+          "valid": 30
+        }
+      },
+      "cost": {
+        "jev_estimated_input_usd": null,
+        "local_assumed_usd": null,
+        "provider_reported_usd": null
+      },
+      "latency_ms": {
+        "mean": 483.8436358346371,
+        "p50": 470.6022845057305,
+        "p95": 586.9628879590891
+      },
+      "models": [
+        "featherless-ai/Qwen3.5-4B-classifier"
+      ],
+      "per_pass_latency_ms": {
+        "first_pass": {
+          "mean": 510.5672848352697,
+          "p50": 493.4666535118595,
+          "p95": 656.8426580051892
+        },
+        "second_pass": {
+          "mean": 457.1199868340045,
+          "p50": 463.729315524688,
+          "p95": 511.2358719925396
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.6,
+        "covered": 36,
+        "note": "descriptive; not calibrated",
+        "probability_rows": 60,
+        "threshold": 0.9,
+        "wrong_decisions": 0
+      },
+      "provider": "simplejev",
+      "records": 60,
+      "tokens": {
+        "completion_mean": 1.0,
+        "completion_total": 60.0,
+        "prompt_mean": 1154.8,
+        "prompt_total": 69288.0,
+        "total_mean": 1155.8,
+        "total_total": 69348.0
+      }
+    }
+  },
+  "schema_version": 1
+}

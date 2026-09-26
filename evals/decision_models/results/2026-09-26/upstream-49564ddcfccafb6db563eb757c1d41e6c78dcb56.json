@@ -1,0 +1,35 @@
+{
+  "revision": "49564ddcfccafb6db563eb757c1d41e6c78dcb56",
+  "files": [
+    {
+      "rfilename": "decider_config.json",
+      "blobId": "6aca9b4fdd7257caf33c78341b834dcdbb0a8e86",
+      "size": 925
+    },
+    {
+      "rfilename": "model.safetensors",
+      "blobId": "612e41524171e52bc601951aacff7f6225ce95d2",
+      "size": 8411558400,
+      "lfs": {
+        "sha256": "69e6895461c425c6469cd304838a2e5673141613c2da04782026e37c1481d936",
+        "size": 8411558400,
+        "pointerSize": 135
+      }
+    },
+    {
+      "rfilename": "tokenizer.json",
+      "blobId": "5520bfd2dd834ce386c1312c410fa71af56db5ad",
+      "size": 19989325,
+      "lfs": {
+        "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+        "size": 19989325,
+        "pointerSize": 133
+      }
+    },
+    {
+      "rfilename": "tokenizer_config.json",
+      "blobId": "d6b53ef32096233f2f5f60477e1fb1eea02897d1",
+      "size": 1126
+    }
+  ]
+}

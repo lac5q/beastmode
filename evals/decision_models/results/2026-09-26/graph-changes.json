@@ -1,0 +1,2172 @@
+{
+  "summary": {
+    "changed_count": 228,
+    "affected_count": 25,
+    "changed_files": 48,
+    "risk_level": "critical"
+  },
+  "changed_symbols": [
+    {
+      "id": "Section:evals/decision_models/PROTOCOL.md:L1:Jev-style decision model spike",
+      "name": "Jev-style decision model spike",
+      "type": "Section",
+      "filePath": "evals/decision_models/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/PROTOCOL.md:L9:Acceptance contract (2026-09-26)",
+      "name": "Acceptance contract (2026-09-26)",
+      "type": "Section",
+      "filePath": "evals/decision_models/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/PROTOCOL.md:L26:Measurement",
+      "name": "Measurement",
+      "type": "Section",
+      "filePath": "evals/decision_models/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/PROTOCOL.md:L48:Verification and risk",
+      "name": "Verification and risk",
+      "type": "Section",
+      "filePath": "evals/decision_models/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L1:Jev-style decision model spikes",
+      "name": "Jev-style decision model spikes",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L10:Run the checks",
+      "name": "Run the checks",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L25:Hosted models",
+      "name": "Hosted models",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L51:Local Decider",
+      "name": "Local Decider",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L85:Reading the evidence",
+      "name": "Reading the evidence",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L1:Beastmode Jev-style decision model spikes",
+      "name": "Beastmode Jev-style decision model spikes",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L7:Research and candidates",
+      "name": "Research and candidates",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L25:Design and scope",
+      "name": "Design and scope",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L33:Measured results",
+      "name": "Measured results",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L59:Faster, cheaper, fewer tokens?",
+      "name": "Faster, cheaper, fewer tokens?",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L78:Hardware, pins and timing limitations",
+      "name": "Hardware, pins and timing limitations",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L100:Label ambiguity and confidence",
+      "name": "Label ambiguity and confidence",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L108:Recommendation for Beastmode",
+      "name": "Recommendation for Beastmode",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/RESULTS.md:L118:Reproducibility and verification",
+      "name": "Reproducibility and verification",
+      "type": "Section",
+      "filePath": "evals/decision_models/RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/SOURCES.md:L1:Candidate research and provenance",
+      "name": "Candidate research and provenance",
+      "type": "Section",
+      "filePath": "evals/decision_models/SOURCES.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/SOURCES.md:L35:Exact local artifacts",
+      "name": "Exact local artifacts",
+      "type": "Section",
+      "filePath": "evals/decision_models/SOURCES.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:NAMES",
+      "name": "NAMES",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:PROVIDERS",
+      "name": "PROVIDERS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:EXPECTED_API_MODELS",
+      "name": "EXPECTED_API_MODELS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:LOCAL_TEMPERATURES",
+      "name": "LOCAL_TEMPERATURES",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:JEV_RATE",
+      "name": "JEV_RATE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:REQUIRED_FIELDS",
+      "name": "REQUIRED_FIELDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_results.py:OPENROUTER_INSTRUCTION",
+      "name": "OPENROUTER_INSTRUCTION",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:fail",
+      "name": "fail",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:finite_nonnegative",
+      "name": "finite_nonnegative",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:finite_number",
+      "name": "finite_number",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:close",
+      "name": "close",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:sha256_file",
+      "name": "sha256_file",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:load_cases",
+      "name": "load_cases",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:load_cases.cases@81:4",
+      "name": "cases",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:load_cases.ids@82:4",
+      "name": "ids",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:load_cases.categories@83:4",
+      "name": "categories",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:load_rows",
+      "name": "load_rows",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:load_rows.rows@109:4",
+      "name": "rows",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:forbid_gold_rationale",
+      "name": "forbid_gold_rationale",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:local_prompt",
+      "name": "local_prompt",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:validate_payload",
+      "name": "validate_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:validate_probabilities",
+      "name": "validate_probabilities",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:validate_local_raw",
+      "name": "validate_local_raw",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:validate_local_raw.logs@239:4",
+      "name": "logs",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:validate_rows",
+      "name": "validate_rows",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:validate_rows.seen@275:4",
+      "name": "seen",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:percentile",
+      "name": "percentile",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:accuracy",
+      "name": "accuracy",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:latency_stats",
+      "name": "latency_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:token_stats",
+      "name": "token_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:pmax_stats",
+      "name": "pmax_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:model_report",
+      "name": "model_report",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:aggregate",
+      "name": "aggregate",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:aggregate.breakeven@455:8",
+      "name": "breakeven",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_results.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:main.rows_by_model@496:8",
+      "name": "rows_by_model",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_results.py:main.digests@497:8",
+      "name": "digests",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_results.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:PROVIDER_ENDPOINTS",
+      "name": "PROVIDER_ENDPOINTS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:PROVIDER_KEY_ENV",
+      "name": "PROVIDER_KEY_ENV",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:_REQUIRED_CASE_FIELDS",
+      "name": "_REQUIRED_CASE_FIELDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:_STOP_STATUSES",
+      "name": "_STOP_STATUSES",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:_SIMPLEJEV_MIN_INTERVAL_SECONDS",
+      "name": "_SIMPLEJEV_MIN_INTERVAL_SECONDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:_JEV_ESTIMATED_PROMPT_RATE_USD_PER_MILLION",
+      "name": "_JEV_ESTIMATED_PROMPT_RATE_USD_PER_MILLION",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:_HTTP_TIMEOUT_SECONDS",
+      "name": "_HTTP_TIMEOUT_SECONDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/benchmark_api.py:BenchmarkError",
+      "name": "BenchmarkError",
+      "type": "Class",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/benchmark_api.py:ConfigurationError",
+      "name": "ConfigurationError",
+      "type": "Class",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/benchmark_api.py:ProviderHalt",
+      "name": "ProviderHalt",
+      "type": "Class",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/benchmark_api.py:ProviderHalt.__init__#1",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_utc_now",
+      "name": "_utc_now",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_canonical_json",
+      "name": "_canonical_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:cases_sha256",
+      "name": "cases_sha256",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_api.py:sha256_cases",
+      "name": "sha256_cases",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:validate_cases",
+      "name": "validate_cases",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:validate_cases.validated@103:4",
+      "name": "validated",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:validate_cases.seen_ids@104:4",
+      "name": "seen_ids",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:load_cases",
+      "name": "load_cases",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_require_provider",
+      "name": "_require_provider",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_jev_payload",
+      "name": "_jev_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_openrouter_prompt",
+      "name": "_openrouter_prompt",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_openrouter_payload",
+      "name": "_openrouter_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:build_payload",
+      "name": "build_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_optional_number",
+      "name": "_optional_number",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_mapping_value",
+      "name": "_mapping_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_usage_value",
+      "name": "_usage_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_reported_cost",
+      "name": "_reported_cost",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_decode_json_text",
+      "name": "_decode_json_text",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_as_raw_value",
+      "name": "_as_raw_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_jev_answer",
+      "name": "_jev_answer",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:_jev_answer.candidate@273:4",
+      "name": "candidate",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:parse_record",
+      "name": "parse_record",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.choice@322:4",
+      "name": "choice",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.probabilities@323:4",
+      "name": "probabilities",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.confidence@324:4",
+      "name": "confidence",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.prompt_tokens@325:4",
+      "name": "prompt_tokens",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.completion_tokens@326:4",
+      "name": "completion_tokens",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.cost_usd@327:4",
+      "name": "cost_usd",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.cost_source@328:4",
+      "name": "cost_source",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:parse_record.parse_error@329:4",
+      "name": "parse_error",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_http_post",
+      "name": "_http_post",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_api_key",
+      "name": "_api_key",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_space_simplejev",
+      "name": "_space_simplejev",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_request_case",
+      "name": "_request_case",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_sibling_json_path",
+      "name": "_sibling_json_path",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:metadata_path_for",
+      "name": "metadata_path_for",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:warmup_path_for",
+      "name": "warmup_path_for",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:summary_path_for",
+      "name": "summary_path_for",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_write_json",
+      "name": "_write_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:run_benchmark",
+      "name": "run_benchmark",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:run_benchmark.metadata@568:4",
+      "name": "metadata",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:run_benchmark.api_key@590:4",
+      "name": "api_key",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:run_benchmark.stopped@591:4",
+      "name": "stopped",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:run_benchmark.failed@592:4",
+      "name": "failed",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:run_benchmark.last_start@594:4",
+      "name": "last_start",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_nearest_rank",
+      "name": "_nearest_rank",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_latency_stats",
+      "name": "_latency_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_accuracy_stats",
+      "name": "_accuracy_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_sum_stats",
+      "name": "_sum_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_metric_bundle",
+      "name": "_metric_bundle",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_first_pass_per_case",
+      "name": "_first_pass_per_case",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:_first_pass_per_case.selected@713:4",
+      "name": "selected",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:summarize_records",
+      "name": "summarize_records",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:summarize_records.by_pass@745:4",
+      "name": "by_pass",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:summarize_records.by_category@749:4",
+      "name": "by_category",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:summarize_records.summary@777:4",
+      "name": "summary",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_read_jsonl",
+      "name": "_read_jsonl",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:_read_jsonl.rows@824:4",
+      "name": "rows",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_read_optional_json",
+      "name": "_read_optional_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:summarize",
+      "name": "summarize",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:summarize.statuses@870:12",
+      "name": "statuses",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_api.py:summarize.latencies@871:12",
+      "name": "latencies",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:summarize.percentile@884:12",
+      "name": "percentile",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:_positive_int",
+      "name": "_positive_int",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:build_parser",
+      "name": "build_parser",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_api.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:DEFAULT_BASE_URL",
+      "name": "DEFAULT_BASE_URL",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:DEFAULT_TEMPERATURE",
+      "name": "DEFAULT_TEMPERATURE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:DEFAULT_REPEATS",
+      "name": "DEFAULT_REPEATS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:COMPLETION_REQUEST",
+      "name": "COMPLETION_REQUEST",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:RECEIPT_FIELDS",
+      "name": "RECEIPT_FIELDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/benchmark_local.py:SHA256_RE",
+      "name": "SHA256_RE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/benchmark_local.py:BenchmarkError",
+      "name": "BenchmarkError",
+      "type": "Class",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/benchmark_local.py:ResponseParseError",
+      "name": "ResponseParseError",
+      "type": "Class",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:sha256_bytes",
+      "name": "sha256_bytes",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:json_bytes",
+      "name": "json_bytes",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_json_value",
+      "name": "_json_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:case_parts",
+      "name": "case_parts",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:case_parts.options@103:4",
+      "name": "options",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:build_prompt",
+      "name": "build_prompt",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:option_labels",
+      "name": "option_labels",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:load_cases",
+      "name": "load_cases",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:load_cases.cases@140:4",
+      "name": "cases",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_canonical_cases_sha256",
+      "name": "_canonical_cases_sha256",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:load_model_receipt",
+      "name": "load_model_receipt",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_url",
+      "name": "_url",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:request_json",
+      "name": "request_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:inspect_props",
+      "name": "inspect_props",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:completion_payload",
+      "name": "completion_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_top_logprobs",
+      "name": "_top_logprobs",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_finite_number",
+      "name": "_finite_number",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:parse_raw_probabilities",
+      "name": "parse_raw_probabilities",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:parse_raw_probabilities.logprobs@336:4",
+      "name": "logprobs",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_first_value",
+      "name": "_first_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:extract_usage",
+      "name": "extract_usage",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_expected_label",
+      "name": "_expected_label",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_server_observed",
+      "name": "_server_observed",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_basename",
+      "name": "_basename",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_model_provenance",
+      "name": "_model_provenance",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:run_one",
+      "name": "run_one",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:run_one.row@469:4",
+      "name": "row",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_warmup",
+      "name": "_warmup",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_local_summary",
+      "name": "_local_summary",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:_local_summary.statuses@582:4",
+      "name": "statuses",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:_local_summary.latencies@583:4",
+      "name": "latencies",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:_local_summary.percentile@598:4",
+      "name": "percentile",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:summarize",
+      "name": "summarize",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:run_benchmark",
+      "name": "run_benchmark",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/benchmark_local.py:run_benchmark.rows@657:4",
+      "name": "rows",
+      "type": "Property",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:build_parser",
+      "name": "build_parser",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/benchmark_local.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/results/2026-09-26/blind-label-audit.md:L1:Blind label audit",
+      "name": "Blind label audit",
+      "type": "Section",
+      "filePath": "evals/decision_models/results/2026-09-26/blind-label-audit.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_api.py:FakeResponse",
+      "name": "FakeResponse",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:FakeResponse.__init__#2",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:FakeResponse.read#0",
+      "name": "read",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:FakeResponse.getcode#0",
+      "name": "getcode",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:FakeResponse.close#0",
+      "name": "close",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/test_benchmark_api.py:_case",
+      "name": "_case",
+      "type": "Function",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/test_benchmark_api.py:_jev_response",
+      "name": "_jev_response",
+      "type": "Function",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/test_benchmark_api.py:_jev_response.response@49:4",
+      "name": "response",
+      "type": "Property",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests",
+      "name": "BenchmarkApiTests",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.setUp#0",
+      "name": "setUp",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.tearDown#0",
+      "name": "tearDown",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests._run#3",
+      "name": "_run",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests._run.requests@68:8",
+      "name": "requests",
+      "type": "Property",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests._run.opener@70:8",
+      "name": "opener",
+      "type": "Function",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_missing_usage_stays_null_and_is_incomplete#0",
+      "name": "test_missing_usage_stays_null_and_is_incomplete",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_jev_criteria_contains_each_option_with_null_value#0",
+      "name": "test_jev_criteria_contains_each_option_with_null_value",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_openrouter_invalid_json_is_invalid_and_raw_is_retained#0",
+      "name": "test_openrouter_invalid_json_is_invalid_and_raw_is_retained",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_openrouter_invalid_json_is_invalid_and_raw_is_retained.opener@109:8",
+      "name": "opener",
+      "type": "Function",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_wrong_model_cannot_be_valid_or_correct#0",
+      "name": "test_wrong_model_cannot_be_valid_or_correct",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_http_error_is_recorded_with_status_and_counted#0",
+      "name": "test_http_error_is_recorded_with_status_and_counted",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_summary_denominators_unique_cases_and_each_pass#0",
+      "name": "test_summary_denominators_unique_cases_and_each_pass",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_auth_stop_saves_warmup_and_summary_without_leaking_headers#0",
+      "name": "test_auth_stop_saves_warmup_and_summary_without_leaking_headers",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_auth_stop_saves_warmup_and_summary_without_leaking_headers.opener@163:8",
+      "name": "opener",
+      "type": "Function",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_api.py:BenchmarkApiTests.test_validation_rejects_duplicate_ids_and_invalid_gold#0",
+      "name": "test_validation_rejects_duplicate_ids_and_invalid_gold",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests",
+      "name": "BenchmarkLocalTests",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_prompt_is_exact_and_excludes_gold_and_rationale#0",
+      "name": "test_prompt_is_exact_and_excludes_gold_and_rationale",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_completion_payload_has_native_raw_logit_contract#0",
+      "name": "test_completion_payload_has_native_raw_logit_contract",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_all_labels_are_scaled_and_choice_is_local_argmax#0",
+      "name": "test_all_labels_are_scaled_and_choice_is_local_argmax",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_missing_label_is_invalid_trust_boundary#0",
+      "name": "test_missing_label_is_invalid_trust_boundary",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_nonfinite_logprob_is_rejected#0",
+      "name": "test_nonfinite_logprob_is_rejected",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_leading_space_token_does_not_get_silently_equated#0",
+      "name": "test_leading_space_token_does_not_get_silently_equated",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_receipt_requires_exact_provenance_fields#0",
+      "name": "test_receipt_requires_exact_provenance_fields",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkLocalTests.test_usage_prefers_llama_timings_and_counts_transport_tokens#0",
+      "name": "test_usage_prefers_llama_timings_and_counts_transport_tokens",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_local.py:_FakeServer",
+      "name": "_FakeServer",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:_FakeServer.__init__#1",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:_FakeServer._handler#0",
+      "name": "_handler",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_local.py:Handler",
+      "name": "Handler",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:Handler.log_message",
+      "name": "log_message",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:Handler.do_GET#0",
+      "name": "do_GET",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:Handler.do_POST#0",
+      "name": "do_POST",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:_FakeServer.base_url#0",
+      "name": "base_url",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:_FakeServer.__enter__#0",
+      "name": "__enter__",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:_FakeServer.__exit__",
+      "name": "__exit__",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_benchmark_local.py:BenchmarkIntegrationTests",
+      "name": "BenchmarkIntegrationTests",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_benchmark_local.py:BenchmarkIntegrationTests.test_benchmark_warmup_then_two_serial_passes_and_flushes_rows#0",
+      "name": "test_benchmark_warmup_then_two_serial_passes_and_flushes_rows",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_benchmark_local.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/effectiveness/SKILL.md:L6:Beastmode effectiveness evaluation",
+      "name": "Beastmode effectiveness evaluation",
+      "type": "Section",
+      "filePath": "evals/effectiveness/SKILL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/effectiveness/SKILL.md:L36:Interrupted orchestration evidence",
+      "name": "Interrupted orchestration evidence",
+      "type": "Section",
+      "filePath": "evals/effectiveness/SKILL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/effectiveness/SKILL.md:L40:Typed decision model spikes",
+      "name": "Typed decision model spikes",
+      "type": "Section",
+      "filePath": "evals/effectiveness/SKILL.md",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_12_main",
+      "name": "Main → Fail",
+      "process_type": "intra_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "validate_rows",
+          "step": 2
+        },
+        {
+          "symbol": "validate_payload",
+          "step": 3
+        },
+        {
+          "symbol": "forbid_gold_rationale",
+          "step": 4
+        },
+        {
+          "symbol": "fail",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_13_main",
+      "name": "Main → _url",
+      "process_type": "intra_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "inspect_props",
+          "step": 3
+        },
+        {
+          "symbol": "request_json",
+          "step": 4
+        },
+        {
+          "symbol": "_url",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_14_main",
+      "name": "Main → _json_value",
+      "process_type": "intra_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "load_cases",
+          "step": 3
+        },
+        {
+          "symbol": "case_parts",
+          "step": 4
+        },
+        {
+          "symbol": "_json_value",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_24_main",
+      "name": "Main → Percentile",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "model_report",
+          "step": 2
+        },
+        {
+          "symbol": "latency_stats",
+          "step": 3
+        },
+        {
+          "symbol": "percentile",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_25_main",
+      "name": "Main → Close",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "validate_rows",
+          "step": 2
+        },
+        {
+          "symbol": "validate_payload",
+          "step": 3
+        },
+        {
+          "symbol": "close",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_26_main",
+      "name": "Main → Local_prompt",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "validate_rows",
+          "step": 2
+        },
+        {
+          "symbol": "validate_payload",
+          "step": 3
+        },
+        {
+          "symbol": "local_prompt",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_27_build_payload",
+      "name": "Build_payload → _canonical_json",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "build_payload",
+          "step": 1
+        },
+        {
+          "symbol": "_openrouter_payload",
+          "step": 2
+        },
+        {
+          "symbol": "_openrouter_prompt",
+          "step": 3
+        },
+        {
+          "symbol": "_canonical_json",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_28_main",
+      "name": "Main → _sibling_json_path",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "metadata_path_for",
+          "step": 3
+        },
+        {
+          "symbol": "_sibling_json_path",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_29_summarize",
+      "name": "Summarize → _nearest_rank",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "summarize_records",
+          "step": 2
+        },
+        {
+          "symbol": "_latency_stats",
+          "step": 3
+        },
+        {
+          "symbol": "_nearest_rank",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_30_main",
+      "name": "Main → Json_bytes",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "_canonical_cases_sha256",
+          "step": 3
+        },
+        {
+          "symbol": "json_bytes",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_31_main",
+      "name": "Main → Sha256_bytes",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "_canonical_cases_sha256",
+          "step": 3
+        },
+        {
+          "symbol": "sha256_bytes",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_71_main",
+      "name": "Main → Accuracy",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "model_report",
+          "step": 2
+        },
+        {
+          "symbol": "accuracy",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_72_main",
+      "name": "Main → Pmax_stats",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "model_report",
+          "step": 2
+        },
+        {
+          "symbol": "pmax_stats",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_73_main",
+      "name": "Main → Token_stats",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "model_report",
+          "step": 2
+        },
+        {
+          "symbol": "token_stats",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_74_main",
+      "name": "Main → _require_provider",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "_require_provider",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_75_parse_record",
+      "name": "Parse_record → _decode_json_text",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "parse_record",
+          "step": 1
+        },
+        {
+          "symbol": "_as_raw_value",
+          "step": 2
+        },
+        {
+          "symbol": "_decode_json_text",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_76_summarize",
+      "name": "Summarize → _accuracy_stats",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "summarize_records",
+          "step": 2
+        },
+        {
+          "symbol": "_accuracy_stats",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_77_summarize",
+      "name": "Summarize → _first_pass_per_case",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "summarize_records",
+          "step": 2
+        },
+        {
+          "symbol": "_first_pass_per_case",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_78_summarize",
+      "name": "Summarize → _sum_stats",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "summarize_records",
+          "step": 2
+        },
+        {
+          "symbol": "_sum_stats",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_79_main",
+      "name": "Main → Load_model_receipt",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_benchmark",
+          "step": 2
+        },
+        {
+          "symbol": "load_model_receipt",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_80_summarize",
+      "name": "Summarize → Percentile",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "percentile",
+          "step": 3
+        },
+        {
+          "symbol": "_local_summary",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_129_validate_local_raw",
+      "name": "Validate_local_raw → Fail",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "validate_local_raw",
+          "step": 1
+        },
+        {
+          "symbol": "finite_nonnegative",
+          "step": 2
+        },
+        {
+          "symbol": "fail",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_130_run_one",
+      "name": "Run_one → _json_value",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "run_one",
+          "step": 1
+        },
+        {
+          "symbol": "build_prompt",
+          "step": 2
+        },
+        {
+          "symbol": "case_parts",
+          "step": 3
+        },
+        {
+          "symbol": "_json_value",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_136_main",
+      "name": "Main → _canonical_json",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "load_cases",
+          "step": 2
+        },
+        {
+          "symbol": "validate_cases",
+          "step": 3
+        },
+        {
+          "symbol": "_canonical_json",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_137_summarize",
+      "name": "Summarize → _sibling_json_path",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "summarize",
+          "step": 1
+        },
+        {
+          "symbol": "metadata_path_for",
+          "step": 2
+        },
+        {
+          "symbol": "_sibling_json_path",
+          "step": 3
+        }
+      ]
+    }
+  ]
+}

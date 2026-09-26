@@ -1,0 +1,8 @@
+{
+  "repo": "mindchain/decider-4b-v2-GGUF",
+  "revision": "2796fac5cdad018ef6d9a4a004735ff819f424a2",
+  "file": "decider-4b.v2-Q4_K_M.gguf",
+  "sha256": "f7e2e510ef51d212ea9b7fb8bf27906b5f516d7939ca847428fb91f6a8acfa79",
+  "bytes": 2708804544,
+  "seconds": 400.4731910228729
+}

@@ -1,0 +1,15 @@
+{
+  "case": "structured flags already supplied, excludes deriving flags from text",
+  "calls_per_repeat": 100000,
+  "repeats": 5,
+  "microseconds_per_call": [
+    0.30764602997805923,
+    0.3004100301768631,
+    0.30770402983762324,
+    0.3125610394636169,
+    0.30759803019464016
+  ],
+  "api_cost_usd": 0,
+  "model_tokens": 0,
+  "python": "3.11.15"
+}
