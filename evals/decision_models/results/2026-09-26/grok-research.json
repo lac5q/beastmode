@@ -1,0 +1,236 @@
+{
+  "success": true,
+  "provider": "xai",
+  "credential_source": "xai-oauth",
+  "tool": "x_search",
+  "model": "grok-4.5",
+  "query": "Research current Jev-style typed decision models for an agent orchestration framework, Beastmode. Start from https://x.com/bluecow009/status/2103326124835311700 and identify its quoted model/benchmark. Compare Decider 4B v2 (not v2.1), Decider 0.8B/2B, AnyJev, Simple Jev, Kev, Tev1 and TypeSafe Jev. Find promising uses: task routing, retry-vs-escalate, evidence-completeness triage, tool selection. We need ACTUAL measurable inference spikes, CPU-only 12GB host, no GPU, perhaps hosted APIs. Cite recent original developer posts and primary repos, exact versions, runnable endpoints, cost and token semantics. Distinguish benchmark claims from measured end-to-end savings; warn about confidence vs p_max and quantization. Do not assert general superiority.",
+  "answer": "**Starting point:** The post https://x.com/bluecow009/status/2103326124835311700 quotes @airesearch12\u2019s announcement of **JevBench v1.4.2** (https://benchmarkheaven.com/jev-models). Rankings (composite): 1. decider-4b v2, 2. Jev 1.13.0, 3. JevK5, 4. Cygnet, 5. Hopper. A 4B open model tops the composite, but Jev leads raw intelligence (53.1 vs 49.4) and calibration; decider-4b v2 wins via ~5\u00d7 speed and ~\u00bd cost (equal weighting of smart/calibrated/fast/cheap).[[1]](https://x.com/i/status/2103267811480993858)[[2]](https://x.com/i/status/2103326124835311700)\n\nJev-class / \u201cSystem One\u201d models are specialized for **typed decisions** (not free-form generation): Choice (pick from options), Score (rate), Noul/Yes-No (probability of truth). They take application state + typed question(s), return structured decision + probabilities/confidence, often in one forward pass or parallel, with low latency/cost for high-volume agent control flow.[[3]](https://x.com/urdav3/status/2103052576736579885)\n\n**Do not assert general superiority**\u2014performance is task-, harness-, quantization-, and calibration-dependent. Benchmark composites \u2260 measured end-to-end (e2e) agent savings. Below compares the requested models from recent developer posts/primary sources (as of late Sep 2026). Exact versions, repos, and numbers are as publicly claimed; always re-measure.\n\n### Model Comparison\n- **TypeSafe Jev (Jev 1.13.0 / Jev-Latest)**: Original closed commercial from TypeSafe AI (@typesafeai). System One API. ~70\u2013500 ms latency, $0.042 per million **input** tokens (output free). Parallel Choice/Score/Noul + probs/confidence. High-volume focus (routing, moderation, risk, agent branches). Runnable via their API (and OpenRouter typesafe/jev-router). Intelligence leader on JevBench; strong calibration. No local weights.[[3]](https://x.com/urdav3/status/2103052576736579885)[[1]](https://x.com/i/status/2103267811480993858)\n\n- **Decider 4B v2** (explicitly not v2.1): Open 4B model; #1 JevBench v1.4.2 composite. Intelligence ~49.4 (trails Jev), wins on speed (~5\u00d7) & cost (~half). One-pass structured outputs. Fits quantized on CPU / Apple Silicon / modest GPU (GGUF/MLX/llama.cpp; bf16 wants ~8\u201312 GB VRAM class). Developer notes and HF mentions of related Decider family; multi-lingual accuracy can drop sharply outside English.[[1]](https://x.com/i/status/2103267811480993858)[[4]](https://x.com/airesearch12/status/2103267815373574573)[[5]](https://x.com/vaibhav2ghadge/status/2103519481004003454)\n\n- **Decider 0.8B / 2B** (and vision variants): Smaller open siblings (decider-2b, decider-0.8b). decider-2b-vision ranked #2 on ImageJevBench. Low footprint (~1.4 GB VRAM reported for 2B). Measured local latencies in independent tests: ~14.7 ms (one setup) to p50 ~164 ms @ concurrency 2; competitive zero-shot on gate/safety tasks vs tuned baselines (e.g., benign pass ~93%, AUCs 0.97+). Suitable for edge/CPU.[[6]](https://x.com/jaita/status/2103576659001581789)[[7]](https://x.com/airesearch12/status/2103560165773787640)\n\n- **AnyJev**: Nokia Applied Research library (pip install anyjev; primary repo https://github.com/nokia-applied-research/AnyJev). Training-free (or few-label) calibration layer + closed-form head on **any** open LLM you already run. Keeps reasoning in the base model; adds schema-valid typed decisions + better-calibrated probs. Zero-label Qwen3-8B on JevBench public 231: acc 0.727 (easy 1.0 / hard 0.523), every answer schema-valid, median 57 ms, ECE 0.246\u21920.079 (one temperature). With 100\u2013300 labels: head solve in seconds on CPU; head cost 0.68\u20130.84\u00d7 forward pass; serve via vLLM embed + ~100 KB head. Swap base LLM freely.[[8]](https://x.com/Yucheng__Shi/status/2103532583468646826)[[9]](https://x.com/wuliang211/status/2103370604057653434)\n\n- **Simple Jev**: Featherless AI (@FeatherlessAI / @picocreator). Hosted free tier + open \u201cjev-ified\u201d open-source models (incl. vision) at https://simple-jev.featherless.ai/. Prompt-formatting tuned to close/surpass Jev on their expanded evals (original 231 + 33k). Qwen3.5-4B highlighted as strong on easy classification + vision, production ~$0.03/M tokens. Fully open/replicable evals; run local or hosted. Continues iteration for speed/cost.[[10]](https://x.com/i/status/2102869450999652781)[[11]](https://x.com/FeatherlessAI/status/2103629698517676429)\n\n- **Kev**: Open-source family (https://github.com/jaredpalmer/kev) on Qwen3.5 (0.8B / 4B / 9B variants; some mentions 0.5B). Train/run yourself; System One-compatible endpoint. Head-to-head claims: accuracy nearly identical to Jev (~2% gap), faster + more token-efficient. Local/privacy focus; OpenRouter listing for Kev 4B at $0.042/M input.[[12]](https://x.com/rammcodes/status/2102502714295132464)[[13]](https://x.com/surojitpvt/status/2103565379239084213)[[14]](https://x.com/latent_node/status/2103630082162192448)\n\n- **Tev1** (incl. Tev1-4B-experimental / 0.8B mentions): Qwen-based experimental (text + vision). Some implementations treat it as drop-in for decision layers alongside Jev/rules. Criticized by others as \u201cdecoder LLM wearing decision-model interface\u201d (autoregressive, pseudo-confidence rather than true calibrated one-pass head). Useful small local size noted; not universally accepted as pure Jev-class.[[15]](https://x.com/TechThought_org/status/2103356382317515178)[[16]](https://x.com/vignesh_bkn/status/2103142176536612969)[[17]](https://x.com/marquisehurtt/status/2103570064729403889)\n\n- **TypeSafe Jev** is the reference commercial original above; others emulate its typed/probabilistic/parallel API style.\n\nRelated: hipJev (AMD HIP/C++ DiffusionGemma, ~50 ms, 198/231 JevBench, https://github.com/danielmriley/hip-jev); various routers/PoCs.[[18]](https://x.com/danielmriley/status/2103561995635024048)\n\n### Promising Uses in Beastmode-style Agent Orchestration\nThese excel as a cheap/fast **front layer** (System 1) before expensive frontier LLMs:\n- **Task routing / model selection**: Jev-class decides which model/effort/tool per turn (cache-aware). Developer report: ~9\u00d7 token cost savings, little quality drop; open routers exist that also factor benchmarks + local models + quotas. OpenRouter typesafe/jev-router is free routing.[[19]](https://x.com/airesearch12/status/2103619164933865742)[[20]](https://x.com/yandt888/status/2103631894831059402)\n- **Retry-vs-escalate**: Local small Decider/Kev/AnyJev first; escalate to Jev/frontier only on low confidence. Hybrid example: 45% handled locally, same accuracy, ~1.8\u00d7 faster average.[[21]](https://x.com/wenxinc0612/status/2102100377927819570)\n- **Evidence-completeness triage**: Score/Noul on \u201cis evidence sufficient?\u201d or completeness before generation/retrieval.\n- **Tool selection / approval**: Choice over tools or yes/no risk gate before tool calls (approve/deny/escalate). High-volume agent loops burn frontier tokens on exactly these.\n\nOther frequent patterns: ticket routing, moderation, skill ranking, memory gating, fault diagnosis PoCs.[[22]](https://x.com/itsjdraven/status/2103360153865367828)\n\n### Measurable Inference, CPU-only 12 GB Host, Costs, Tokens\n**No GPU required** for 0.8B\u20134B class when quantized (GGUF, MLX, llama.cpp, CPU backends). 12 GB host comfortably holds 4B Q4/Q5 + overhead; smaller (0.8B/2B) leave headroom for concurrent agents. Apple Silicon / consumer CPU viable (slower than CUDA but usable). Larger (Cygnet-style 12B) need more aggressive quant or struggle.[[23]](https://x.com/grok/status/2103402795768381486)\n\n**Reported spikes / latencies** (directional; hardware/harness vary; include network for APIs):\n- TypeSafe Jev API: 70\u2013500 ms.\n- AnyJev (Qwen3-8B): 57 ms median.\n- Decider 2B local: ~15 ms (light) to ~164 ms p50.\n- hipJev: ~50 ms.\n- Other local one-pass / logprob-softmax: ~99\u2013180 ms range on consumer/GPU; pure CPU higher.\n- Hybrid local-first: average down to ~327 ms vs 588 ms pure API.[[8]](https://x.com/Yucheng__Shi/status/2103532583468646826)[[6]](https://x.com/jaita/status/2103576659001581789)[[18]](https://x.com/danielmriley/status/2103561995635024048)[[21]](https://x.com/wenxinc0612/status/2102100377927819570)\n\n**Hosted APIs / endpoints**: TypeSafe Jev API; Featherless simple-jev (free start, $0.03/M prod); OpenRouter (Kev 4B, jev-router, others); meraGPT Decider-style at ~$0.03/M (System One compatible); Chromia Decision-4B on-phone (no API/GPU/account). Local: HF weights + vLLM/llama.cpp/own servers.[[14]](https://x.com/latent_node/status/2103630082162192448)[[14]](https://x.com/latent_node/status/2103630082162192448)\n\n**Cost & token semantics**: Dominated by **input** tokens (state + questions). Outputs free/short/structured (no verbose generation). Jev $0.042/M in; Simple/others ~$0.03/M or free local. Parallel questions amortize. e2e agent savings come from *avoiding* frontier calls (9\u00d7 token examples), not the decision call itself. Image variants: top-5 on 89 images ~$0.02 total.[[3]](https://x.com/urdav3/status/2103052576736579885)[[7]](https://x.com/airesearch12/status/2103560165773787640)\n\n### Benchmark Claims vs Measured e2e; Warnings\n- **JevBench** (v1.4.2 composite, sealed + public items, equal smart/cal/fast/cheap): favors fast/cheap (hence decider-4b v2 #1). Intelligence sort still ranks Jev first. Evolving (more weight on intel possible; rotating hidden set). Decision Index (broader public benches) also favors Jev intelligence. Small sealed sets can be gamed or too hard.[[1]](https://x.com/i/status/2103267811480993858)[[24]](https://x.com/airesearch12/status/2103402748335083699)\n- **e2e savings** are separate and promising but harness-specific (routing 9\u00d7 tokens; hybrid latency; gate AUCs). Vendor benches are directional. Independent runs show non-English drops, verifier weaknesses on long-horizon coding, etc.\n- **Confidence vs p_max**: Models return probabilities + confidence. Errors concentrate in low-confidence bins (good), but mid-range (0.7\u20130.78) can still be coin-flips on ambiguous items. Prefer calibrated ECE over raw max-prob; AnyJev explicitly improves ECE. Do not treat p_max as reliable confidence without validation.[[25]](https://x.com/KendalFinance/status/2103587476967489872)\n- **Quantization**: Essential for 12 GB CPU-only, but can degrade calibration/accuracy (test post-quant ECE and schema validity). FP8/NVFP4 experiments ongoing. One-pass heads are more fragile to quant than full generative models.\n\n**Primary recent developer sources**: @airesearch12 (JevBench), TypeSafe/Jev announcements, @wuliang211 / Nokia AnyJev, @picocreator / Featherless Simple Jev, jaredpalmer/kev repo, latent_node / meraGPT Decider posts, HF model cards, OpenRouter. Repos: nokia-applied-research/AnyJev, jaredpalmer/kev, danielmriley/hip-jev, simple-jev.featherless.ai (evals open), various router PoCs. Exact runnable: APIs above + local HF/vLLM. Versions freeze quickly\u2014pin Jev 1.13.0, decider-4b v2, specific Kev/AnyJev commits.\n\nFor Beastmode, start with a small local Decider/Kev/AnyJev (or Simple Jev free) for routing/escalate gates on CPU, measure your own p50/p95 + ECE on *your* decision distribution, then A/B vs pure frontier or TypeSafe Jev. Hybrid confidence-thresholding often yields the practical wins without claiming any single model is universally best.",
+  "citations": [],
+  "inline_citations": [
+    {
+      "url": "https://x.com/i/status/2103267811480993858",
+      "title": "1",
+      "start_index": 462,
+      "end_index": 511
+    },
+    {
+      "url": "https://x.com/i/status/2103326124835311700",
+      "title": "2",
+      "start_index": 511,
+      "end_index": 560
+    },
+    {
+      "url": "https://x.com/urdav3/status/2103052576736579885",
+      "title": "3",
+      "start_index": 940,
+      "end_index": 994
+    },
+    {
+      "url": "https://x.com/urdav3/status/2103052576736579885",
+      "title": "3",
+      "start_index": 1809,
+      "end_index": 1863
+    },
+    {
+      "url": "https://x.com/i/status/2103267811480993858",
+      "title": "1",
+      "start_index": 1863,
+      "end_index": 1912
+    },
+    {
+      "url": "https://x.com/i/status/2103267811480993858",
+      "title": "1",
+      "start_index": 2320,
+      "end_index": 2369
+    },
+    {
+      "url": "https://x.com/airesearch12/status/2103267815373574573",
+      "title": "4",
+      "start_index": 2369,
+      "end_index": 2429
+    },
+    {
+      "url": "https://x.com/vaibhav2ghadge/status/2103519481004003454",
+      "title": "5",
+      "start_index": 2429,
+      "end_index": 2491
+    },
+    {
+      "url": "https://x.com/jaita/status/2103576659001581789",
+      "title": "6",
+      "start_index": 2904,
+      "end_index": 2957
+    },
+    {
+      "url": "https://x.com/airesearch12/status/2103560165773787640",
+      "title": "7",
+      "start_index": 2957,
+      "end_index": 3017
+    },
+    {
+      "url": "https://x.com/Yucheng__Shi/status/2103532583468646826",
+      "title": "8",
+      "start_index": 3647,
+      "end_index": 3707
+    },
+    {
+      "url": "https://x.com/wuliang211/status/2103370604057653434",
+      "title": "9",
+      "start_index": 3707,
+      "end_index": 3765
+    },
+    {
+      "url": "https://x.com/i/status/2102869450999652781",
+      "title": "10",
+      "start_index": 4212,
+      "end_index": 4262
+    },
+    {
+      "url": "https://x.com/FeatherlessAI/status/2103629698517676429",
+      "title": "11",
+      "start_index": 4262,
+      "end_index": 4324
+    },
+    {
+      "url": "https://x.com/rammcodes/status/2102502714295132464",
+      "title": "12",
+      "start_index": 4668,
+      "end_index": 4726
+    },
+    {
+      "url": "https://x.com/surojitpvt/status/2103565379239084213",
+      "title": "13",
+      "start_index": 4726,
+      "end_index": 4785
+    },
+    {
+      "url": "https://x.com/latent_node/status/2103630082162192448",
+      "title": "14",
+      "start_index": 4785,
+      "end_index": 4845
+    },
+    {
+      "url": "https://x.com/TechThought_org/status/2103356382317515178",
+      "title": "15",
+      "start_index": 5251,
+      "end_index": 5315
+    },
+    {
+      "url": "https://x.com/vignesh_bkn/status/2103142176536612969",
+      "title": "16",
+      "start_index": 5315,
+      "end_index": 5375
+    },
+    {
+      "url": "https://x.com/marquisehurtt/status/2103570064729403889",
+      "title": "17",
+      "start_index": 5375,
+      "end_index": 5437
+    },
+    {
+      "url": "https://x.com/danielmriley/status/2103561995635024048",
+      "title": "18",
+      "start_index": 5696,
+      "end_index": 5757
+    },
+    {
+      "url": "https://x.com/airesearch12/status/2103619164933865742",
+      "title": "19",
+      "start_index": 6190,
+      "end_index": 6251
+    },
+    {
+      "url": "https://x.com/yandt888/status/2103631894831059402",
+      "title": "20",
+      "start_index": 6251,
+      "end_index": 6308
+    },
+    {
+      "url": "https://x.com/wenxinc0612/status/2102100377927819570",
+      "title": "21",
+      "start_index": 6494,
+      "end_index": 6554
+    },
+    {
+      "url": "https://x.com/itsjdraven/status/2103360153865367828",
+      "title": "22",
+      "start_index": 6958,
+      "end_index": 7017
+    },
+    {
+      "url": "https://x.com/grok/status/2103402795768381486",
+      "title": "23",
+      "start_index": 7409,
+      "end_index": 7462
+    },
+    {
+      "url": "https://x.com/Yucheng__Shi/status/2103532583468646826",
+      "title": "8",
+      "start_index": 7853,
+      "end_index": 7913
+    },
+    {
+      "url": "https://x.com/jaita/status/2103576659001581789",
+      "title": "6",
+      "start_index": 7913,
+      "end_index": 7966
+    },
+    {
+      "url": "https://x.com/danielmriley/status/2103561995635024048",
+      "title": "18",
+      "start_index": 7966,
+      "end_index": 8027
+    },
+    {
+      "url": "https://x.com/wenxinc0612/status/2102100377927819570",
+      "title": "21",
+      "start_index": 8027,
+      "end_index": 8087
+    },
+    {
+      "url": "https://x.com/latent_node/status/2103630082162192448",
+      "title": "14",
+      "start_index": 8385,
+      "end_index": 8445
+    },
+    {
+      "url": "https://x.com/latent_node/status/2103630082162192448",
+      "title": "14",
+      "start_index": 8445,
+      "end_index": 8505
+    },
+    {
+      "url": "https://x.com/urdav3/status/2103052576736579885",
+      "title": "3",
+      "start_index": 8878,
+      "end_index": 8932
+    },
+    {
+      "url": "https://x.com/airesearch12/status/2103560165773787640",
+      "title": "7",
+      "start_index": 8932,
+      "end_index": 8992
+    },
+    {
+      "url": "https://x.com/i/status/2103267811480993858",
+      "title": "1",
+      "start_index": 9388,
+      "end_index": 9437
+    },
+    {
+      "url": "https://x.com/airesearch12/status/2103402748335083699",
+      "title": "24",
+      "start_index": 9437,
+      "end_index": 9498
+    },
+    {
+      "url": "https://x.com/KendalFinance/status/2103587476967489872",
+      "title": "25",
+      "start_index": 10057,
+      "end_index": 10119
+    }
+  ],
+  "degraded": false,
+  "degraded_reason": null
+}

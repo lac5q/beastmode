@@ -36,3 +36,23 @@ If this guard fails mid-run before a model launch, retain the failure receipt an
 ## Interrupted orchestration evidence
 
 Stream child stdout/stderr to durable per-call files while collecting them; buffering until process completion loses evidence if the harness is terminated. If the harness dies, inspect the exact child PID before declaring interruption. Preserve the original running record and observed process exit separately from the unknown model exit. Never infer pre-response retry eligibility from missing buffered output. Keep unknown provenance and dependent revision invalidity visible; use the protocol's missing-output sentinel when appropriate.
+
+## Typed decision model spikes
+
+Pin model weights separately from the serving package and mutable model aliases. For a
+community quantization, verify the file hash against its provenance, record the upstream
+revision, and label the measured precision; a Q4 result does not reproduce a bf16 benchmark.
+
+When extracting restricted label probabilities from a generation server, use pre-sampling
+log probabilities and require every exact label token before normalizing with the release
+temperature. Grammar-based rejection sampling may leave post-sampling probabilities
+unmasked when the first draw is legal. Do not silently fill missing labels with zero.
+Verify a live response fixture and the semantic-label mapping before collecting trials.
+
+Count server-reported output tokens even for a non-generative decision API. Distinguish
+serialized-output usage, transport sampling used to expose logits, and generated prose.
+Compare total input as well as output tokens: a typed API's internal prompt can outweigh
+its output savings. Local inference has no API charge but still consumes machine time;
+show an explicit cost assumption or break-even rate, not a zero-cost claim. Decision-call
+savings are not whole-agent savings. See `../decision_models/PROTOCOL.md` for one concrete
+study contract; its results are separate from these reusable rules.

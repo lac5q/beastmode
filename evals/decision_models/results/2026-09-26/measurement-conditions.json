@@ -1,0 +1,13 @@
+{
+  "deviation": "Own graph indexing started during first Decider4 pass, cancelled to avoid further CPU contention; completed rows retained, no labels or outputs changed. Use pass2 latency as uncontaminated-by-this-indexer comparison; report both passes. Shared host still not isolated.",
+  "rows_completed_at_cancellation": 7,
+  "graph_index_recheck": "deferred until all inference completes",
+  "shared_host_snapshot": {
+    "at": "2026-09-26T16:02:17.827285+00:00",
+    "rows": 42,
+    "free_m": "               total        used        free      shared  buff/cache   available\nMem:           11960        7628         128          26        4441        4332\nSwap:           8192        6660        1531\n",
+    "loadavg": "9.99 11.10 10.38 3/2070 2348263",
+    "own_server": "    PID     ELAPSED %CPU %MEM   RSS S COMMAND\n2309470       21:27  238 36.5 4482220 R llama-server\n"
+  },
+  "interpretation": "Shared-host CPU and memory pressure vary over time. Second pass removes the known own-indexer overlap, but is not an isolated or hardware-comparable latency estimate."
+}

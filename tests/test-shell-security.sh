@@ -7,7 +7,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 # This suite uses fake harnesses and never contacts Anthropic. Anthropic
-# routing is intentionally tested without any API-OAuth bypass environment.
+# directors use the automatic review lane; direct Hermes mocks authorize their seat.
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "ok: $*"; }
@@ -87,8 +87,9 @@ grep -q 'unknown model alias' <<< "$unknown_out" || fail "unknown alias error wa
 ok "unknown aliases fail closed"
 
 for harness in hermes claude; do
-  BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
-    "$ROOT/scripts/bm" "inspect" --harness "$harness" --frontier opus --autonomy high >/dev/null
+  BM_ALLOW_CLAUDE_OAUTH=1 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" \
+    PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "inspect" --harness "$harness" \
+      --frontier opus --autonomy high >/dev/null
   if grep -Eq -- '--yolo|--full-auto|--dangerously-skip-permissions|bypassPermissions' "$args"; then
     fail "$harness high autonomy weakened tool permissions"
   fi

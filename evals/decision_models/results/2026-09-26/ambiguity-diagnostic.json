@@ -1,0 +1,61 @@
+{
+  "post_hoc": true,
+  "excluded": [
+    "routing-03",
+    "routing-04",
+    "evidence-04"
+  ],
+  "reason": "Blind reviewer found plausible alternative labels; primary scores remain unchanged.",
+  "models": {
+    "jev": {
+      "correct": 51,
+      "calls": 54,
+      "unique_cases": 27,
+      "pmax_ge_0_9": {
+        "available": true,
+        "covered": 45,
+        "wrong": 0
+      }
+    },
+    "openrouter": {
+      "correct": 50,
+      "calls": 54,
+      "unique_cases": 27,
+      "pmax_ge_0_9": {
+        "available": false,
+        "covered": 0,
+        "wrong": 0
+      }
+    },
+    "simplejev-identified": {
+      "correct": 48,
+      "calls": 54,
+      "unique_cases": 27,
+      "pmax_ge_0_9": {
+        "available": true,
+        "covered": 34,
+        "wrong": 0
+      }
+    },
+    "decider08": {
+      "correct": 30,
+      "calls": 54,
+      "unique_cases": 27,
+      "pmax_ge_0_9": {
+        "available": true,
+        "covered": 18,
+        "wrong": 4
+      }
+    },
+    "decider4": {
+      "correct": 44,
+      "calls": 54,
+      "unique_cases": 27,
+      "pmax_ge_0_9": {
+        "available": true,
+        "covered": 32,
+        "wrong": 0
+      }
+    }
+  }
+}

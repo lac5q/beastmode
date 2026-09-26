@@ -26,7 +26,7 @@ pass "syntax"
 # 2. version command resolves the canonical package version.
 rm -rf "$PREFIX"
 VER="$("$ROOT/$INSTALLER" --prefix "$PREFIX" version)"
-[ "$VER" = "2.4.0" ] || fail "version=$VER (expected 2.4.0)"
+[ "$VER" = "2.4.1" ] || fail "version=$VER (expected 2.4.1)"
 pass "version resolves to $VER"
 
 # 3. fresh install.
@@ -54,14 +54,14 @@ case "$OUT" in
   *"beastmode runner"*) ;;
   *) fail "installed bm usage: $OUT" ;;
 esac
-[ "$( "$PREFIX/bin/bm" version )" = "2.4.0" ] || fail "installed bm version"
+[ "$( "$PREFIX/bin/bm" version )" = "2.4.1" ] || fail "installed bm version"
 pass "installed bm resolves sibling files + self-management"
 
 # 6. status reports the installed version. (Capture output rather than piping
 #    to `grep -q`: under pipefail, grep -q's early exit SIGPIPEs the producer.)
 STATUS_OUT="$( "$ROOT/$INSTALLER" --prefix "$PREFIX" status )"
 case "$STATUS_OUT" in
-  *"version    : 2.4.0"*) ;;
+  *"version    : 2.4.1"*) ;;
   *) fail "status missing version: $STATUS_OUT" ;;
 esac
 pass "status reports installed version"
@@ -69,7 +69,7 @@ pass "status reports installed version"
 # 7. upgrade re-points current to a new version and keeps the old snapshot.
 "$ROOT/$INSTALLER" --prefix "$PREFIX" --runtimes '' --version 3.0.0 --force upgrade >/dev/null 2>&1 \
   || fail "upgrade"
-[ -d "$PREFIX/share/beastmode/beastmode-2.4.0" ] || fail "old snapshot pruned too early"
+[ -d "$PREFIX/share/beastmode/beastmode-2.4.1" ] || fail "old snapshot pruned too early"
 [ -d "$PREFIX/share/beastmode/beastmode-3.0.0" ] || fail "new snapshot missing"
 [ "$(readlink "$PREFIX/share/beastmode/current")" = "$PREFIX/share/beastmode/beastmode-3.0.0" ] \
   || fail "current not re-pointed"

@@ -234,6 +234,8 @@ chmod +x "$HOST_REPO/scripts/public-artifact-guard"
 
 # Allowlisted public hosts must still pass.
 printf '%s\n' 'see https://github.com/lac5q/beastmode and https://registry.npmjs.org/' \
+  'https://api.typesafe.ai https://docs.typesafe.ai https://benchmarkheaven.com https://huggingface.co' \
+  'https://openrouter.ai https://simple-jev-demo-api.featherless.ai https://simple-jev.featherless.ai https://x.com' \
   > "$HOST_REPO/notes.md"
 git -C "$HOST_REPO" add -A
 git -C "$HOST_REPO" commit -qm "public hosts only"
@@ -276,3 +278,19 @@ if printf '%s' "$leak" | grep -q "$PRIV_HOST"; then
   exit 1
 fi
 echo "public-artifact-guard does not echo the private host"
+
+# Approval is for exact public research hosts, not tenants or lookalikes.
+for UNLISTED_HOST in 'api.typesafe.ai.evil.com' 'tenant.typesafe.ai' 'private.featherless.ai'; do
+  printf 'baseUrl: %s%s/v1\n' "$PRIV_SCHEME" "$UNLISTED_HOST" > "$HOST_REPO/notes.md"
+  git -C "$HOST_REPO" add -A
+  git -C "$HOST_REPO" commit -qm "unlisted research host"
+  set +e
+  "$HOST_REPO/scripts/public-artifact-guard" >/dev/null 2>&1
+  rc=$?
+  set -e
+  if [ "$rc" -ne 1 ]; then
+    echo "public-artifact-guard allowed an unlisted research host (got $rc)" >&2
+    exit 1
+  fi
+done
+echo "public-artifact-guard rejects research-host lookalikes and unlisted tenants"

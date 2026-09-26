@@ -67,8 +67,8 @@ rate-limited API OAuth pool. Reserve it for **watcher judgment** and
 route through a different lane (qwen, MiniMax via API, droid MiniMax)
 and pin the model explicitly so the run record proves the actual model.
 
-The `bm` runner automatically selects this single-seat lane when the active
-director seat belongs to the Anthropic family. It fails closed on multiple
+The `bm` runner automatically selects this single-seat lane on the default Pi
+or Claude harness when the active director belongs to the Anthropic family. It fails closed on multiple
 Anthropic seats and does not use API OAuth as a fallback.
 
 When the operator wants the subscription choice explicit in the command line,

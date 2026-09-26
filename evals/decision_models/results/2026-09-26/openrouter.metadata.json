@@ -1,0 +1,19 @@
+{
+  "api_key_env": "OPENROUTER_API_KEY",
+  "case_count": 30,
+  "cases_sha256": "e2aed65d786829a6c8109c8d869520a0f9e777bd05b373648077644acfd1f31f",
+  "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "expected_records": 60,
+  "finished_at_utc": "2026-09-26T15:37:03.251188Z",
+  "model": "openai/gpt-5.4-nano",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "provider": "openrouter",
+  "python": "3.11.15",
+  "records_written": 60,
+  "repeats": 2,
+  "runner": "evals/decision_models/benchmark_api.py",
+  "schema_version": 1,
+  "simplejev_min_start_interval_seconds": null,
+  "started_at_utc": "2026-09-26T15:36:06.869525Z",
+  "status": "completed"
+}

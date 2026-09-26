@@ -1,0 +1,17 @@
+{
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.11.15",
+  "cpu": "Intel Core i7-10700 virtualized WSL2,12 logical CPUs exposed",
+  "memory": "11GiB total, shared host; no NVIDIA runtime",
+  "threads_per_local_request": 4,
+  "context_tokens": 2048,
+  "local_concurrent_slots": 1,
+  "llama_cpp_commit": "2145525a4081d66ff1a87cf43ef809f95a85ac0c",
+  "compiler": "GCC13.3,Release,GGML_NATIVE=ON,CPU",
+  "load_snapshot": [
+    6.083984375,
+    5.37109375,
+    5.5380859375
+  ],
+  "isolation": "shared development host, not dedicated benchmark hardware"
+}

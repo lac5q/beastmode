@@ -1,0 +1,48 @@
+{
+  "verified_at": "2026-09-26T16:22:59.768118+00:00",
+  "director": "Codex GPT-6",
+  "tests": {
+    "command": "python -m unittest discover -s evals/decision_models -p 'test_*.py' -v",
+    "passed": 17,
+    "failed": 0
+  },
+  "independent_rows_validated": 300,
+  "hosted_raw_answer_and_cost_checks": 180,
+  "cases_raw_sha256": "f8fd2c484aeb7e9ebde260c158458c8e369729636b9b5709845000e3ffb90c01",
+  "secret_pattern_scan": {
+    "patterns": "OpenRouter/xAI key prefixes and Bearer token literals in archived payloads",
+    "flags": 0,
+    "not_a_full_security_scan": true
+  },
+  "local_server": {
+    "pid": 2309470,
+    "terminated_after_complete_run": true,
+    "exit_code": 0
+  },
+  "production_runtime_diff": false,
+  "memroos": {
+    "path": "content/ai-frontier/beastmode-jev-decision-spikes-2026-09-26.md",
+    "auto_commit": "e08124abdc86b6bf44f0ba44b043d54d256ff04a",
+    "readback_exact": true,
+    "git_status": "host-global surface denied; write receipt confirms auto-commit"
+  },
+  "graph_change_analysis": "graph-changes.json",
+  "graph_global_flow_enumeration": "truncated; not interpreted as proof of absence",
+  "commands": [
+    "python evals/decision_models/analyze_results.py --results evals/decision_models/results/2026-09-26 --cases evals/decision_models/cases.json --output /tmp/decision-analysis.json",
+    "node .gitnexus/run.cjs analyze --index-only",
+    "node .gitnexus/run.cjs detect-changes --scope all --repo .",
+    "LocalBackend.callTool(\"detect_changes\", {scope:\"all\",repo:\".\"}) for full structured payload",
+    "git diff --check"
+  ],
+  "graph_summary": {
+    "changed_count": 228,
+    "affected_count": 25,
+    "changed_files": 48,
+    "risk_level": "critical"
+  },
+  "graph_partial": false,
+  "graph_truncated": false,
+  "archive_manifest_verified": true,
+  "publication_note": "Machine-specific checkout path replaced with \".\" for public release; original verification results unchanged."
+}

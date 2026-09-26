@@ -122,6 +122,22 @@ and `actual_model` is unverifiable — there is nothing to compare.
 `scripts/enforce-models --check-meta <run-dir> --attestations <parent-owned-evidence.json> --trust-attestations` is the gate; exit 1 means
 drift or unverifiable.
 
+## Review source completeness
+
+Before a cross-model review, materialize the exact prompt and check it against
+a manifest of required sources: the latest user request, the original answer
+or draft, decisive messages, and any promised transcript or document. Verify
+source identifiers and non-empty content in the bytes being sent. Do not
+assume in-memory stores survive turn, voice, or runtime boundaries, and do not
+replace a missing required source with an "unavailable" placeholder.
+
+Ask the reviewer to confirm source completeness before giving a verdict.
+If a required source is absent, mark that review incomplete, retrieve the
+source, and rerun or continue with an explicit correction. A model-identical
+receipt cannot validate a review of the wrong or incomplete evidence. Keep
+invalidated output separate from the final review and record the correction
+in the run receipt.
+
 ## Autonomy mapping
 
 | Level | What runs without surfacing | What always surfaces |

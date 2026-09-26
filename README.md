@@ -108,7 +108,9 @@ scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --tr
 scripts/acn-report <dir-of-meta.json> --attestations <trusted.json> --trust-attestations   # usage + MODEL DRIFT
 ```
 
-Anthropic director aliases (`fable`, `opus`, `opus5`, `sonnet`, `haiku`) automatically use the single-seat `claude -p` plan-mode lane. Multiple Anthropic seats fail closed; Beastmode does not fall back to API OAuth for subscription seats.
+On the default Pi or Claude harness, Anthropic director aliases (`fable`, `opus`, `opus5`, `sonnet`, `haiku`) automatically use the single-seat `claude -p` plan-mode lane. Multiple Anthropic seats fail closed; Beastmode does not fall back to API OAuth for subscription seats. Explicit Hermes, Codex, and LangGraph harness choices keep their own dispatch and authorization checks.
+
+Grok requires `BEASTMODE_GROK_WEEKLY_REMAINING_PCT` of at least 40 and `BEASTMODE_GROK_WEEKLY_REMAINING_AT` as a Unix timestamp no more than seven days old. Missing, stale, future, or malformed timestamps switch the Grok seats to Luna Max. The 40% floor cannot be lowered.
 
 
 ## Editor goals via ACP

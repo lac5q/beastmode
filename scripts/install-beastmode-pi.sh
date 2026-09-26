@@ -7,8 +7,8 @@
 #
 # Usage (from anywhere on the workstation): download the installer and its
 # SHA-256 file from the same immutable GitHub release, verify, then execute:
-#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.0/install-beastmode-pi.sh
-#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.0/install-beastmode-pi.sh.sha256
+#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.1/install-beastmode-pi.sh
+#   curl -fSLO https://github.com/lac5q/beastmode/releases/download/v2.4.1/install-beastmode-pi.sh.sha256
 #   sha256sum --check install-beastmode-pi.sh.sha256
 #   bash install-beastmode-pi.sh
 # or locally:
@@ -49,7 +49,7 @@ export npm_config_fund=false
 
 # The default is a release tag, not a moving branch.  BEASTMODE_PI_REF may
 # only be changed when the caller also accepts the integrity hashes below.
-REF="${BEASTMODE_PI_REF:-v2.4.0}"
+REF="${BEASTMODE_PI_REF:-v2.4.1}"
 [[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || { err "BEASTMODE_PI_REF must be an immutable semantic-version release tag"; exit 2; }
 
@@ -153,7 +153,7 @@ for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy li
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="7d8e1da72fe8b933995f7c3a01af616240569a88b99497b0bee7a32bb3fb214d" ;;
+    bm) HASH="f0fdcf93ec3e5619e92d9e9651a537d7e870ba957a1865f84f188d9c9f0e4d4a" ;;
     tier-aliases.json) HASH="6b1f6dab171d73f8a2df3d45e17ed565bfb9b01d83ff86dd5e4ad86a1f6e645c" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="68dadf141030bf3c3c6b00c332a5528582d2532e1d8aa06ed67fae66b364ef15" ;;

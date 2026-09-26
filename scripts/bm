@@ -330,11 +330,11 @@ if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
 # Luna Max economy model unless we can prove at least the 40% weekly floor.
 # This keeps a stale or unavailable quota dashboard from silently burning the
 # remaining Grok allowance.
-GROK_MIN_WEEKLY_REMAINING_PCT="${BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT:-40}"
+GROK_MIN_WEEKLY_REMAINING_PCT=40
+GROK_READING_AT="${BEASTMODE_GROK_WEEKLY_REMAINING_AT:-}"
 GROK_WEEKLY_REMAINING_PCT="${BEASTMODE_GROK_WEEKLY_REMAINING_PCT:-}"
-if ! [[ "$GROK_MIN_WEEKLY_REMAINING_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]] || \
-  ! awk -v value="$GROK_MIN_WEEKLY_REMAINING_PCT" 'BEGIN { exit !(value >= 0 && value <= 100) }'; then
-  echo "bm: BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT must be a number from 0 to 100" >&2
+if [ "${BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT:-40}" != "40" ]; then
+  echo "bm: the Grok weekly budget floor is fixed at 40%" >&2
   exit 2
 fi
 if [ -n "$GROK_WEEKLY_REMAINING_PCT" ] && \
@@ -346,21 +346,39 @@ fi
 if [[ "$FRONTIER" == xai/grok-4.5 || "$ECONOMY" == xai/grok-4.5 || "$WATCHER" == xai/grok-4.5 ]]; then
   grok_budget_ok=0
   if [ -n "$GROK_WEEKLY_REMAINING_PCT" ] && \
-    awk -v remaining="$GROK_WEEKLY_REMAINING_PCT" -v minimum="$GROK_MIN_WEEKLY_REMAINING_PCT" 'BEGIN { exit !(remaining >= minimum) }'; then
+    awk -v remaining="$GROK_WEEKLY_REMAINING_PCT" -v minimum="$GROK_MIN_WEEKLY_REMAINING_PCT" \
+      -v observed="$GROK_READING_AT" -v now="$(date +%s)" \
+      'BEGIN { exit !(observed ~ /^[0-9]+$/ && observed <= now && now - observed <= 604800 && remaining >= minimum) }'; then
     grok_budget_ok=1
   fi
   if [ "$grok_budget_ok" -eq 0 ]; then
     LUNA_BUDGET_MODEL="$(resolve_alias "luna-max")"
-    echo "bm: Grok weekly budget is below ${GROK_MIN_WEEKLY_REMAINING_PCT}% or unverified; switching every Grok seat to ${LUNA_BUDGET_MODEL}" >&2
+    echo "bm: Grok weekly budget is below ${GROK_MIN_WEEKLY_REMAINING_PCT}% or unverified/stale; switching every Grok seat to ${LUNA_BUDGET_MODEL}" >&2
     [ "$FRONTIER" = "xai/grok-4.5" ] && FRONTIER="$LUNA_BUDGET_MODEL"
     [ "$ECONOMY" = "xai/grok-4.5" ] && ECONOMY="$LUNA_BUDGET_MODEL"
     [ "$WATCHER" = "xai/grok-4.5" ] && WATCHER="$LUNA_BUDGET_MODEL"
   fi
 fi
 
-# Claude Pro/Max is an explicit, single-seat watcher path. It uses
+# Anthropic directors on the default Pi or Claude harness use the documented
+# single-seat, read-only subscription wrapper. Explicit other harnesses retain
+# their dispatch contract and still pass through the OAuth breaker below.
+if [ "$CLAUDE_SUBSCRIPTION" = "0" ]; then
+  case "$HARNESS:${FRONTIER:-$ECONOMY}" in
+    pi:anthropic/*|claude:anthropic/*)
+      HARNESS=claude
+      CLAUDE_SUBSCRIPTION=1
+      if [ -z "$FRONTIER" ]; then
+        FRONTIER="$ECONOMY"
+        ECONOMY=""
+      fi
+      ;;
+  esac
+fi
+
+# Claude Pro/Max is a single-seat watcher path. It uses
 # `claude -p` and the signed-in subscription quota, not the Anthropic API
-# OAuth pool. Keep this opt-in and fail closed if a caller turns it into a
+# OAuth pool. Fail closed if a caller turns it into a
 # multi-seat fan-out or uses a different harness.
 if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
   if [ "$HARNESS" != "claude" ]; then
@@ -375,7 +393,7 @@ if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
     esac
   done
   if [ "$claude_seats" -ne 1 ]; then
-    echo "bm: --claude-subscription requires exactly one Claude seat, got $claude_seats" >&2
+    echo "bm: --claude-subscription requires exactly one seat from Claude, got $claude_seats" >&2
     exit 2
   fi
   if [ -z "$FRONTIER" ]; then
@@ -479,13 +497,9 @@ for seat_model in "$FRONTIER" "$ECONOMY"; do
   MODELS_CSV="${MODELS_CSV:+$MODELS_CSV,}$seat_model"
 done
 [ -n "$ECONOMY" ]      && PI_ARGS+=(--models "$MODELS_CSV")
-# High autonomy must still let the director inspect the repository. Disabling
-# every built-in tool made headless Luna runs unverifiable: the model could
-# neither read source nor search the worktree, while the workflow extensions
-# remained loaded. Keep the read/search built-ins and fail closed on mutation;
-# the project permission policy continues to govern bash/MCP and all external
-# paths.
-[ "$AUTONOMY" = "high" ] && PI_ARGS+=(--exclude-tools bash,edit,write)
+# High autonomy advances workflow gates without removing implementation tools.
+# The required project permission policy still governs writes, edits, and shell
+# commands; autonomy never bypasses that policy.
 
 # Remote dispatch: hand the goal to the selected remote host over SSH and tail the goal log.
 # ponytail: foreground SSH so the user sees the live goal stream. If they want
@@ -612,16 +626,12 @@ case "$HARNESS" in
     exec hermes "${H_ARGS[@]}"
     ;;
   claude)
-    # Claude Code: print-mode one-shot. Adapter: adapters/claude-code/SKILL.md.
-    # ponytail: the claude CLI takes a bare model id, not provider/model —
-    # `--frontier opus` resolves to anthropic/claude-opus-4-7 and the CLI
-    # rejects the provider half. Strip it here, the way the hermes branch
-    # already splits provider from model, instead of asking the caller to
-    # remember which harness wants which form.
-    C_ARGS=(-p "$FULL_PROMPT")
-    [ -n "$FRONTIER" ] && C_ARGS+=(--model "${FRONTIER#*/}")
-    # Claude's normal permission controls remain active at every autonomy.
-    exec claude "${C_ARGS[@]}"
+    # Reuse the read-only wrapper: it scrubs ambient API credentials, pins the
+    # bare model, keeps plan permissions, and receives prompts only on stdin.
+    C_EFFORT="$THINKING"
+    case "$C_EFFORT" in none|minimal) C_EFFORT=low ;; esac
+    printf '%s' "$FULL_PROMPT" | "$SCRIPT_DIR/claude-pro" \
+      --model "${FRONTIER#*/}" --effort "$C_EFFORT"
     ;;
   codex)
     # Codex: exec one-shot. Adapter: adapters/codex/SKILL.md.

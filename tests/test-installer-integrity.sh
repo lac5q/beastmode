@@ -10,7 +10,7 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 if rg -n 'raw\.githubusercontent\.com/.*/main/|curl[^|]*\|[[:space:]]*(ba)?sh' "$INSTALLER"; then
   fail "installer documentation must not execute moving-branch content"
 fi
-rg -Fq 'releases/download/v2.4.0/install-beastmode-pi.sh.sha256' "$INSTALLER" \
+rg -Fq 'releases/download/v2.4.1/install-beastmode-pi.sh.sha256' "$INSTALLER" \
   || fail "installer documentation must require the immutable release checksum"
 echo "ok: installer bootstrap is immutable and verified before execution"
 

@@ -1,0 +1,9 @@
+{
+  "source_repo": "Mapika/decider-4b",
+  "source_revision": "v2",
+  "file": "decider-4b.v2-Q4_K_M.gguf",
+  "bytes": 2708804544,
+  "sha256": "f7e2e510ef51d212ea9b7fb8bf27906b5f516d7939ca847428fb91f6a8acfa79",
+  "quant": "Q4_K_M",
+  "converted_with": "llama.cpp convert_hf_to_gguf.py @ commit 9575389, --no-mtp, bf16->Q4_K_M"
+}
