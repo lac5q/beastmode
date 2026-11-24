@@ -1,0 +1,19 @@
+{
+  "api_key_env": "TYPESAFE_API_KEY",
+  "case_count": 32,
+  "cases_sha256": "b63467b6332c161b045dda0c615dd5e46e33b88945e33d4738287c2a0010bb69",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "expected_records": 64,
+  "finished_at_utc": "2026-09-27T15:17:49.988460Z",
+  "model": "jev-1.13.0",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "provider": "jev",
+  "python": "3.11.15",
+  "records_written": 64,
+  "repeats": 2,
+  "runner": "evals/decision_models/benchmark_api.py",
+  "schema_version": 1,
+  "simplejev_min_start_interval_seconds": null,
+  "started_at_utc": "2026-09-27T15:16:30.713728Z",
+  "status": "completed"
+}

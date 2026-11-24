@@ -1,0 +1,15 @@
+
+> fast-jev-compaction@0.2.0 test
+> vitest run
+
+
+ RUN  v2.1.9 <repo>/.beastmode/recommended-spikes-20260927/compaction/fast-jev-compaction
+
+ ✓ tests/hook.test.ts (6 tests) 79ms
+ ✓ tests/fast-jev-compaction.test.ts (23 tests) 224ms
+
+ Test Files  2 passed (2)
+      Tests  29 passed (29)
+   Start at  12:56:28
+   Duration  2.82s (transform 871ms, setup 0ms, collect 1.25s, tests 303ms, environment 2ms, prepare 1.17s)
+

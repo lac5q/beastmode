@@ -188,7 +188,11 @@ fi
 # schema they are supposed to exemplify.
 echo "check (e): enforce-models --check-meta"
 FIX="$ROOT/tests/fixtures/acn-meta"
-ATTEST="$ROOT/tests/fixtures/acn-attestations.json"
+# Copy to 0644: the gate rejects group-writable files and umask 002 hosts check
+# the fixture out as 0664.
+ATTEST="$TMP/acn-attestations.json"
+cp "$ROOT/tests/fixtures/acn-attestations.json" "$ATTEST"
+chmod 644 "$ATTEST"
 export BEASTMODE_ATTESTATION_KEY="$(printf '00%.0s' {1..32})"
 export BEASTMODE_ATTESTATION_RUN_ID="fixture-run"
 

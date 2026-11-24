@@ -48,11 +48,11 @@ else
   pass "Claude prompts are not routed through unsafe shell wrappers"
 fi
 
-if rg -F 'printf '\''%s'\'' "$prompt" | claude -p --model opus --permission-mode plan' \
-  "$ROOT/pi/SKILL.md" "$ROOT/pi/agents/claude-cli.md" >/dev/null; then
-  pass "Claude prompt data is supplied on stdin in plan mode"
+if rg -F 'Pi must not run or launch Claude work' "$ROOT/pi/agents/claude-cli.md" >/dev/null &&
+  ! rg -n -- 'claude -p --model' "$ROOT/pi/agents/claude-cli.md" >/dev/null; then
+  pass "Pi Claude marker forbids launching Claude work"
 else
-  fail "Claude stdin/plan-mode example is missing"
+  fail "Pi Claude marker still shows how to launch Claude"
 fi
 
 if rg -F 'qwen-agent --max-tool-calls 0' "$ROOT/pi/SKILL.md" >/dev/null; then

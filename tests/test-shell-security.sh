@@ -6,6 +6,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Do not let a developer's ~/.beastmode/defaults.json change this fixture's
+# harness or seats. The security assertions below authorize the fake Claude
+# OAuth lane explicitly where they need to exercise model routing.
+printf '%s\n' '{"schema_version":1}' > "$TMP/defaults.json"
+export BM_DEFAULTS_FILE="$TMP/defaults.json"
+
 # This suite uses fake harnesses and never contacts Anthropic. Anthropic
 # directors use the automatic review lane; direct Hermes mocks authorize their seat.
 
@@ -61,7 +67,7 @@ EOF
 args="$TMP/args"
 (
   cd "$TMP/repo"
-  BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  BM_ALLOW_CLAUDE_OAUTH=1 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
     "$ROOT/scripts/bm" "inspect" --frontier opus >/dev/null
 )
 grep -Fxq 'claude-opus-4-7' "$args" \
@@ -70,7 +76,7 @@ ok "repository aliases cannot downgrade a model by default"
 
 (
   cd "$TMP/repo"
-  BM_TRUST_REPO_ALIASES=1 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
+  BM_ALLOW_CLAUDE_OAUTH=1 BM_TRUST_REPO_ALIASES=1 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" PATH="$TMP/bin:$PATH" \
     "$ROOT/scripts/bm" "inspect" --frontier opus >/dev/null
 )
 grep -Fxq 'minimax/MiniMax-M3' "$args" \
@@ -87,7 +93,7 @@ grep -q 'unknown model alias' <<< "$unknown_out" || fail "unknown alias error wa
 ok "unknown aliases fail closed"
 
 for harness in hermes claude; do
-  BM_ALLOW_CLAUDE_OAUTH=1 BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" \
+  ANTHROPIC_API_KEY=dummy BM_SKIP_MODEL_CHECK=1 BM_TEST_ARGS="$args" \
     PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "inspect" --harness "$harness" \
       --frontier opus --autonomy high >/dev/null
   if grep -Eq -- '--yolo|--full-auto|--dangerously-skip-permissions|bypassPermissions' "$args"; then

@@ -1,0 +1,13 @@
+{
+  "frozen_at": "2026-09-27T19:56:22.429477+00:00",
+  "hashes": {
+    "run_local_trials.py": "8322250d02499ab59f599d36116bd8b4338eb4c1b9764f30a12314d55d6af159",
+    "contract.json": "6f3e023d896c5dba9ddf2bfa94e5543cdff8ed76c281e439e0c9bd7471ee8a8b",
+    "validate_contract.py": "d2a201fd2371fde23e50c737e21014b5d9ec1857bccc7946c24307653225cf3a",
+    "source/jev_ultrafast/static/fixture.html": "e48e7d7b6225b215060692e0a28c3d0b59e465e4b94c1bc510d5f37ff0b8bfbe"
+  },
+  "decision_model": "jev-1.13.0",
+  "text_model": "inception/mercury-2.5",
+  "source_commit": "1231850a0bf1a0c0341fe408ef1668dbbfdfac46",
+  "logical_calls_note": "Upstream post_json may internally retry 429/529/503 twice; receipt encloses the logical call."
+}

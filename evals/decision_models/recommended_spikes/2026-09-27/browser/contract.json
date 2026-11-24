@@ -1,0 +1,52 @@
+{
+  "contract_version": "jev-browser-spike/v1",
+  "source": {
+    "repo": "jev-ultrafast",
+    "commit": "1231850a0bf1a0c0341fe408ef1668dbbfdfac46",
+    "fixture_sha256": "e48e7d7b6225b215060692e0a28c3d0b59e465e4b94c1bc510d5f37ff0b8bfbe"
+  },
+  "fixture": {
+    "path": "source/jev_ultrafast/static/fixture.html",
+    "scenario": "travel",
+    "transport": "http://127.0.0.1 on the local machine only"
+  },
+  "goal": "Use the destination search and filters to find Design stays in Lisbon with Free cancellation, then open Casa Flora.",
+  "budgets": {
+    "max_trials": 3,
+    "max_actions_per_trial": 20,
+    "max_seconds_per_decision": 60
+  },
+  "acceptance": {
+    "success_requires_independent_dom_validation": true,
+    "model_done_is_not_evidence": true,
+    "expected_dom": {
+      "title": "Casa Flora · Forma",
+      "pathname": "/fixture.html",
+      "hash": "#casa-flora",
+      "detail_name": "Casa Flora",
+      "detail_edition": "LISBON · DESIGN",
+      "description": "A quiet courtyard, warm terracotta, and light that stays all afternoon.",
+      "price": "€145 / night · 2 guests",
+      "success": "Free cancellation included",
+      "filter_note": "Your filters: Design · Free cancellation enabled · Destination Lisbon",
+      "footer": "Local demo property. No reservation has been made."
+    },
+    "required_cases": [
+      "normal local goal",
+      "stale or replaced target rejected",
+      "malicious page text rejected by the independent validator (offline only; live agent injection untested)",
+      "unsupported action rejected by the action code gate (offline)",
+      "false DONE rejected by exact DOM validator"
+    ]
+  },
+  "safety": {
+    "live_model_calls": "opt-in only from the runner flag; this worker makes none",
+    "external_navigation": false,
+    "login_publish_send_payment": false,
+    "cdp": "explicit loopback BU_CDP_URL only; no personal browser discovery"
+  },
+  "provenance": {
+    "requested_worker_model": "5.6 Luna Max",
+    "actual_backend": "unverified"
+  }
+}

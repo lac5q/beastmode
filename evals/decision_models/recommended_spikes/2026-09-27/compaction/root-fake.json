@@ -1,0 +1,239 @@
+{
+  "status": "passed",
+  "requested_model": "gpt-5.6-luna max",
+  "actual_backend": "unverified",
+  "package": "fast-jev-compaction@0.2.0",
+  "pinned_commit": "e3f262a7f4d42bd8dd32ced30d26176f7cb545b0",
+  "mode": "fake-only",
+  "fixture_count": 8,
+  "conservative_baseline": "keep every paired call and full result; proposals are advisory prompt views",
+  "fallback": {
+    "missingKey": "passed",
+    "providerError": "passed"
+  },
+  "full_output_blindness": {
+    "criticalHistory": "0883e68716e80cfadf3465656ffdb13caa6437dfa58aef6660c6f80b1c003be0",
+    "benignHistory": "4c52fa7f3003527bed0d8e95a6ab4ac8d62b92c6f9a14a05703b88ec57494e2a",
+    "requestHashes": [
+      "23edc1e62c9db601a763b1ac959f77234d507668ab08fd9b68ff121348a80438",
+      "23edc1e62c9db601a763b1ac959f77234d507668ab08fd9b68ff121348a80438"
+    ],
+    "identicalRequestBodies": true
+  },
+  "fixtures": [
+    {
+      "id": "required-old-failure-receipt",
+      "historyHash": "cf3869a5abe46c29f93b15d034e080625cdda0abd6bf72206a9ad7a20abe7e9f",
+      "baselineChars": 160,
+      "proposalChars": 160,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "failure-receipt",
+          "action": "keep",
+          "reason": "kept"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "5ebecef2090d7db0acef2ebbc81e37822b405aefd2032227d1884173d91a9f15"
+      ],
+      "changedFromBaseline": false,
+      "semantic": {
+        "pairedBlocksValid": true,
+        "requiredTextRetained": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "contradictory-old-evidence",
+      "historyHash": "046eee05f593949532f58e2454318decc5be31a521a86b2f05f1646ece217732",
+      "baselineChars": 240,
+      "proposalChars": 240,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "contradiction",
+          "action": "keep",
+          "reason": "kept"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "59efded35d5fc1955cfd1401cdca3dcac8d6cc374431e5c80864e36303b911b0"
+      ],
+      "changedFromBaseline": false,
+      "semantic": {
+        "pairedBlocksValid": true,
+        "requiredTextRetained": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "approval-scope-constraint",
+      "historyHash": "a8c921db1bb34cd7c19898e426c25ad599d9cb7c4f8b8aa9a856a551b3018b94",
+      "baselineChars": 225,
+      "proposalChars": 225,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "approval-scope",
+          "action": "keep",
+          "reason": "kept"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "9a45620907be9fa2e948217dffa0f4680c70b68e63103ed68ceec1c1b7e2ab05"
+      ],
+      "changedFromBaseline": false,
+      "semantic": {
+        "pairedBlocksValid": true,
+        "requiredTextRetained": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "duplicate-output-safe-drop",
+      "historyHash": "2c83726b8299827fdc063ae76b6f009db832c8438f0169e9e6ec57ee41a455da",
+      "baselineChars": 164,
+      "proposalChars": 126,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "duplicate-1",
+          "action": "keep",
+          "reason": "kept"
+        },
+        {
+          "id": "t2",
+          "toolUseId": "duplicate-2",
+          "action": "drop_call",
+          "reason": "call_dropped"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "57f84776433f74d0436dc87b2c436c3378b05eff59abda82fd00ee47ba2e82a2"
+      ],
+      "changedFromBaseline": true,
+      "semantic": {
+        "pairedBlocksValid": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "long-middle-evidence",
+      "historyHash": "0883e68716e80cfadf3465656ffdb13caa6437dfa58aef6660c6f80b1c003be0",
+      "baselineChars": 2567,
+      "proposalChars": 557,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "middle-evidence",
+          "action": "drop_result",
+          "reason": "result_dropped"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "23edc1e62c9db601a763b1ac959f77234d507668ab08fd9b68ff121348a80438"
+      ],
+      "changedFromBaseline": true,
+      "semantic": {
+        "pairedBlocksValid": true,
+        "middleMarkerRetained": false
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "missingkey-error-fallback",
+      "historyHash": "b98b8e20e244107bb199f748e0334f91bca3f66e1d6a7137460d6b7459650913",
+      "baselineChars": 142,
+      "proposalChars": 142,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "fallback-call",
+          "action": "keep",
+          "reason": "kept"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "203d546a64eeacc7742e0b35ebc40d8596d98da8b8fd6b2eb7e51bcc230e50da"
+      ],
+      "changedFromBaseline": false,
+      "semantic": {
+        "pairedBlocksValid": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "tool-pairing",
+      "historyHash": "0dcf70908c0c71551a67994cde1874903b8d1033bcb171dfa0b52527477fa97b",
+      "baselineChars": 225,
+      "proposalChars": 177,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "paired-drop",
+          "action": "drop_call",
+          "reason": "call_dropped"
+        },
+        {
+          "id": "t2",
+          "toolUseId": "paired-keep",
+          "action": "keep",
+          "reason": "kept"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "75fa8da15947cb914af5bd0f0b44676c23447b12096b8a673fe552ea650ca1b1"
+      ],
+      "changedFromBaseline": true,
+      "semantic": {
+        "pairedBlocksValid": true
+      },
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "id": "recent-pin",
+      "historyHash": "aaa228a732baafa9a4c62c08f4bd4455a7daa5ae4fe3f6eda8996186a36455dc",
+      "baselineChars": 168,
+      "proposalChars": 132,
+      "decisions": [
+        {
+          "id": "t1",
+          "toolUseId": "old-call",
+          "action": "drop_call",
+          "reason": "call_dropped"
+        },
+        {
+          "id": "t2",
+          "toolUseId": "recent-call",
+          "action": "keep",
+          "reason": "pinned"
+        }
+      ],
+      "requests": 1,
+      "requestHashes": [
+        "68440e91aa0eaddad680cf588031bd572f31c30f43f5683d99c11a10844d9044"
+      ],
+      "changedFromBaseline": true,
+      "semantic": {
+        "pairedBlocksValid": true
+      },
+      "status": "passed",
+      "errors": []
+    }
+  ]
+}

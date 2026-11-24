@@ -1,0 +1,17 @@
+{
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "cpu_count": 12,
+  "torch": false,
+  "cuda_device_files": [],
+  "mainmac": {
+    "exit_code": 255,
+    "stdout": "",
+    "stderr": "ssh: Could not resolve hostname mainmac: Name or service not known\n"
+  },
+  "main-mac": {
+    "exit_code": 255,
+    "stdout": "",
+    "stderr": "luis@main-mac.tail255306.ts.net: Permission denied (publickey,password,keyboard-interactive).\n"
+  }
+}

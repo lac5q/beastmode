@@ -1,0 +1,909 @@
+{
+  "dataset": {
+    "case_count": 32,
+    "cases_path": "evals/decision_models/agent_folder_cases.json",
+    "cases_rawfile_sha256": "4d2210f5e9cc9051cccb5998495ce5d9e2780daea9df8780b4560fffd45205df",
+    "categories": {
+      "done": 8,
+      "next_worker": 8,
+      "relevance": 8,
+      "risky": 8
+    },
+    "metadata_files": {
+      "jev": "evals/decision_models/results/2026-09-27-agent-folder/jev.meta.json",
+      "openrouter": "evals/decision_models/results/2026-09-27-agent-folder/openrouter.meta.json",
+      "simplejev-identified": "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.meta.json"
+    },
+    "rawfile_sha256": {
+      "jev": {
+        "path": "evals/decision_models/results/2026-09-27-agent-folder/jev.jsonl.gz",
+        "sha256": "dcb65e2e6a6459526e3285a00c0999f482eea787bb8b0b3e01d10c678dd9ac89"
+      },
+      "openrouter": {
+        "path": "evals/decision_models/results/2026-09-27-agent-folder/openrouter.jsonl.gz",
+        "sha256": "d986ec3748f5f808fb653f1376e164114154d51bc69ba150240fa0a7423f01c1"
+      },
+      "simplejev-identified": {
+        "path": "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.jsonl.gz",
+        "sha256": "c50b2d57065ef8b0e98a900e2e4b3ef0b9e8c3e9d2a29a480909aa75ca015f00"
+      }
+    },
+    "repeats": [
+      1,
+      2
+    ]
+  },
+  "models": {
+    "jev": {
+      "accuracy": {
+        "overall": {
+          "accuracy": 1.0,
+          "correct": 64,
+          "invalid": 0,
+          "model_mismatches": 0,
+          "total": 64,
+          "valid_accuracy": 1.0,
+          "valid_model_rows": 64
+        },
+        "per_category": {
+          "done": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "next_worker": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "relevance": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "risky": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          }
+        },
+        "per_pass": {
+          "pass_1": {
+            "accuracy": 1.0,
+            "correct": 32,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 32,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 32
+          },
+          "pass_2": {
+            "accuracy": 1.0,
+            "correct": 32,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 32,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 32
+          }
+        }
+      },
+      "archive": "evals/decision_models/results/2026-09-27-agent-folder/jev.jsonl.gz",
+      "backend_identity": "unverified",
+      "confidence": {
+        "count": 64,
+        "mean": 0.89765625,
+        "note": "original model confidence; separate from pmax",
+        "p50": 0.985,
+        "p95": 1.0
+      },
+      "cost": {
+        "demo_cost_usd": null,
+        "jev_estimated_input_usd": 0.0012075,
+        "jev_input_tokens_complete": true,
+        "note": "missing cost is unknown, never treated as zero",
+        "provider_cost_complete": false,
+        "provider_reported_known_subtotal_usd": null,
+        "provider_reported_usd": null
+      },
+      "coverage": {
+        "expected": 64,
+        "fraction": 1.0,
+        "missing": [],
+        "observed": 64
+      },
+      "dangerous_errors": {
+        "by_kind": {},
+        "records": [],
+        "total": 0
+      },
+      "latency_ms": {
+        "complete": true,
+        "count": 64,
+        "mean": 1191.1738520902873,
+        "p50": 631.972135452088,
+        "p95": 3065.830938052386
+      },
+      "metadata": {
+        "expected_records": 64,
+        "model": "jev-1.13.0",
+        "records_written": 64,
+        "status": "completed"
+      },
+      "metadata_path": "evals/decision_models/results/2026-09-27-agent-folder/jev.meta.json",
+      "observed_model_ids": [
+        "jev-1.13.0"
+      ],
+      "per_category": {
+        "done": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 1285.5969558513607,
+            "p50": 631.972135452088,
+            "p95": 4579.9666999373585
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 39.375,
+            "completion_total": 630.0,
+            "prompt_mean": 444.625,
+            "prompt_total": 7114.0,
+            "total_mean": 484.0,
+            "total_total": 7744.0
+          }
+        },
+        "next_worker": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 1333.6835393856745,
+            "p50": 853.0534879537299,
+            "p95": 6555.139855016023
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 45.0,
+            "completion_total": 720.0,
+            "prompt_mean": 474.875,
+            "prompt_total": 7598.0,
+            "total_mean": 519.875,
+            "total_total": 8318.0
+          }
+        },
+        "relevance": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 961.0260622575879,
+            "p50": 917.1883055241778,
+            "p95": 2291.0832359921187
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 40.5,
+            "completion_total": 648.0,
+            "prompt_mean": 430.875,
+            "prompt_total": 6894.0,
+            "total_mean": 471.375,
+            "total_total": 7542.0
+          }
+        },
+        "risky": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 1184.388850866526,
+            "p50": 503.1257714726962,
+            "p95": 4162.42661094293
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 40.75,
+            "completion_total": 652.0,
+            "prompt_mean": 446.5,
+            "prompt_total": 7144.0,
+            "total_mean": 487.25,
+            "total_total": 7796.0
+          }
+        }
+      },
+      "per_pass_latency_ms": {
+        "pass_1": {
+          "complete": true,
+          "count": 32,
+          "mean": 1583.0063716202858,
+          "p50": 1071.91421254538,
+          "p95": 4579.9666999373585
+        },
+        "pass_2": {
+          "complete": true,
+          "count": 32,
+          "mean": 799.3413325602887,
+          "p50": 504.3451635283418,
+          "p95": 2183.7921530241147
+        }
+      },
+      "per_pass_tokens": {
+        "pass_1": {
+          "complete": true,
+          "completion_mean": 41.40625,
+          "completion_total": 1325.0,
+          "prompt_mean": 449.21875,
+          "prompt_total": 14375.0,
+          "total_mean": 490.625,
+          "total_total": 15700.0
+        },
+        "pass_2": {
+          "complete": true,
+          "completion_mean": 41.40625,
+          "completion_total": 1325.0,
+          "prompt_mean": 449.21875,
+          "prompt_total": 14375.0,
+          "total_mean": 490.625,
+          "total_total": 15700.0
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.796875,
+        "covered": 51,
+        "note": "descriptive; not fitted calibration",
+        "probability_rows": 64,
+        "threshold": 0.9,
+        "wrong_decisions": 0
+      },
+      "provider": "jev",
+      "rankable": true,
+      "rawfile_sha256": "dcb65e2e6a6459526e3285a00c0999f482eea787bb8b0b3e01d10c678dd9ac89",
+      "requested_model": "jev-1.13.0",
+      "status": "complete",
+      "status_note": "full Cartesian coverage",
+      "tokens": {
+        "complete": true,
+        "completion_mean": 41.40625,
+        "completion_total": 2650.0,
+        "prompt_mean": 449.21875,
+        "prompt_total": 28750.0,
+        "total_mean": 490.625,
+        "total_total": 31400.0
+      }
+    },
+    "openrouter": {
+      "accuracy": {
+        "overall": {
+          "accuracy": 0.890625,
+          "correct": 57,
+          "invalid": 3,
+          "model_mismatches": 3,
+          "total": 64,
+          "valid_accuracy": 0.9344262295081968,
+          "valid_model_rows": 61
+        },
+        "per_category": {
+          "done": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "next_worker": {
+            "accuracy": 0.875,
+            "correct": 14,
+            "invalid": 2,
+            "model_mismatches": 2,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 14
+          },
+          "relevance": {
+            "accuracy": 0.6875,
+            "correct": 11,
+            "invalid": 1,
+            "model_mismatches": 1,
+            "total": 16,
+            "valid_accuracy": 0.7333333333333333,
+            "valid_model_rows": 15
+          },
+          "risky": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          }
+        },
+        "per_pass": {
+          "pass_1": {
+            "accuracy": 1.0,
+            "correct": 32,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 32,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 32
+          },
+          "pass_2": {
+            "accuracy": 0.78125,
+            "correct": 25,
+            "invalid": 3,
+            "model_mismatches": 3,
+            "total": 32,
+            "valid_accuracy": 0.8620689655172413,
+            "valid_model_rows": 29
+          }
+        }
+      },
+      "archive": "evals/decision_models/results/2026-09-27-agent-folder/openrouter.jsonl.gz",
+      "backend_identity": "unverified",
+      "confidence": {
+        "count": 0,
+        "mean": null,
+        "note": "original model confidence; separate from pmax",
+        "p50": null,
+        "p95": null
+      },
+      "cost": {
+        "demo_cost_usd": null,
+        "jev_estimated_input_usd": null,
+        "jev_input_tokens_complete": null,
+        "note": "missing cost is unknown, never treated as zero",
+        "provider_cost_complete": false,
+        "provider_reported_known_subtotal_usd": 0.00344145,
+        "provider_reported_usd": null
+      },
+      "coverage": {
+        "expected": 64,
+        "fraction": 1.0,
+        "missing": [],
+        "observed": 64
+      },
+      "dangerous_errors": {
+        "by_kind": {},
+        "records": [],
+        "total": 0
+      },
+      "latency_ms": {
+        "complete": true,
+        "count": 64,
+        "mean": 3599.309243974858,
+        "p50": 1770.8241430227645,
+        "p95": 8714.711361913942
+      },
+      "metadata": {
+        "expected_records": 64,
+        "model": "openai/gpt-5.4-nano",
+        "records_written": 64,
+        "status": "completed"
+      },
+      "metadata_path": "evals/decision_models/results/2026-09-27-agent-folder/openrouter.meta.json",
+      "observed_model_ids": [
+        "openai/gpt-5.4-nano"
+      ],
+      "per_category": {
+        "done": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 1662.5383849677746,
+            "p50": 1398.6983899958432,
+            "p95": 4382.547533023171
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 12.375,
+            "completion_total": 198.0,
+            "prompt_mean": 199.625,
+            "prompt_total": 3194.0,
+            "total_mean": 212.0,
+            "total_total": 3392.0
+          }
+        },
+        "next_worker": {
+          "accuracy": {
+            "accuracy": 0.875,
+            "correct": 14,
+            "invalid": 2,
+            "model_mismatches": 2,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 14
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 7239.810103113996,
+            "p50": 2422.7115960093215,
+            "p95": 52122.73338600062
+          },
+          "tokens": {
+            "complete": false,
+            "completion_mean": 12.0,
+            "completion_total": 168.0,
+            "prompt_mean": 228.35714285714286,
+            "prompt_total": 3197.0,
+            "total_mean": 240.35714285714286,
+            "total_total": 3365.0
+          }
+        },
+        "relevance": {
+          "accuracy": {
+            "accuracy": 0.6875,
+            "correct": 11,
+            "invalid": 1,
+            "model_mismatches": 1,
+            "total": 16,
+            "valid_accuracy": 0.7333333333333333,
+            "valid_model_rows": 15
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 3491.7542088078335,
+            "p50": 2378.7469774251804,
+            "p95": 16376.985136070289
+          },
+          "tokens": {
+            "complete": false,
+            "completion_mean": 12.2,
+            "completion_total": 183.0,
+            "prompt_mean": 189.33333333333334,
+            "prompt_total": 2840.0,
+            "total_mean": 201.53333333333333,
+            "total_total": 3023.0
+          }
+        },
+        "risky": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 2003.1342790098279,
+            "p50": 1319.7969615575857,
+            "p95": 8714.711361913942
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 12.75,
+            "completion_total": 204.0,
+            "prompt_mean": 204.375,
+            "prompt_total": 3270.0,
+            "total_mean": 217.125,
+            "total_total": 3474.0
+          }
+        }
+      },
+      "per_pass_latency_ms": {
+        "pass_1": {
+          "complete": true,
+          "count": 32,
+          "mean": 1913.8167317578336,
+          "p50": 1525.3667344804853,
+          "p95": 4382.547533023171
+        },
+        "pass_2": {
+          "complete": true,
+          "count": 32,
+          "mean": 5284.801756191882,
+          "p50": 2002.2388905053958,
+          "p95": 23817.463633953594
+        }
+      },
+      "per_pass_tokens": {
+        "pass_1": {
+          "complete": true,
+          "completion_mean": 12.34375,
+          "completion_total": 395.0,
+          "prompt_mean": 205.4375,
+          "prompt_total": 6574.0,
+          "total_mean": 217.78125,
+          "total_total": 6969.0
+        },
+        "pass_2": {
+          "complete": false,
+          "completion_mean": 12.344827586206897,
+          "completion_total": 358.0,
+          "prompt_mean": 204.3793103448276,
+          "prompt_total": 5927.0,
+          "total_mean": 216.72413793103448,
+          "total_total": 6285.0
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.0,
+        "covered": 0,
+        "note": "descriptive; not fitted calibration",
+        "probability_rows": 0,
+        "threshold": 0.9,
+        "wrong_decisions": 0
+      },
+      "provider": "openrouter",
+      "rankable": true,
+      "rawfile_sha256": "d986ec3748f5f808fb653f1376e164114154d51bc69ba150240fa0a7423f01c1",
+      "requested_model": "openai/gpt-5.4-nano",
+      "status": "complete",
+      "status_note": "full Cartesian coverage",
+      "tokens": {
+        "complete": false,
+        "completion_mean": 12.344262295081966,
+        "completion_total": 753.0,
+        "prompt_mean": 204.9344262295082,
+        "prompt_total": 12501.0,
+        "total_mean": 217.27868852459017,
+        "total_total": 13254.0
+      }
+    },
+    "simplejev-identified": {
+      "accuracy": {
+        "overall": {
+          "accuracy": 0.90625,
+          "correct": 58,
+          "invalid": 0,
+          "model_mismatches": 0,
+          "total": 64,
+          "valid_accuracy": 0.90625,
+          "valid_model_rows": 64
+        },
+        "per_category": {
+          "done": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "next_worker": {
+            "accuracy": 0.875,
+            "correct": 14,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 0.875,
+            "valid_model_rows": 16
+          },
+          "relevance": {
+            "accuracy": 0.75,
+            "correct": 12,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 0.75,
+            "valid_model_rows": 16
+          },
+          "risky": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          }
+        },
+        "per_pass": {
+          "pass_1": {
+            "accuracy": 0.90625,
+            "correct": 29,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 32,
+            "valid_accuracy": 0.90625,
+            "valid_model_rows": 32
+          },
+          "pass_2": {
+            "accuracy": 0.90625,
+            "correct": 29,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 32,
+            "valid_accuracy": 0.90625,
+            "valid_model_rows": 32
+          }
+        }
+      },
+      "archive": "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.jsonl.gz",
+      "backend_identity": "unverified",
+      "confidence": {
+        "count": 64,
+        "mean": 0.8790293894708157,
+        "note": "original model confidence; separate from pmax",
+        "p50": 0.9751192629337311,
+        "p95": 0.9991944432258606
+      },
+      "cost": {
+        "demo_cost_usd": null,
+        "jev_estimated_input_usd": null,
+        "jev_input_tokens_complete": null,
+        "note": "missing cost is unknown, never treated as zero",
+        "provider_cost_complete": false,
+        "provider_reported_known_subtotal_usd": null,
+        "provider_reported_usd": null
+      },
+      "coverage": {
+        "expected": 64,
+        "fraction": 1.0,
+        "missing": [],
+        "observed": 64
+      },
+      "dangerous_errors": {
+        "by_kind": {},
+        "records": [],
+        "total": 0
+      },
+      "latency_ms": {
+        "complete": true,
+        "count": 64,
+        "mean": 762.7379349451076,
+        "p50": 610.7478035264648,
+        "p95": 1730.0122620072216
+      },
+      "metadata": {
+        "expected_records": 64,
+        "model": "featherless-ai/Qwen3.5-4B-classifier",
+        "records_written": 64,
+        "status": "completed"
+      },
+      "metadata_path": "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.meta.json",
+      "observed_model_ids": [
+        "featherless-ai/Qwen3.5-4B-classifier"
+      ],
+      "per_category": {
+        "done": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 876.2845247474615,
+            "p50": 740.7605915213935,
+            "p95": 2357.8371739713475
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 1.0,
+            "completion_total": 16.0,
+            "prompt_mean": 1309.75,
+            "prompt_total": 20956.0,
+            "total_mean": 1310.75,
+            "total_total": 20972.0
+          }
+        },
+        "next_worker": {
+          "accuracy": {
+            "accuracy": 0.875,
+            "correct": 14,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 0.875,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 690.8761620070436,
+            "p50": 618.3062964701094,
+            "p95": 1424.3420730344951
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 1.0,
+            "completion_total": 16.0,
+            "prompt_mean": 1478.75,
+            "prompt_total": 23660.0,
+            "total_mean": 1479.75,
+            "total_total": 23676.0
+          }
+        },
+        "relevance": {
+          "accuracy": {
+            "accuracy": 0.75,
+            "correct": 12,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 0.75,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 810.7467747686314,
+            "p50": 651.9309170544147,
+            "p95": 1735.8946648892015
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 1.0,
+            "completion_total": 16.0,
+            "prompt_mean": 1248.5,
+            "prompt_total": 19976.0,
+            "total_mean": 1249.5,
+            "total_total": 19992.0
+          }
+        },
+        "risky": {
+          "accuracy": {
+            "accuracy": 1.0,
+            "correct": 16,
+            "invalid": 0,
+            "model_mismatches": 0,
+            "total": 16,
+            "valid_accuracy": 1.0,
+            "valid_model_rows": 16
+          },
+          "latency_ms": {
+            "complete": true,
+            "count": 16,
+            "mean": 673.0442782572936,
+            "p50": 563.833873020485,
+            "p95": 2165.634431061335
+          },
+          "tokens": {
+            "complete": true,
+            "completion_mean": 1.0,
+            "completion_total": 16.0,
+            "prompt_mean": 1332.25,
+            "prompt_total": 21316.0,
+            "total_mean": 1333.25,
+            "total_total": 21332.0
+          }
+        }
+      },
+      "per_pass_latency_ms": {
+        "pass_1": {
+          "complete": true,
+          "count": 32,
+          "mean": 981.1302000707656,
+          "p50": 828.2837835140526,
+          "p95": 2165.634431061335
+        },
+        "pass_2": {
+          "complete": true,
+          "count": 32,
+          "mean": 544.3456698194495,
+          "p50": 497.6611500605941,
+          "p95": 844.3562479224056
+        }
+      },
+      "per_pass_tokens": {
+        "pass_1": {
+          "complete": true,
+          "completion_mean": 1.0,
+          "completion_total": 32.0,
+          "prompt_mean": 1342.3125,
+          "prompt_total": 42954.0,
+          "total_mean": 1343.3125,
+          "total_total": 42986.0
+        },
+        "pass_2": {
+          "complete": true,
+          "completion_mean": 1.0,
+          "completion_total": 32.0,
+          "prompt_mean": 1342.3125,
+          "prompt_total": 42954.0,
+          "total_mean": 1343.3125,
+          "total_total": 42986.0
+        }
+      },
+      "pmax_ge_0_9": {
+        "coverage": 0.65625,
+        "covered": 42,
+        "note": "descriptive; not fitted calibration",
+        "probability_rows": 64,
+        "threshold": 0.9,
+        "wrong_decisions": 0
+      },
+      "provider": "simplejev",
+      "rankable": true,
+      "rawfile_sha256": "c50b2d57065ef8b0e98a900e2e4b3ef0b9e8c3e9d2a29a480909aa75ca015f00",
+      "requested_model": "featherless-ai/Qwen3.5-4B-classifier",
+      "status": "complete",
+      "status_note": "full Cartesian coverage",
+      "tokens": {
+        "complete": true,
+        "completion_mean": 1.0,
+        "completion_total": 64.0,
+        "prompt_mean": 1342.3125,
+        "prompt_total": 85908.0,
+        "total_mean": 1343.3125,
+        "total_total": 85972.0
+      }
+    }
+  },
+  "notes": {
+    "danger_thresholds_promoted": false,
+    "fixture_assumptions": [
+      "32 frozen cases: eight each for next_worker, relevance, done, and risky.",
+      "Two repeats are expected per case; incomplete nonempty arms are not rankable.",
+      "Requested models use the protocol pins; observed backend identity remains unverified."
+    ],
+    "ranking": "No ranking or threshold promotion is computed.",
+    "validation_commands": [
+      "python evals/decision_models/analyze_agent_folder.py --cases PATH --results DIR --output PATH"
+    ]
+  },
+  "schema_version": 1
+}

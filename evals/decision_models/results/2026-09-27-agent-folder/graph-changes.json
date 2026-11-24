@@ -1,0 +1,804 @@
+{
+  "summary": {
+    "changed_count": 88,
+    "affected_count": 8,
+    "changed_files": 20,
+    "risk_level": "high"
+  },
+  "changed_symbols": [
+    {
+      "id": "Section:SKILL.md:L11:Beastmode: Multi-Agent Orchestration Framework",
+      "name": "Beastmode: Multi-Agent Orchestration Framework",
+      "type": "Section",
+      "filePath": "SKILL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:SKILL.md:L33:Model Tiers & Routing",
+      "name": "Model Tiers & Routing",
+      "type": "Section",
+      "filePath": "SKILL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:SKILL.md:L61:Optional decision providers",
+      "name": "Optional decision providers",
+      "type": "Section",
+      "filePath": "SKILL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_PROTOCOL.md:L1:Agent-folder use-case follow-up — 2026-09-27",
+      "name": "Agent-folder use-case follow-up — 2026-09-27",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_PROTOCOL.md:L8:Acceptance contract",
+      "name": "Acceptance contract",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_PROTOCOL.md:L28:Default-selection policy to evaluate",
+      "name": "Default-selection policy to evaluate",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_PROTOCOL.md:L48:Reproduction",
+      "name": "Reproduction",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L1:Agent-folder use cases — 2026-09-27",
+      "name": "Agent-folder use cases — 2026-09-27",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L3:Decision",
+      "name": "Decision",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L15:Measurements",
+      "name": "Measurements",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L66:What each use case needs",
+      "name": "What each use case needs",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L82:Study boundaries",
+      "name": "Study boundaries",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L106:Price and confidence claims",
+      "name": "Price and confidence claims",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/AGENT_FOLDER_RESULTS.md:L123:Reproduction and evidence",
+      "name": "Reproduction and evidence",
+      "type": "Section",
+      "filePath": "evals/decision_models/AGENT_FOLDER_RESULTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/README.md:L1:Jev-style decision model spikes",
+      "name": "Jev-style decision model spikes",
+      "type": "Section",
+      "filePath": "evals/decision_models/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:ARMS",
+      "name": "ARMS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:PROVIDERS",
+      "name": "PROVIDERS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:EXPECTED_MODELS",
+      "name": "EXPECTED_MODELS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:CATEGORIES",
+      "name": "CATEGORIES",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:REPEATS",
+      "name": "REPEATS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:JEV_INPUT_RATE",
+      "name": "JEV_INPUT_RATE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:OPENROUTER_INSTRUCTION",
+      "name": "OPENROUTER_INSTRUCTION",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/analyze_agent_folder.py:COMMON_FIELDS",
+      "name": "COMMON_FIELDS",
+      "type": "Variable",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:fail",
+      "name": "fail",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:number",
+      "name": "number",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:optional_number",
+      "name": "optional_number",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:close",
+      "name": "close",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:digest",
+      "name": "digest",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:read_json",
+      "name": "read_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:load_cases",
+      "name": "load_cases",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:load_cases.cases@87:4",
+      "name": "cases",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:read_rows",
+      "name": "read_rows",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:read_rows.rows@118:4",
+      "name": "rows",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:forbid_gold_rationale",
+      "name": "forbid_gold_rationale",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:validate_payload",
+      "name": "validate_payload",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:find_choice",
+      "name": "find_choice",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:raw_answer",
+      "name": "raw_answer",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:validate_probabilities",
+      "name": "validate_probabilities",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:usage_value",
+      "name": "usage_value",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:jev_decision",
+      "name": "jev_decision",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:bounded",
+      "name": "bounded",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:validate_raw_and_usage",
+      "name": "validate_raw_and_usage",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:validate_raw_and_usage.observed@295:4",
+      "name": "observed",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:validate_raw_and_usage.raw_model@296:4",
+      "name": "raw_model",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:validate_raw_and_usage.usage@297:4",
+      "name": "usage",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:validate_row",
+      "name": "validate_row",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:metadata_for",
+      "name": "metadata_for",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:archive_for",
+      "name": "archive_for",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:metadata_model",
+      "name": "metadata_model",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:metadata_summary",
+      "name": "metadata_summary",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:arm_status",
+      "name": "arm_status",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:p95",
+      "name": "p95",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:latency_stats",
+      "name": "latency_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:token_stats",
+      "name": "token_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:accuracy",
+      "name": "accuracy",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:probability_stats",
+      "name": "probability_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:confidence_stats",
+      "name": "confidence_stats",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:dangerous_errors",
+      "name": "dangerous_errors",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:dangerous_errors.records@580:4",
+      "name": "records",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:dangerous_errors.by_kind@594:4",
+      "name": "by_kind",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:bundle",
+      "name": "bundle",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:arm_report",
+      "name": "arm_report",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:arm_inputs",
+      "name": "arm_inputs",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:arm_inputs.seen@711:4",
+      "name": "seen",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:arm_inputs.requested@712:4",
+      "name": "requested",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:arm_inputs.observed@713:4",
+      "name": "observed",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/analyze_agent_folder.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:main.reports@737:8",
+      "name": "reports",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:main.rawfiles@738:8",
+      "name": "rawfiles",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/analyze_agent_folder.py:main.metadata_files@739:8",
+      "name": "metadata_files",
+      "type": "Property",
+      "filePath": "evals/decision_models/analyze_agent_folder.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/test_agent_folder_analysis.py:HERE",
+      "name": "HERE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/test_agent_folder_analysis.py:ARCHIVE",
+      "name": "ARCHIVE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests",
+      "name": "AgentFolderAnalysisTests",
+      "type": "Class",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.setUpClass#0",
+      "name": "setUpClass",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_every_archived_response_is_auditable#0",
+      "name": "test_every_archived_response_is_auditable",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_fabricated_normalized_fields_are_rejected#0",
+      "name": "test_fabricated_normalized_fields_are_rejected",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_payload_changes_and_gold_leaks_are_rejected#0",
+      "name": "test_payload_changes_and_gold_leaks_are_rejected",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_raw_choice_and_cost_tampering_are_rejected#0",
+      "name": "test_raw_choice_and_cost_tampering_are_rejected",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_model_pin_cannot_be_changed_consistently#0",
+      "name": "test_model_pin_cannot_be_changed_consistently",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_duplicate_record_is_rejected#0",
+      "name": "test_duplicate_record_is_rejected",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_metadata_cannot_claim_a_different_corpus#0",
+      "name": "test_metadata_cannot_claim_a_different_corpus",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_malformed_raw_cannot_masquerade_as_transport_failure#0",
+      "name": "test_malformed_raw_cannot_masquerade_as_transport_failure",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_transport_failure_stays_in_denominator_with_unknown_cost#0",
+      "name": "test_transport_failure_stays_in_denominator_with_unknown_cost",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_partial_and_missing_arms_never_rank_as_complete#0",
+      "name": "test_partial_and_missing_arms_never_rank_as_complete",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_dangerous_directions_are_counted_separately#0",
+      "name": "test_dangerous_directions_are_counted_separately",
+      "type": "Method",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/test_agent_folder_analysis.py:AgentFolderAnalysisTests.test_dangerous_directions_are_counted_separately.rows@120:8",
+      "name": "rows",
+      "type": "Variable",
+      "filePath": "evals/decision_models/test_agent_folder_analysis.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:references/model-routing.md:L1:Model Routing: Frontier Design, Economy Execution",
+      "name": "Model Routing: Frontier Design, Economy Execution",
+      "type": "Section",
+      "filePath": "references/model-routing.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:references/model-routing.md:L22:Optional decision providers: preferred when proven better",
+      "name": "Optional decision providers: preferred when proven better",
+      "type": "Section",
+      "filePath": "references/model-routing.md",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_14_main",
+      "name": "Main → Fail",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "arm_inputs",
+          "step": 2
+        },
+        {
+          "symbol": "metadata_for",
+          "step": 3
+        },
+        {
+          "symbol": "read_json",
+          "step": 4
+        },
+        {
+          "symbol": "fail",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_25_arm_report",
+      "name": "Arm_report → P95",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "arm_report",
+          "step": 1
+        },
+        {
+          "symbol": "bundle",
+          "step": 2
+        },
+        {
+          "symbol": "latency_stats",
+          "step": 3
+        },
+        {
+          "symbol": "p95",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_67_arm_report",
+      "name": "Arm_report → Accuracy",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "arm_report",
+          "step": 1
+        },
+        {
+          "symbol": "bundle",
+          "step": 2
+        },
+        {
+          "symbol": "accuracy",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_68_arm_report",
+      "name": "Arm_report → Token_stats",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "arm_report",
+          "step": 1
+        },
+        {
+          "symbol": "bundle",
+          "step": 2
+        },
+        {
+          "symbol": "token_stats",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_69_main",
+      "name": "Main → Archive_for",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "arm_inputs",
+          "step": 2
+        },
+        {
+          "symbol": "archive_for",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_125_confidence_stats",
+      "name": "Confidence_stats → Fail",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "confidence_stats",
+          "step": 1
+        },
+        {
+          "symbol": "bounded",
+          "step": 2
+        },
+        {
+          "symbol": "number",
+          "step": 3
+        },
+        {
+          "symbol": "fail",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_154_arm_report",
+      "name": "Arm_report → Fail",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "arm_report",
+          "step": 1
+        },
+        {
+          "symbol": "metadata_model",
+          "step": 2
+        },
+        {
+          "symbol": "fail",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_170_validate_raw_and_usa",
+      "name": "Validate_raw_and_usage → Fail",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "validate_raw_and_usage",
+          "step": 1
+        },
+        {
+          "symbol": "number",
+          "step": 2
+        },
+        {
+          "symbol": "fail",
+          "step": 3
+        }
+      ]
+    }
+  ]
+}

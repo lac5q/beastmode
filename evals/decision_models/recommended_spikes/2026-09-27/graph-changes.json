@@ -1,0 +1,2005 @@
+{
+  "summary": {
+    "changed_count": 231,
+    "affected_count": 17,
+    "changed_files": 38,
+    "risk_level": "critical"
+  },
+  "changed_symbols": [
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md:L1:Recommended repository spikes — 2026-09-27",
+      "name": "Recommended repository spikes — 2026-09-27",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md:L7:Acceptance",
+      "name": "Acceptance",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md:L32:Resource and integrity rules",
+      "name": "Resource and integrity rules",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/PROTOCOL.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L1:Recommended repository spikes — 2026-09-27",
+      "name": "Recommended repository spikes — 2026-09-27",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L16:Live findings",
+      "name": "Live findings",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L18:Kev",
+      "name": "Kev",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L33:Compaction",
+      "name": "Compaction",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L69:Browser loop",
+      "name": "Browser loop",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L95:Local backend limits",
+      "name": "Local backend limits",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L116:Reproduction and integrity",
+      "name": "Reproduction and integrity",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/README.md:L150:Source pins and next steps",
+      "name": "Source pins and next steps",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/audit.py:ROOT",
+      "name": "ROOT",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:read",
+      "name": "read",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:data",
+      "name": "data",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:rows",
+      "name": "rows",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:digest",
+      "name": "digest",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:result_text",
+      "name": "result_text",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/audit.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/audit.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py:_choice",
+      "name": "_choice",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py:main.checks@21:4",
+      "name": "checks",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/offline_faults.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/browser/results/checks.md:L1:Bounded browser-loop spike checks",
+      "name": "Bounded browser-loop spike checks",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/results/checks.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:ROOT",
+      "name": "ROOT",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:SOURCE",
+      "name": "SOURCE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:DecisionTimeout",
+      "name": "DecisionTimeout",
+      "type": "Class",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:BudgetExceeded",
+      "name": "BudgetExceeded",
+      "type": "Class",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:QuietFixtureHandler",
+      "name": "QuietFixtureHandler",
+      "type": "Class",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:QuietFixtureHandler.log_message",
+      "name": "log_message",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:write_json",
+      "name": "write_json",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:RawReceiptCapture",
+      "name": "RawReceiptCapture",
+      "type": "Class",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:RawReceiptCapture.__init__#1",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:RawReceiptCapture.endpoint#1",
+      "name": "endpoint",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:RawReceiptCapture.__call__#3",
+      "name": "__call__",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:_alarm",
+      "name": "_alarm",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:next_with_timeout",
+      "name": "next_with_timeout",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:fixture_server",
+      "name": "fixture_server",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:save_state",
+      "name": "save_state",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:run_trial",
+      "name": "run_trial",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:run_trial.agent@128:4",
+      "name": "agent",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:run_trial.result@130:4",
+      "name": "result",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py:main.results@221:4",
+      "name": "results",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/run_local_trials.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:ROOT",
+      "name": "ROOT",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:CONTRACT",
+      "name": "CONTRACT",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:EXPECTED",
+      "name": "EXPECTED",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:DOM_EXPRESSION",
+      "name": "DOM_EXPRESSION",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:verify_snapshot",
+      "name": "verify_snapshot",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py:verify_browser",
+      "name": "verify_browser",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/browser/validate_contract.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:REQUEST_MODEL",
+      "name": "REQUEST_MODEL",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FIXTURE_GOAL",
+      "name": "FIXTURE_GOAL",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:REDACTED_FIXTURE_KEY",
+      "name": "REDACTED_FIXTURE_KEY",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "TypeAlias:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture",
+      "name": "Fixture",
+      "type": "TypeAlias",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.id",
+      "name": "id",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.description",
+      "name": "description",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.preserveRecentMessages",
+      "name": "preserveRecentMessages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.expected",
+      "name": "expected",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.messages",
+      "name": "messages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:Fixture.requiredOutput",
+      "name": "requiredOutput",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "TypeAlias:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord",
+      "name": "RunRecord",
+      "type": "TypeAlias",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.id",
+      "name": "id",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.historyHash",
+      "name": "historyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.baselineChars",
+      "name": "baselineChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.proposalChars",
+      "name": "proposalChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.decisions",
+      "name": "decisions",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.requests",
+      "name": "requests",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.requestHashes",
+      "name": "requestHashes",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.changedFromBaseline",
+      "name": "changedFromBaseline",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.semantic",
+      "name": "semantic",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.status",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:RunRecord.errors",
+      "name": "errors",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "TypeAlias:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveRunRecord",
+      "name": "LiveRunRecord",
+      "type": "TypeAlias",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "TypeAlias:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt",
+      "name": "LiveReceipt",
+      "type": "TypeAlias",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.sequence",
+      "name": "sequence",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.fixture",
+      "name": "fixture",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.requestHash",
+      "name": "requestHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.requestBody",
+      "name": "requestBody",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.status",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.ok",
+      "name": "ok",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.wallMs",
+      "name": "wallMs",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.responseText",
+      "name": "responseText",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.responseBodyHash",
+      "name": "responseBodyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.usage",
+      "name": "usage",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:LiveReceipt.error",
+      "name": "error",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:hash",
+      "name": "hash",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:parseJsonOrText",
+      "name": "parseJsonOrText",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:message",
+      "name": "message",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:message.role@80:11",
+      "name": "role",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:message.text@80:17",
+      "name": "text",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:message.toolUses@80:23",
+      "name": "toolUses",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:call",
+      "name": "call",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:result",
+      "name": "result",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:longMiddleBody",
+      "name": "longMiddleBody",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:middleCritical",
+      "name": "middleCritical",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:middleBenign",
+      "name": "middleBenign",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:requiredOldFailure",
+      "name": "requiredOldFailure",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:contradictoryEvidence",
+      "name": "contradictoryEvidence",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:approvalScopeConstraint",
+      "name": "approvalScopeConstraint",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:duplicateOutput",
+      "name": "duplicateOutput",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:longMiddleEvidence",
+      "name": "longMiddleEvidence",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:missingKeyErrorFallback",
+      "name": "missingKeyErrorFallback",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:toolPairing",
+      "name": "toolPairing",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:recentPin",
+      "name": "recentPin",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FIXTURES",
+      "name": "FIXTURES",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:messages@240:14",
+      "name": "messages",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FROZEN_HISTORY_HASHES",
+      "name": "FROZEN_HISTORY_HASHES",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FROZEN_BLINDNESS_HASHES",
+      "name": "FROZEN_BLINDNESS_HASHES",
+      "type": "Const",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FROZEN_BLINDNESS_HASHES.criticalHistory",
+      "name": "criticalHistory",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FROZEN_BLINDNESS_HASHES.benignHistory",
+      "name": "benignHistory",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:FROZEN_BLINDNESS_HASHES.requestBody",
+      "name": "requestBody",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:optionsFor",
+      "name": "optionsFor",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:actionReason",
+      "name": "actionReason",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:answerFor",
+      "name": "answerFor",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:makeFakeJev",
+      "name": "makeFakeJev",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:makeFakeJev.ask@310:4#2",
+      "name": "ask",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:makeFakeJev.ask@310:4.answers@325:15",
+      "name": "answers",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:pairedBlockIds",
+      "name": "pairedBlockIds",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:blockById",
+      "name": "blockById",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:blockById.use@340:4",
+      "name": "use",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:blockById.result@341:4",
+      "name": "result",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:assertPairInvariants",
+      "name": "assertPairInvariants",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:assertTextMessagesPreserved",
+      "name": "assertTextMessagesPreserved",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture",
+      "name": "runFixture",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.id@448:4",
+      "name": "id",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.historyHash@449:4",
+      "name": "historyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.baselineChars@450:4",
+      "name": "baselineChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.proposalChars@451:4",
+      "name": "proposalChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.decisions@452:4",
+      "name": "decisions",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.requests@458:4",
+      "name": "requests",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.requestHashes@459:4",
+      "name": "requestHashes",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.changedFromBaseline@460:4",
+      "name": "changedFromBaseline",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.semantic@461:4",
+      "name": "semantic",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.status@474:4",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFixture.errors@475:4",
+      "name": "errors",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFallbackChecks",
+      "name": "runFallbackChecks",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFallbackChecks.fetch@485:6",
+      "name": "fetch",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFallbackChecks.missingKey@502:11",
+      "name": "missingKey",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runFallbackChecks.providerError@502:33",
+      "name": "providerError",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runBlindnessPair",
+      "name": "runBlindnessPair",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runBlindnessPair.criticalHistory@533:4",
+      "name": "criticalHistory",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runBlindnessPair.benignHistory@534:4",
+      "name": "benignHistory",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runBlindnessPair.requestHashes@535:4",
+      "name": "requestHashes",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runBlindnessPair.identicalRequestBodies@536:4",
+      "name": "identicalRequestBodies",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory",
+      "name": "runLiveHistory",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:2",
+      "name": "fetcher",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.sequence@562:8",
+      "name": "sequence",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.fixture@563:8",
+      "name": "fixture",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.requestHash@564:8",
+      "name": "requestHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.requestBody@565:8",
+      "name": "requestBody",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.status@566:8",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.ok@567:8",
+      "name": "ok",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.wallMs@568:8",
+      "name": "wallMs",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.responseText@569:8",
+      "name": "responseText",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.responseBodyHash@570:8",
+      "name": "responseBodyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.sequence@587:8",
+      "name": "sequence",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.fixture@588:8",
+      "name": "fixture",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.requestHash@589:8",
+      "name": "requestHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.requestBody@590:8",
+      "name": "requestBody",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.status@591:8",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.ok@592:8",
+      "name": "ok",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.wallMs@593:8",
+      "name": "wallMs",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.fetcher@552:32.error@594:8",
+      "name": "error",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.id@628:4",
+      "name": "id",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.historyHash@629:4",
+      "name": "historyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.baselineChars@630:4",
+      "name": "baselineChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.proposalChars@631:4",
+      "name": "proposalChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.decisions@632:4",
+      "name": "decisions",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.requests@638:4",
+      "name": "requests",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.requestHashes@639:4",
+      "name": "requestHashes",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.changedFromBaseline@640:4",
+      "name": "changedFromBaseline",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.semantic@641:4",
+      "name": "semantic",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.status@646:4",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.errors@647:4",
+      "name": "errors",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.inputMessages@648:4",
+      "name": "inputMessages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLiveHistory.outputMessages@649:4",
+      "name": "outputMessages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:runLive",
+      "name": "runLive",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:appendCaseAudit",
+      "name": "appendCaseAudit",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:liveSummary",
+      "name": "liveSummary",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.status@714:4",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.requested_model@715:4",
+      "name": "requested_model",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.actual_backend@716:4",
+      "name": "actual_backend",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.package@717:4",
+      "name": "package",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.pinned_commit@718:4",
+      "name": "pinned_commit",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.mode@719:4",
+      "name": "mode",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.fixture_count@720:4",
+      "name": "fixture_count",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.conservative_baseline@721:4",
+      "name": "conservative_baseline",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.fallback@722:4",
+      "name": "fallback",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.full_output_blindness@723:4",
+      "name": "full_output_blindness",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.fixtures@724:4",
+      "name": "fixtures",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.id@748:10",
+      "name": "id",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.historyHash@749:10",
+      "name": "historyHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.baselineChars@750:10",
+      "name": "baselineChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.proposalChars@751:10",
+      "name": "proposalChars",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.decisions@752:10",
+      "name": "decisions",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.requests@753:10",
+      "name": "requests",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.requestHashes@754:10",
+      "name": "requestHashes",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.changedFromBaseline@755:10",
+      "name": "changedFromBaseline",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.semantic@756:10",
+      "name": "semantic",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.status@757:10",
+      "name": "status",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.errors@758:10",
+      "name": "errors",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.inputMessages@759:10",
+      "name": "inputMessages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.outputMessages@760:10",
+      "name": "outputMessages",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.criticalRequestHash@789:6",
+      "name": "criticalRequestHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.benignRequestHash@790:6",
+      "name": "benignRequestHash",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts:main.identicalRequestBodies@791:6",
+      "name": "identicalRequestBodies",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/compaction/compaction-fixtures.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py:BASE",
+      "name": "BASE",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py:MODEL",
+      "name": "MODEL",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py:run_one",
+      "name": "run_one",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/kev/kev_probe.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/README.md:L1:Local backend component spike",
+      "name": "Local backend component spike",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/REPORT.md:L1:CLM bounded component smoke",
+      "name": "CLM bounded component smoke",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/REPORT.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/run_frozen_32_choice_cases.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/run_frozen_32_choice_cases.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:FakeNonsemanticEmbedder",
+      "name": "FakeNonsemanticEmbedder",
+      "type": "Class",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:hidden",
+      "name": "hidden",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:FakeNonsemanticEmbedder.__init__#0",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:FakeNonsemanticEmbedder.embed#1",
+      "name": "embed",
+      "type": "Method",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:FakeNonsemanticEmbedder.embed.vectors@31:8",
+      "name": "vectors",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:_assert_distribution",
+      "name": "_assert_distribution",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:_validate_answers",
+      "name": "_validate_answers",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:run",
+      "name": "run",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:run.invalid@113:4",
+      "name": "invalid",
+      "type": "Property",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:run.expect@115:4",
+      "name": "expect",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/clm/synthetic_contract_smoke.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md:L1:Commands and scope receipt",
+      "name": "Commands and scope receipt",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md:L8:CLM setup and smoke",
+      "name": "CLM setup and smoke",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md:L38:Laya-MLX setup and preflight",
+      "name": "Laya-MLX setup and preflight",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/commands.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/REPORT.md:L1:Laya-MLX bounded preflight",
+      "name": "Laya-MLX bounded preflight",
+      "type": "Section",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/REPORT.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py:PIN",
+      "name": "PIN",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py:REPO",
+      "name": "REPO",
+      "type": "Variable",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py:pure_python_contracts",
+      "name": "pure_python_contracts",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py:main",
+      "name": "main",
+      "type": "Function",
+      "filePath": "evals/decision_models/recommended_spikes/2026-09-27/local-backends/laya-mlx/preflight.py",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_18_main",
+      "name": "Main → Message",
+      "process_type": "intra_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "runBlindnessPair",
+          "step": 2
+        },
+        {
+          "symbol": "longMiddleEvidence",
+          "step": 3
+        },
+        {
+          "symbol": "call",
+          "step": 4
+        },
+        {
+          "symbol": "message",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_35_main",
+      "name": "Main → Write_json",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_trial",
+          "step": 2
+        },
+        {
+          "symbol": "save_state",
+          "step": 3
+        },
+        {
+          "symbol": "write_json",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_36_main",
+      "name": "Main → Verify_snapshot",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_trial",
+          "step": 2
+        },
+        {
+          "symbol": "verify_browser",
+          "step": 3
+        },
+        {
+          "symbol": "verify_snapshot",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_37_runlive",
+      "name": "RunLive → BlockById",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "runLive",
+          "step": 1
+        },
+        {
+          "symbol": "runLiveHistory",
+          "step": 2
+        },
+        {
+          "symbol": "assertPairInvariants",
+          "step": 3
+        },
+        {
+          "symbol": "blockById",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_38_runlive",
+      "name": "RunLive → PairedBlockIds",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "runLive",
+          "step": 1
+        },
+        {
+          "symbol": "runLiveHistory",
+          "step": 2
+        },
+        {
+          "symbol": "assertPairInvariants",
+          "step": 3
+        },
+        {
+          "symbol": "pairedBlockIds",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_39_main",
+      "name": "Main → _assert_distribution",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run",
+          "step": 2
+        },
+        {
+          "symbol": "_validate_answers",
+          "step": 3
+        },
+        {
+          "symbol": "_assert_distribution",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_85_main",
+      "name": "Main → Read",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "data",
+          "step": 2
+        },
+        {
+          "symbol": "read",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_86_main",
+      "name": "Main → Next_with_timeout",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "run_trial",
+          "step": 2
+        },
+        {
+          "symbol": "next_with_timeout",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_87_main",
+      "name": "Main → Hash",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "runBlindnessPair",
+          "step": 2
+        },
+        {
+          "symbol": "hash",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_88_main",
+      "name": "Main → MakeFakeJev",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "runBlindnessPair",
+          "step": 2
+        },
+        {
+          "symbol": "makeFakeJev",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_89_main",
+      "name": "Main → OptionsFor",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "runBlindnessPair",
+          "step": 2
+        },
+        {
+          "symbol": "optionsFor",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_90_main",
+      "name": "Main → ActionReason",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "runFixture",
+          "step": 2
+        },
+        {
+          "symbol": "actionReason",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_91_runlive",
+      "name": "RunLive → AssertTextMessagesPreserved",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "runLive",
+          "step": 1
+        },
+        {
+          "symbol": "runLiveHistory",
+          "step": 2
+        },
+        {
+          "symbol": "assertTextMessagesPreserved",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_92_main",
+      "name": "Main → Expect",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "main",
+          "step": 1
+        },
+        {
+          "symbol": "expect",
+          "step": 3
+        },
+        {
+          "symbol": "run",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_141_runfallbackchecks",
+      "name": "RunFallbackChecks → Message",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "runFallbackChecks",
+          "step": 1
+        },
+        {
+          "symbol": "approvalScopeConstraint",
+          "step": 2
+        },
+        {
+          "symbol": "call",
+          "step": 3
+        },
+        {
+          "symbol": "message",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_159_runlive",
+      "name": "RunLive → OptionsFor",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "runLive",
+          "step": 1
+        },
+        {
+          "symbol": "runLiveHistory",
+          "step": 2
+        },
+        {
+          "symbol": "optionsFor",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_171_runlive",
+      "name": "RunLive → Message",
+      "process_type": "intra_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "runLive",
+          "step": 1
+        },
+        {
+          "symbol": "contradictoryEvidence",
+          "step": 2
+        },
+        {
+          "symbol": "call",
+          "step": 3
+        },
+        {
+          "symbol": "message",
+          "step": 4
+        }
+      ]
+    }
+  ]
+}

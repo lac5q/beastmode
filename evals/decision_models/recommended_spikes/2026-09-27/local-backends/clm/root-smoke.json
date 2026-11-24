@@ -1,0 +1,128 @@
+{
+  "advertised_model_inference": false,
+  "cache": {
+    "arena": {
+      "device": "cpu",
+      "hit_rate": 0.5,
+      "pools": {
+        "4096": {
+          "capacity": 8,
+          "dim": 4096,
+          "evictions": 0,
+          "hit_rate": null,
+          "hits": 0,
+          "misses": 0,
+          "reserved_mb": 0.1,
+          "used": 0
+        },
+        "512": {
+          "capacity": 448,
+          "dim": 512,
+          "evictions": 0,
+          "hit_rate": 0.5,
+          "hits": 11,
+          "misses": 11,
+          "reserved_mb": 0.9,
+          "used": 11
+        }
+      },
+      "reserved_mb": 1.0
+    },
+    "embedding_calls_after_identical_request": 2,
+    "embedding_calls_first_request": 2,
+    "identical_request_reused_vectors": true,
+    "second_request_input_tokens": 0
+  },
+  "checkpoint": "<repo>/.beastmode/recommended-spikes-20260927/local-backends/clm/CLM_v0.1-8B.pt",
+  "first_answers": {
+    "route": {
+      "choice": "billing",
+      "confidence": 0.8467493238981258,
+      "probabilities": {
+        "billing": 0.8978328825987505,
+        "other": 0.0014902997181046593,
+        "technical": 0.10067681768314474
+      },
+      "type": "choice"
+    },
+    "safe": {
+      "noul": 0.10602871229476524,
+      "type": "noul"
+    },
+    "severity": {
+      "confidence": 0.9142522688885759,
+      "legend": {
+        "0": "low",
+        "1": "medium",
+        "2": "high"
+      },
+      "probabilities": {
+        "0": 0.0002768976498856017,
+        "1": 0.0568882564243971,
+        "2": 0.9428348459257173
+      },
+      "score": 1.9425579482758317,
+      "type": "score"
+    }
+  },
+  "invalid_inputs": [
+    {
+      "case": "empty_questions",
+      "error_type": "ValueError",
+      "message": "questions must not be empty"
+    },
+    {
+      "case": "unknown_type",
+      "error_type": "ValueError",
+      "message": "unknown question type 'unknown'; expected one of ('noul', 'choice', 'score')"
+    },
+    {
+      "case": "empty_choice",
+      "error_type": "ValueError",
+      "message": "choice question needs a non-empty 'criteria' object"
+    },
+    {
+      "case": "one_level_score",
+      "error_type": "ValueError",
+      "message": "score question needs 'criteria' as an ordered list of >= 2 levels"
+    },
+    {
+      "case": "bad_temperature",
+      "error_type": "ValueError",
+      "message": "temperature must be in (0, 100]"
+    },
+    {
+      "case": "unknown_model",
+      "error_type": "ModelNotFound",
+      "message": "\"unknown model 'unknown'; available: ['clm-latest', 'clm-raw']\""
+    }
+  ],
+  "projection": {
+    "action_shape": [
+      5,
+      512
+    ],
+    "finite": true,
+    "head_generation": 1,
+    "n_params": 18887680,
+    "projection_dim": 512,
+    "scale": 100.0,
+    "state_action_norm_max_error": 1.1920928955078125e-07,
+    "state_shape": [
+      3,
+      512
+    ]
+  },
+  "schema": {
+    "types": [
+      "noul",
+      "choice",
+      "score"
+    ],
+    "validated": true
+  },
+  "semantic_status": "FAKE NONSEMANTIC: deterministic synthetic embeddings; no task accuracy claim",
+  "status": "pass",
+  "torch_force_weights_only_load": "1",
+  "torch_version": "2.14.0+cpu"
+}

@@ -1,0 +1,19 @@
+{
+  "api_key_env": null,
+  "case_count": 32,
+  "cases_sha256": "b63467b6332c161b045dda0c615dd5e46e33b88945e33d4738287c2a0010bb69",
+  "endpoint": "https://simple-jev-demo-api.featherless.ai/v1/systemone",
+  "expected_records": 64,
+  "finished_at_utc": "2026-09-27T15:22:35.800552Z",
+  "model": "featherless-ai/Qwen3.5-4B-classifier",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "provider": "simplejev",
+  "python": "3.11.15",
+  "records_written": 64,
+  "repeats": 2,
+  "runner": "evals/decision_models/benchmark_api.py",
+  "schema_version": 1,
+  "simplejev_min_start_interval_seconds": 0.6,
+  "started_at_utc": "2026-09-27T15:21:43.234948Z",
+  "status": "completed"
+}

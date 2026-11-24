@@ -72,11 +72,14 @@ For non-interactive SSH shells, keep `~/.local/bin`, `/opt/homebrew/bin`, and
 these locations without overriding an explicitly supplied `PATH`.
 
 **Model availability.** `bm "<goal>" --frontier kimi3 --economy minimax` will
-exit with code 2 before any `pi` invocation if either resolved
-`provider/model` is missing from `pi --list-models`. The error lists the
-available alternatives so you can pick a working alias without losing the
-goal to a mid-run crash. Skip with `BM_SKIP_MODEL_CHECK=1` (CI / scripted
-runs where `pi` may not be installed).
+exit with code 2 before any `pi` invocation if an explicitly selected resolved
+`provider/model` is missing from `pi --list-models`. For the built-in implicit
+economy seat, Beastmode first prefers a live non-Anthropic economy provider
+whose alias is marked `worker_fallback: true`; when none is available for an
+Anthropic director, it may select the lower
+`haiku` or `sonnet-worker` seat and records that choice in the worker contract.
+Skip with `BM_SKIP_MODEL_CHECK=1` (CI / scripted runs where `pi` may not be
+installed).
 
 For Pi, the friendly `luna-max` seat stays on the canonical authenticated
 `openai-codex/gpt-6-luna` provider. Do not infer that an installed
@@ -110,32 +113,27 @@ curl -sS https://api.minimax.io/v1/chat/completions \
 # Droid MiniMax lane
 ~/.local/bin/droid exec --model minimax-m3 "Reply with exactly: MINIMAX OK"
 
-# Claude Pro lane (Claude Code CLI print mode, uses claude.ai Pro/Max quota)
-printf '%s\n' 'Reply with exactly: CLAUDE OK' | \
-  claude -p --model opus --permission-mode plan
+# Claude work is never smoke-tested from Pi: use `bm --harness claude`.
 ```
 
 Pi-native tiers (`small` / `medium` / `big` via `/workflows-models`) need no
 smoke gate. Keep automatic worker routing on Luna Max (`gpt-6-luna`,
 reasoning `max`); use a frontier director or watcher only when the user
-explicitly names it. Anthropic director seats are the deliberate exception:
-`bm` automatically selects the single-seat `claude -p --permission-mode plan`
-lane for them. Other external CLI lanes still require explicit operator
-selection and a passing smoke gate.
+explicitly names it. Anthropic director seats run only under
+`bm --harness claude` (Claude Code), never from Pi. If no marked non-Anthropic economy provider is live, its worker contract
+may add one lower pinned Anthropic Task seat. Other external CLI lanes still
+require explicit operator selection and a passing smoke gate.
 The verifier-first rule from the universal skill governs everything:
 if a cheap lane cannot produce a verifiable artifact cheaply, escalate to
 the frontier tier.
 
 ## Claude routing rule (hard rule)
 
-**All Claude work in beastmode routes through the read-only Claude Pro lane
-(`claude -p --permission-mode plan`), never through the workflow tool's
-`agent()` with an `anthropic/*` model spec.** The `anthropic` OAuth API credential in
-`~/.pi/agent/auth.json` shares a single "extra usage" pool across every
-Claude model (`claude-opus-4-8`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
-etc.) and that pool is rate-limited. Routing Claude work through
-`workflow agent({model: "anthropic/claude-opus-4-8"})` fails with HTTP 400
-*"You're out of extra usage"* and burns the whole run.
+**Pi never runs or launches Claude work.** No `claude -p` from Pi and no workflow
+`agent()` with an `anthropic/*` model spec: either path drives a Claude
+subscription login through a non-Claude-Code tool, which Anthropic's terms do not
+permit. Claude director and reviewer work goes to a Claude Code director
+(`bm --harness claude`).
 
 The hard rule is enforced by:
 
@@ -146,32 +144,21 @@ The hard rule is enforced by:
   explicitly named by the user and pinned by exact `model:`.
 - A workflow author who explicitly writes
   `agent(prompt, { model: "anthropic/claude-opus-4-8" })` is bypassing the
-  tier system. Don't do it. Use the read-only external invocation from the
-  director instead, exactly like the Qwen / MiniMax / droid lanes above.
+  tier system. Don't do it. Use the Qwen / MiniMax / droid lanes above for external
+  read-only work.
 
-For Claude frontier work, the pattern is:
+Claude frontier work does not run from a Pi session. A Pi director must not
+launch `claude -p` or any other Claude subscription watcher: that routes
+subscription credentials through a third-party tool, which Anthropic's terms do
+not permit. Run the whole operation with `bm --harness claude` (first-party
+Claude Code), or use a real `ANTHROPIC_API_KEY` (billed API use).
 
-```bash
-# Director (this pi session) supplies prompt data on stdin, never shell code.
-printf '%s' "$prompt" | claude -p --model opus --permission-mode plan
-```
-
-`claude -p` is non-interactive (`--print`) and exits with the model's reply on
-stdout. Always omit the positional prompt and supply prompt bytes on stdin;
-never interpolate prompt text into a shell command. `plan` mode keeps this
-watcher lane read-only. Do not use wrappers or flags that bypass permission
-checks, and do not forward ambient Anthropic API credentials or custom
-endpoints into the subscription lane. The lane draws from
-the claude.ai Pro/Max subscription quota, which is separate from and not
-rate-coupled to the API OAuth credential.
-
-If you find yourself wanting Claude inside a workflow subagent — for example
-because you want it to fan out in parallel — escalate to the universal
-beastmode framework first: the verifier-first rule plus parallel cheap
-lanes almost always covers the case without paying Claude frontier prices
-on every worker. Reserve `claude -p` for the single director/watcher judgment
-or verifier pass, never for bulk cheap work; multiple Anthropic seats are
-rejected by `bm`.
+If no non-Anthropic economy provider is live, an Anthropic director may use
+Claude Task workers pinned to `haiku` or `sonnet` for bounded implementation
+and mechanical validation. The director must pass the lower model explicitly
+on every Task call and preserve requested/actual provenance. Reserve the
+frontier model for design and judgment; a worker must never silently inherit
+Fable, Opus, or another frontier seat.
 
 ## Operating loop
 

@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+"""bm relay -- architect, improve, review in three fresh sessions.
+
+    bm relay "<task>" [--dir WORKSPACE] [--out RUN_DIR] [--fable-floor PCT] [--dry-run]
+
+1. Architect: Claude Fable 5.2 at medium effort lays out the architecture
+   (read-only). When Fable has less than --fable-floor percent (default 25)
+   of its allowance left, the reading is unknown, or the Fable call is
+   rate-limited, Claude Opus 5.5 at high effort takes this seat instead.
+2. Improver: Gemini 4 Neon XHigh through the Antigravity CLI (`agy`) is told
+   to make everything better and may edit WORKSPACE.
+3. Reviewer: Claude Opus 5.5 at medium effort reviews the architecture, the
+   improver's summary and the improver's diff (read-only).
+
+Claude seats run only in Claude Code (`claude -p`); agy never runs a Claude
+model and never sees a Claude login token. Each stage writes its output and a
+meta.json (requested_model / actual_model) under RUN_DIR.
+
+Exit: 0 reviewer approved; 1 reviewer asked for changes; 2 usage error;
+3 a stage failed or its model could not be proven.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+FABLE = ("claude-fable-5-2", "medium")
+FABLE_FALLBACK = ("claude-opus-5-5", "high")
+IMPROVER = "gemini-4-neon-xhigh"
+REVIEWER = ("claude-opus-5-5", "medium")
+READING_MAX_AGE = 15 * 60
+STATE = Path(os.environ.get("BM_STATE_DIR") or Path.home() / ".beastmode" / "state")
+AGY_BRAIN = Path.home() / ".gemini" / "antigravity-cli" / "brain"
+# The Claude login must never reach a third-party harness, and Claude seats run
+# on the signed-in Claude Code login, never an API key or proxy base URL.
+CLAUDE_LOGIN_PREFIX = "CLAUDE_CODE_OAUTH"
+ANTHROPIC_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")
+# agy print mode has no one to approve commands; allow read-only ones only.
+AGY_SETTINGS = json.dumps({"permissions": {"allow": [f"command({c})" for c in (
+    "git status", "git diff", "git log", "git show", "ls", "grep", "rg", "head", "tail", "cat", "wc", "sha256sum",
+    "echo", "pwd", "true")]}})
+
+
+def log(msg: str) -> None:
+    print(f"bm relay: {msg}", file=sys.stderr, flush=True)
+
+
+def windows_remaining(windows: dict) -> float | None:
+    """Percent left in the tightest window; a window that is not 'allowed' counts as 0."""
+    used = []
+    if not isinstance(windows, dict):
+        return None
+    for w in windows.values():
+        if not isinstance(w, dict):
+            continue
+        if w.get("status") not in (None, "allowed", "allowed_warning"):
+            return 0.0
+        try:
+            if "utilization" in w:
+                used.append(float(w["utilization"]) * 100)
+            elif "used_percentage" in w:
+                used.append(float(w["used_percentage"]))
+        except (TypeError, ValueError):
+            return None
+    return 100 - max(used) if used else None
+
+
+def saved_reading() -> tuple[float, str] | None:
+    """Freshest saved reading: the relay's last Fable call or Claude Code's status line."""
+    best = None
+    for name, key in (("fable-rate-limits.json", "unifiedWindows"), ("claude-statusline.json", "rate_limits")):
+        path = STATE / name
+        try:
+            age = time.time() - path.stat().st_mtime
+            windows = json.loads(path.read_text()).get(key) or {}
+        except (OSError, ValueError, AttributeError):
+            continue
+        left = windows_remaining(windows)
+        if left is not None and age <= READING_MAX_AGE and (best is None or age < best[2]):
+            best = (left, f"{name}, {int(age)}s old", age)
+    return best[:2] if best else None
+
+
+def save_fable_windows(events: list[dict]) -> float | None:
+    for ev in reversed(events):
+        if ev.get("type") == "rate_limit_event":
+            windows = (ev.get("rate_limit_info") or {}).get("unifiedWindows") or {}
+            if windows:
+                STATE.mkdir(parents=True, exist_ok=True)
+                tmp = STATE / f".fable-rate-limits.{os.getpid()}"
+                tmp.write_text(json.dumps({"unifiedWindows": windows}))
+                tmp.replace(STATE / "fable-rate-limits.json")
+                return windows_remaining(windows)
+    return None
+
+
+def run_claude(model: str, effort: str, prompt: str, cwd: Path, timeout: int) -> list[dict]:
+    argv = ["claude", "-p", "--model", model, "--effort", effort, "--permission-mode", "plan",
+            "--output-format", "stream-json", "--verbose", "--", prompt]
+    env = {k: v for k, v in os.environ.items() if k not in ANTHROPIC_ENV}
+    proc = subprocess.run(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True,
+                          text=True, errors="replace", timeout=timeout)
+    events = []
+    for line in proc.stdout.splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            pass
+    if not any(e.get("type") == "result" for e in events):
+        events.append({"type": "result", "is_error": True,
+                       "result": (proc.stderr or proc.stdout or f"exit {proc.returncode}")[-2000:]})
+    return events
+
+
+def result_of(events: list[dict]) -> dict:
+    return next(e for e in reversed(events) if e.get("type") == "result")
+
+
+def rate_limited(events: list[dict]) -> bool:
+    res = result_of(events)
+    text = str(res.get("result", "")).lower()
+    return bool(res.get("is_error")) and ("limit" in text or "429" in text or "usage credits" in text)
+
+
+def fable_gate(floor: float, cwd: Path) -> tuple[bool, str]:
+    reading = saved_reading()
+    if reading is None:
+        log("no fresh Fable reading; probing with a one-word Fable call")
+        try:
+            events = run_claude(FABLE[0], "low", "Reply with the single word ok.", cwd, 300)
+        except subprocess.TimeoutExpired:
+            return False, "Fable probe timed out"
+        left = save_fable_windows(events)
+        if rate_limited(events):
+            return False, "Fable probe was rate-limited"
+        reading = (left, "probe") if left is not None else None
+    if reading is None:
+        return False, "Fable allowance unknown"
+    left, source = reading
+    if left < floor:
+        return False, f"Fable has {left:.0f}% left (< {floor:g}%, {source})"
+    return True, f"Fable has {left:.0f}% left ({source})"
+
+
+def tree_snapshot(workspace: Path) -> str:
+    """Tree id of the whole working tree (untracked files included) without touching the index."""
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(tmp) / "index"))
+        subprocess.run(["git", "add", "-A"], cwd=workspace, env=env, check=True, capture_output=True)
+        return subprocess.run(["git", "write-tree"], cwd=workspace, env=env, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+
+def write_meta(stage_dir: Path, requested: str, actual: list[str], extra: dict) -> bool:
+    ok = actual == [requested]
+    meta = {"requested_model": requested, "actual_model": actual[0] if len(actual) == 1 else actual or None,
+            "status": "ok" if ok else ("model_drift" if actual else "unverifiable"), **extra}
+    (stage_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
+    if not ok:
+        log(f"{stage_dir.name}: requested {requested}, served {actual or 'unknown'}")
+    return ok
+
+
+def claude_stage(stage_dir: Path, name: str, model: str, effort: str, prompt: str,
+                 workspace: Path, extra: dict) -> tuple[list[dict], bool]:
+    log(f"{name}: {model} effort {effort}")
+    events = run_claude(model, effort, prompt, workspace, 3600)
+    (stage_dir / f"{name}.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    res = result_of(events)
+    (stage_dir / f"{name}.md").write_text(str(res.get("result", "")) + "\n")
+    served = sorted((res.get("modelUsage") or {}).keys())
+    # Claude Code may add a small side model (session naming); the seat model must be the main one.
+    main = [m for m in served if m.startswith(model)] or served
+    empty = not str(res.get("result", "")).strip()
+    ok = write_meta(stage_dir, model, main, {"effort": effort, "is_error": bool(res.get("is_error")),
+                                             "empty_result": empty, "served_models": served, **extra})
+    return events, ok and not res.get("is_error") and not empty
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="bm relay", description=__doc__.split("\n\n")[1])
+    ap.add_argument("task", nargs="+")
+    ap.add_argument("--dir", default=".", help="git workspace the improver may edit (default: cwd)")
+    ap.add_argument("--out", help="run directory (default: ~/.beastmode/relay/<time>)")
+    ap.add_argument("--fable-floor", type=float, default=25.0)
+    ap.add_argument("--dry-run", action="store_true", help="print the seat plan and exit")
+    args = ap.parse_args()
+    task = " ".join(args.task)
+    workspace = Path(args.dir).resolve()
+    if subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=workspace,
+                      capture_output=True).returncode != 0:
+        log(f"{workspace} is not a git work tree"); return 2
+    for tool in ("claude", "agy"):
+        if not shutil.which(tool):
+            log(f"'{tool}' not found in PATH"); return 2
+    run_id = time.strftime("%Y%m%dT%H%M%S")
+    out = Path(args.out or Path.home() / ".beastmode" / "relay" / run_id).resolve()
+    out.mkdir(parents=True, exist_ok=True)
+
+    use_fable, why = fable_gate(args.fable_floor, workspace)
+    architect = FABLE if use_fable else FABLE_FALLBACK
+    log(f"architect seat: {architect[0]} effort {architect[1]} ({why})")
+    if args.dry_run:
+        print(json.dumps({"architect": architect, "gate": why, "improver": IMPROVER, "reviewer": REVIEWER}))
+        return 0
+
+    marker = f"BM-RUN: relay-{run_id}"
+    a_dir = out / "01-architect"; a_dir.mkdir(exist_ok=True)
+    a_prompt = (f"Task:\n{task}\n\nYou are the architect. Read what you need in this workspace, then lay out "
+                "the architecture and plan: the approach, the files to change and why, interfaces, risks, and "
+                "the checks that prove it works. Do not edit files. Reply with the plan as Markdown.\n\n" + marker)
+    events, ok = claude_stage(a_dir, "architecture", *architect, a_prompt, workspace, {"gate": why})
+    if architect == FABLE:
+        save_fable_windows(events)
+        if not ok and rate_limited(events):
+            why = "Fable call was rate-limited"
+            log(f"{why}; retrying the architect seat once with {FABLE_FALLBACK[0]} effort {FABLE_FALLBACK[1]}")
+            architect = FABLE_FALLBACK
+            events, ok = claude_stage(a_dir, "architecture", *architect, a_prompt, workspace,
+                                      {"gate": why, "fallback_from": FABLE[0]})
+    if not ok:
+        log("architect stage failed"); return 3
+
+    i_dir = out / "02-improver"; i_dir.mkdir(exist_ok=True)
+    before = tree_snapshot(workspace)
+    i_prompt = (f"Task:\n{task}\n\nThe architect's plan is in {a_dir / 'architecture.md'}. Make everything "
+                "better: fix what is wrong or weak in the plan, then carry it out in this workspace by editing "
+                "files with your edit tools. Only these shell commands are allowed (git status/diff/log/show, ls, "
+                "grep, rg, head, tail, cat, wc, sha256sum, echo, pwd, true); run one per call and never chain "
+                "others in, because a refused command ends your session. The director runs the tests afterwards. Do not "
+                "commit, push, or read secrets. End with a short summary of what you changed and why.\n\n" + marker)
+    env = {k: v for k, v in os.environ.items() if not k.startswith(CLAUDE_LOGIN_PREFIX) and k not in ANTHROPIC_ENV}
+    log(f"improver: agy {IMPROVER}")
+    proc = subprocess.run(["agy", "--model", IMPROVER, "--mode", "accept-edits", "--add-dir", str(a_dir),
+                           "--settings", AGY_SETTINGS, "--output-format", "json", "--print-timeout", "7200s",
+                           "-p", i_prompt],
+                          cwd=workspace, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                          errors="replace", timeout=7300)
+    try:
+        reply = json.loads(proc.stdout)
+    except ValueError:
+        reply = {"status": "ERROR", "response": (proc.stderr or proc.stdout)[-2000:]}
+    (i_dir / "improver.json").write_text(json.dumps(reply, indent=2) + "\n")
+    (i_dir / "improver.md").write_text(str(reply.get("response", "")) + "\n")
+    served = set()
+    transcript = AGY_BRAIN / str(reply.get("conversation_id", "-")) / ".system_generated" / "logs" / "transcript_full.jsonl"
+    if transcript.is_file():
+        for line in transcript.read_text().splitlines():
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(rec, dict) and rec.get("model"):
+                served.add(rec["model"])
+    after = tree_snapshot(workspace)
+    diff = subprocess.run(["git", "diff", before, after], cwd=workspace, capture_output=True, text=True,
+                          errors="replace").stdout
+    (i_dir / "changes.diff").write_text(diff)
+    ok = write_meta(i_dir, IMPROVER, sorted(served), {"status_reported": reply.get("status"),
+                                                       "usage": reply.get("usage"), "tree_before": before,
+                                                       "tree_after": after, "changed": before != after,
+                                                       "denied_actions": reply.get("denied_actions")})
+    if not ok or reply.get("status") != "SUCCESS" or not str(reply.get("response", "")).strip():
+        log("improver stage failed or returned nothing"); return 3
+    if before == after:
+        log("improver changed nothing; the reviewer will see an empty diff")
+
+    r_dir = out / "03-reviewer"; r_dir.mkdir(exist_ok=True)
+    r_prompt = (f"Task:\n{task}\n\nReview all the work. The architect's plan: {a_dir / 'architecture.md'}. "
+                f"The improver's summary: {i_dir / 'improver.md'}. The improver's changes: {i_dir / 'changes.diff'} "
+                "(the workspace now holds them). Check correctness, security, scope creep and whether the checks "
+                "really prove the task. Do not edit files. First line exactly `VERDICT: approve` or "
+                "`VERDICT: changes_needed`, then numbered findings with file:line.\n\n" + marker)
+    events, ok = claude_stage(r_dir, "review", *REVIEWER, r_prompt, workspace, {})
+    if not ok:
+        log("reviewer stage failed"); return 3
+    verdict = (r_dir / "review.md").read_text().strip().splitlines()[:1]
+    if verdict not in (["VERDICT: approve"], ["VERDICT: changes_needed"]):
+        log(f"reviewer verdict unreadable: {verdict}"); return 3
+    approved = verdict == ["VERDICT: approve"]
+    summary = {"run": str(out), "architect": architect, "gate": why, "improver": IMPROVER,
+               "reviewer": REVIEWER, "verdict": "approve" if approved else "changes_needed"}
+    (out / "relay.json").write_text(json.dumps(summary, indent=2) + "\n")
+    print(json.dumps(summary))
+    return 0 if approved else 1
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (subprocess.SubprocessError, OSError, ValueError) as exc:
+        log(f"stage crashed: {exc!r}")
+        sys.exit(3)

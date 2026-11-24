@@ -9,13 +9,15 @@
 #   bm "<goal>" --on <remote-host>           # dispatch to a remote machine
 #   bm "<goal>" --frontier sol --thinking medium
 #   bm "<goal>" --watcher grok               # cross-family watcher seat
+#   bm "<goal>" --limit-fallback grok         # one authorized quota/rate-limit recovery
 #   bm "<goal>" --autonomy low|medium|high   # default medium
 #   bm "<goal>" --interview full|batched|assumptions|off # goal interview mode
-#   bm "<goal>" --claude-subscription       # authorize one Claude Pro/Max watcher
+#   bm "<goal>" --claude-subscription       # run Claude seats under Claude Code (needs an anthropic/* --frontier)
 #   bm "<goal>" --harness langgraph --executor-command '<child argv>' \
 #      --attestor-command /trusted/attest --validator-command /trusted/validate \
 #      --reviewer-command /trusted/review
 #   bm goal run "<goal>" [flags]             # durable, inspectable, resumable goal
+#   bm relay "<task>" [--dir D] [--fable-floor 25] # Fable -> Neon (agy) -> Opus review
 #   bm goal runs|inspect|logs|approve|reject|pause|resume|cancel|reconcile
 #
 # The goal can appear anywhere on the command line; flags are parsed first
@@ -64,11 +66,18 @@ ECONOMY_EXPLICIT=0
 # may be translated while an operator's explicit provider/model must remain
 # untouched.
 ECONOMY_INPUT_KIND="default"
+WORKER_FALLBACK_USED=0
+WORKER_FALLBACK_ALIAS=""
+WORKER_FALLBACK_FROM=""
 WATCHER=""
+LIMIT_FALLBACK=""
 CLAUDE_SUBSCRIPTION=0
+CLAUDE_SUBSCRIPTION_EXPLICIT=0
 AUTONOMY="medium"
 INTERVIEW=""
 THINKING="max"
+ECONOMY_THINKING="-"
+WATCHER_THINKING="-"
 LANGGRAPH_GRAPH="pipeline"
 EXECUTOR_COMMAND=""
 ATTESTOR_COMMAND=""
@@ -101,6 +110,127 @@ done
 SCRIPT_DIR="$(cd -P -- "$(dirname -- "$BM_SOURCE")" && pwd)"
 SHIP_ALIASES="${SCRIPT_DIR}/tier-aliases.json"
 
+# Optional trusted per-user seat defaults. Checkout-local profiles are never
+# discovered here: this file is either the explicit BM_DEFAULTS_FILE or the
+# operator's ~/.beastmode/defaults.json. Parse JSON as data and emit only
+# validated, delimiter-safe values; never evaluate profile text as shell.
+BM_DEFAULTS_EXPLICIT=0
+if [ -n "${BM_DEFAULTS_FILE:-}" ]; then
+  BM_DEFAULTS_PATH="$BM_DEFAULTS_FILE"
+  BM_DEFAULTS_EXPLICIT=1
+else
+  BM_DEFAULTS_PATH="$HOME/.beastmode/defaults.json"
+fi
+if [ -f "$BM_DEFAULTS_PATH" ] || [ "$BM_DEFAULTS_EXPLICIT" = "1" ]; then
+  if [ ! -f "$BM_DEFAULTS_PATH" ]; then
+    echo "bm: defaults profile not found or not a regular file: $BM_DEFAULTS_PATH" >&2
+    exit 2
+  fi
+  if ! BM_DEFAULTS_VALUES="$(python3 - "$BM_DEFAULTS_PATH" <<'PY'
+import json
+import re
+import sys
+
+path = sys.argv[1]
+allowed = {
+    "schema_version", "harness", "frontier", "economy", "watcher",
+    "limit_fallback", "thinking", "claude_subscription_watcher",
+    "economy_thinking", "watcher_thinking",
+}
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate key {key!r}")
+        result[key] = value
+    return result
+
+try:
+    with open(path, encoding="utf-8") as handle:
+        profile = json.load(handle, object_pairs_hook=unique_object)
+except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+    print(f"bm: invalid defaults profile {path}: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+
+if not isinstance(profile, dict):
+    print(f"bm: invalid defaults profile {path}: top level must be an object", file=sys.stderr)
+    raise SystemExit(2)
+unknown = sorted(set(profile) - allowed)
+if unknown:
+    print(f"bm: invalid defaults profile {path}: unknown field(s): {', '.join(unknown)}", file=sys.stderr)
+    raise SystemExit(2)
+if type(profile.get("schema_version")) is not int or profile["schema_version"] != 1:
+    print(f"bm: invalid defaults profile {path}: schema_version must be 1", file=sys.stderr)
+    raise SystemExit(2)
+
+values = []
+for field in ("frontier", "economy", "watcher", "limit_fallback"):
+    if field not in profile:
+        values.append("-")
+        continue
+    value = profile[field]
+    # One provider/model pair, using conservative model-id characters only.
+    # This also makes the shell output delimiter-safe and rejects all spacing.
+    if not isinstance(value, str) or len(value) > 200 or not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._:+-]*/[A-Za-z0-9][A-Za-z0-9._:+-]*", value
+    ):
+        print(f"bm: invalid defaults profile {path}: {field} must be a provider-qualified model id", file=sys.stderr)
+        raise SystemExit(2)
+    values.append(value)
+
+harness = profile.get("harness")
+if "harness" in profile and (
+    not isinstance(harness, str) or harness not in {"pi", "hermes", "claude", "codex", "langgraph"}
+):
+    print(f"bm: invalid defaults profile {path}: harness must be pi|hermes|claude|codex|langgraph", file=sys.stderr)
+    raise SystemExit(2)
+values.append(harness if "harness" in profile else "-")
+
+thinking = profile.get("thinking")
+if "thinking" in profile and (
+    not isinstance(thinking, str) or thinking not in {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+):
+    print(f"bm: invalid defaults profile {path}: thinking must be none|minimal|low|medium|high|xhigh|max", file=sys.stderr)
+    raise SystemExit(2)
+values.append(thinking if "thinking" in profile else "-")
+
+for field in ("economy_thinking", "watcher_thinking"):
+    effort = profile.get(field)
+    if field in profile and (
+        not isinstance(effort, str) or effort not in {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+    ):
+        print(f"bm: invalid defaults profile {path}: {field} must be none|minimal|low|medium|high|xhigh|max", file=sys.stderr)
+        raise SystemExit(2)
+    values.append(effort if field in profile else "-")
+
+subscription_watcher = profile.get("claude_subscription_watcher", False)
+if type(subscription_watcher) is not bool:
+    print(f"bm: invalid defaults profile {path}: claude_subscription_watcher must be a boolean", file=sys.stderr)
+    raise SystemExit(2)
+values.append("1" if subscription_watcher else "0")
+print("|".join(values))
+PY
+)"; then
+    exit 2
+  fi
+  IFS='|' read -r PROFILE_FRONTIER PROFILE_ECONOMY PROFILE_WATCHER PROFILE_LIMIT_FALLBACK PROFILE_HARNESS PROFILE_THINKING PROFILE_ECONOMY_THINKING PROFILE_WATCHER_THINKING PROFILE_CLAUDE_SUBSCRIPTION_WATCHER <<< "$BM_DEFAULTS_VALUES"
+  [ "$PROFILE_FRONTIER" = "-" ] || FRONTIER="$PROFILE_FRONTIER"
+  if [ "$PROFILE_ECONOMY" != "-" ]; then
+    ECONOMY="$PROFILE_ECONOMY"
+    ECONOMY_EXPLICIT=1
+    ECONOMY_INPUT_KIND="qualified"
+  fi
+  [ "$PROFILE_WATCHER" = "-" ] || WATCHER="$PROFILE_WATCHER"
+  [ "$PROFILE_LIMIT_FALLBACK" = "-" ] || LIMIT_FALLBACK="$PROFILE_LIMIT_FALLBACK"
+  [ "$PROFILE_HARNESS" = "-" ] || HARNESS="$PROFILE_HARNESS"
+  [ "$PROFILE_THINKING" = "-" ] || THINKING="$PROFILE_THINKING"
+  ECONOMY_THINKING="$PROFILE_ECONOMY_THINKING"
+  WATCHER_THINKING="$PROFILE_WATCHER_THINKING"
+else
+  PROFILE_CLAUDE_SUBSCRIPTION_WATCHER=0
+fi
+
 # ---------------------------------------------------------------------------
 # Beastmode self-management. Delegate the lifecycle verbs to the installer
 # that ships next to `bm` (same snapshot). These are reserved only when they
@@ -115,6 +245,17 @@ case "${1:-}" in
     fi
     BM_CMD="$1"; shift
     exec "$BM_INSTALLER" "$BM_CMD" "$@"
+    ;;
+  relay)
+    # Three fresh sessions: Fable architects (Opus high below the Fable
+    # floor), Neon via agy makes it better, Opus reviews. See scripts/bm-relay.
+    BM_RELAY="$SCRIPT_DIR/bm-relay"
+    if [ ! -x "$BM_RELAY" ]; then
+      echo "bm: missing $BM_RELAY (is this a partial checkout?)" >&2
+      exit 2
+    fi
+    shift
+    exec python3 "$BM_RELAY" "$@"
     ;;
   goal)
     # Native goal lifecycle (schema/goal-lifecycle.json). Namespaced under
@@ -224,7 +365,23 @@ while [ $# -gt 0 ]; do
       ;;
     --watcher)         WATCHER="${2:-}"; shift 2 ;;
     --watcher=*)       WATCHER="${1#*=}"; shift ;;
-    --claude-subscription) CLAUDE_SUBSCRIPTION=1; shift ;;
+    --limit-fallback)
+      if [ $# -lt 2 ] || [ -z "$2" ]; then
+        echo "bm: --limit-fallback needs an alias or provider/model" >&2
+        exit 2
+      fi
+      LIMIT_FALLBACK="$2"
+      shift 2
+      ;;
+    --limit-fallback=*)
+      LIMIT_FALLBACK="${1#*=}"
+      if [ -z "$LIMIT_FALLBACK" ]; then
+        echo "bm: --limit-fallback needs an alias or provider/model" >&2
+        exit 2
+      fi
+      shift
+      ;;
+    --claude-subscription) CLAUDE_SUBSCRIPTION=1; CLAUDE_SUBSCRIPTION_EXPLICIT=1; shift ;;
     --graph)           LANGGRAPH_GRAPH="${2:-pipeline}"; shift 2 ;;
     --graph=*)         LANGGRAPH_GRAPH="${1#*=}"; shift ;;
     --executor-command) EXECUTOR_COMMAND="${2:-}"; shift 2 ;;
@@ -244,6 +401,10 @@ while [ $# -gt 0 ]; do
     --interview=*)     INTERVIEW="${1#*=}"; shift ;;
     --thinking)        THINKING="${2:-max}"; shift 2 ;;
     --thinking=*)      THINKING="${1#*=}"; shift ;;
+    --economy-thinking)    ECONOMY_THINKING="${2:-}"; shift 2 ;;
+    --economy-thinking=*)  ECONOMY_THINKING="${1#*=}"; shift ;;
+    --watcher-thinking)    WATCHER_THINKING="${2:-}"; shift 2 ;;
+    --watcher-thinking=*)  WATCHER_THINKING="${1#*=}"; shift ;;
     -h|--help)         PRINT_HELP=1; shift ;;
     --)                shift; while [ $# -gt 0 ]; do GOAL_PARTS+=("$1"); shift; done ;;
     -*)                echo "bm: unknown arg: $1" >&2; usage ;;
@@ -288,6 +449,13 @@ case "$THINKING" in
   *) echo "bm: --thinking must be none|minimal|low|medium|high|xhigh|max (got: $THINKING)" >&2; exit 2 ;;
 esac
 
+for _t in "economy-thinking:$ECONOMY_THINKING" "watcher-thinking:$WATCHER_THINKING"; do
+  case "${_t#*:}" in
+    -|none|minimal|low|medium|high|xhigh|max) ;;
+    *) echo "bm: --${_t%%:*} must be none|minimal|low|medium|high|xhigh|max (got: ${_t#*:})" >&2; exit 2 ;;
+  esac
+done
+
 GOAL="${GOAL_PARTS[*]:-}"
 [ -z "$GOAL" ] && usage
 
@@ -321,8 +489,143 @@ if [ "$HARNESS" = "pi" ] && [ "$ECONOMY_INPUT_KIND" != "qualified" ] \
   esac
   ECONOMY="$PI_LUNA_PROVIDER/$LUNA_MODEL"
 fi
-if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
 
+# If the implicit economy seat is unavailable, prefer a live configured
+# economy provider and then use a lower Anthropic model for an Anthropic
+# director. This is deliberately limited to the built-in/default worker seat:
+# an explicit --economy or trusted profile selection remains fail-closed.
+# Claude Code has no portable model-listing command, so its Anthropic lane
+# selects haiku unless BM_CLAUDE_WORKER_MODEL asks for a reviewed alternate.
+worker_model_is_available() {
+  local available="$1" requested="$2"
+  local provider="${requested%%/*}" model_id="${requested#*/}"
+  [ -n "$provider" ] && [ -n "$model_id" ] || return 1
+  printf '%s\n' "$available" \
+    | awk -v p="$provider" -v m="$model_id" \
+      'NR>1 && $1==p && $2==m {found=1} END{exit !found}'
+}
+
+worker_fallback_aliases() {
+  # Checkout-local aliases are untrusted unless BM_TRUST_REPO_ALIASES is
+  # explicitly set, and an automatic worker lane must never inherit that
+  # trust implicitly.
+  local -a alias_files=("$HOME/.beastmode/tier-aliases.json" "$SHIP_ALIASES")
+  if [ "${BM_TRUST_REPO_ALIASES:-0}" = "1" ]; then
+    alias_files=("$PWD/.beastmode/tier-aliases.json" "${alias_files[@]}")
+  fi
+  python3 - "${alias_files[@]}" <<'PY'
+import json
+import os
+import sys
+
+seen = set()
+for path in sys.argv[1:]:
+    if not os.path.isfile(path):
+        continue
+    try:
+        with open(path, encoding="utf-8") as handle:
+            aliases = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        continue
+    if not isinstance(aliases, dict):
+        continue
+    for alias, entry in aliases.items():
+        if alias in seen or not isinstance(entry, dict):
+            continue
+        if entry.get("worker_fallback") is not True:
+            continue
+        if entry.get("tier") != "economy" or entry.get("family") == "anthropic":
+            continue
+        seen.add(alias)
+        print(alias)
+PY
+}
+
+select_worker_fallback() {
+  [ "$ECONOMY_INPUT_KIND" = "default" ] || return 0
+  [ "$CLAUDE_SUBSCRIPTION_EXPLICIT" = "0" ] || return 0
+  [[ "$FRONTIER" == anthropic/* ]] || return 0
+
+  local original_economy="$ECONOMY"
+  local candidate alias available
+  local -a external_candidates=()
+  local -a anthropic_candidates=(haiku sonnet-worker)
+
+  # The Claude Code subscription lane is the only available provider in this
+  # mode. Keep the choice constrained to reviewed Anthropic aliases.
+  if [ "$HARNESS" = "claude" ]; then
+    alias="${BM_CLAUDE_WORKER_MODEL:-haiku}"
+    case "$alias" in
+      haiku|sonnet-worker|sonnet|sonnet5) ;;
+      *)
+        echo "bm: BM_CLAUDE_WORKER_MODEL must be haiku|sonnet-worker|sonnet|sonnet5 (got: $alias)" >&2
+        exit 2
+        ;;
+    esac
+    candidate="$(resolve_alias "$alias")"
+    ECONOMY="$candidate"
+    WORKER_FALLBACK_USED=1
+    WORKER_FALLBACK_ALIAS="$alias"
+    WORKER_FALLBACK_FROM="$original_economy"
+    echo "bm: default economy seat $original_economy is unavailable on the Claude harness; using Anthropic worker fallback $candidate" >&2
+    return 0
+  fi
+
+  # Pi is the only local harness with a portable model listing. If it cannot
+  # be queried, retain the normal fail-closed preflight behavior.
+  command -v pi >/dev/null 2>&1 || return 0
+  available="$(pi --list-models 2>/dev/null || true)"
+  worker_model_is_available "$available" "$ECONOMY" && return 0
+
+  # A live non-Anthropic economy lane wins before same-provider degradation.
+  # A candidate must be explicitly marked worker_fallback in a trusted alias
+  # file; this excludes known-drift/manual lanes such as gemini-flash.
+  mapfile -t external_candidates < <(worker_fallback_aliases || true)
+  for alias in "${external_candidates[@]}"; do
+    if ! candidate="$(resolve_alias "$alias")"; then
+      continue
+    fi
+    [[ "$candidate" == anthropic/* ]] && continue
+    if worker_model_is_available "$available" "$candidate"; then
+      ECONOMY="$candidate"
+      WORKER_FALLBACK_USED=1
+      WORKER_FALLBACK_ALIAS="$alias"
+      WORKER_FALLBACK_FROM="$original_economy"
+      echo "bm: default economy seat $original_economy is unavailable; using live economy worker $candidate" >&2
+      return 0
+    fi
+  done
+
+  # No other provider is live, so use the lower Anthropic family lane.
+  for alias in "${anthropic_candidates[@]}"; do
+    if ! candidate="$(resolve_alias "$alias")"; then
+      continue
+    fi
+    if worker_model_is_available "$available" "$candidate"; then
+      ECONOMY="$candidate"
+      WORKER_FALLBACK_USED=1
+      WORKER_FALLBACK_ALIAS="$alias"
+      WORKER_FALLBACK_FROM="$original_economy"
+      echo "bm: default economy seat $original_economy is unavailable and no other economy provider is live; using Anthropic worker fallback $candidate" >&2
+      return 0
+    fi
+  done
+}
+
+select_worker_fallback
+if [ -n "$WATCHER" ] && ! WATCHER="$(resolve_alias "$WATCHER")"; then exit 2; fi
+if [ -n "$LIMIT_FALLBACK" ]; then
+  if ! LIMIT_FALLBACK="$(resolve_alias "$LIMIT_FALLBACK")"; then exit 2; fi
+  if [ "${#LIMIT_FALLBACK}" -gt 200 ] || \
+    ! [[ "$LIMIT_FALLBACK" =~ ^[A-Za-z0-9][A-Za-z0-9._:+-]*/[A-Za-z0-9][A-Za-z0-9._:+-]*$ ]]; then
+    echo "bm: --limit-fallback must resolve to a provider-qualified model ID" >&2
+    exit 2
+  fi
+fi
+
+# Keep the legacy Grok 4.5 budget guard for explicitly selected 4.5 seats.
+# The shipped `grok` alias now targets 4.7; this guard does not affect Grok
+# 4.7 or the separately selected `limit_fallback`.
 # Grok is a deliberately budgeted frontier lane.  There is no portable
 # provider API for a weekly remaining percentage, so the operator can expose
 # the latest dashboard reading as BEASTMODE_GROK_WEEKLY_REMAINING_PCT.  Fail
@@ -360,9 +663,12 @@ if [[ "$FRONTIER" == xai/grok-4.5 || "$ECONOMY" == xai/grok-4.5 || "$WATCHER" ==
   fi
 fi
 
+# claude_subscription_watcher is still parsed for old profiles but does nothing:
+# a subscription watcher through a third-party harness is not permitted.
+
 # Anthropic directors on the default Pi or Claude harness use the documented
-# single-seat, read-only subscription wrapper. Explicit other harnesses retain
-# their dispatch contract and still pass through the OAuth breaker below.
+# read-only subscription wrapper. Explicit other harnesses retain their
+# dispatch contract and still pass through the OAuth breaker below.
 if [ "$CLAUDE_SUBSCRIPTION" = "0" ]; then
   case "$HARNESS:${FRONTIER:-$ECONOMY}" in
     pi:anthropic/*|claude:anthropic/*)
@@ -376,63 +682,65 @@ if [ "$CLAUDE_SUBSCRIPTION" = "0" ]; then
   esac
 fi
 
-# Claude Pro/Max is a single-seat watcher path. It uses
-# `claude -p` and the signed-in subscription quota, not the Anthropic API
-# OAuth pool. Fail closed if a caller turns it into a
-# multi-seat fan-out or uses a different harness.
+# --claude-subscription (and the automatic Anthropic-director route) runs only
+# inside Claude Code, so under --harness claude any number of Claude seats
+# (director, economy, optionally watcher) is fine: they are all first-party use.
+# Other harnesses are rejected. A pinned frontier is still required.
 if [ "$CLAUDE_SUBSCRIPTION" = "1" ]; then
   if [ "$HARNESS" != "claude" ]; then
     echo "bm: --claude-subscription requires --harness claude" >&2
     exit 2
   fi
-  claude_seats=0
-  for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
-    [ -z "$seat" ] && continue
-    case "$seat" in
-      anthropic/*|*claude*) claude_seats=$((claude_seats + 1)) ;;
-    esac
-  done
-  if [ "$claude_seats" -ne 1 ]; then
-    echo "bm: --claude-subscription requires exactly one seat from Claude, got $claude_seats" >&2
-    exit 2
-  fi
   if [ -z "$FRONTIER" ]; then
-    echo "bm: --claude-subscription requires --frontier fable|opus|opus5 to pin the watcher model" >&2
+    echo "bm: --claude-subscription requires --frontier fable|opus|opus5 to pin the director model" >&2
     exit 2
   fi
-  export BM_ALLOW_CLAUDE_OAUTH=1
+  case "$FRONTIER" in
+    anthropic/*) ;;
+    *) echo "bm: --claude-subscription requires --frontier to be an anthropic/* model (a Claude director)" >&2; exit 2 ;;
+  esac
 fi
 
-# Circuit breaker: never fan out a Claude seat on subscription OAuth (the
-# ToS-ban pattern). OAuth path = ANTHROPIC_API_KEY unset. Interactive runs may
-# approve via prompt; non-interactive (subagent/Codex) must be pre-authorized
-# with BM_ALLOW_CLAUDE_OAUTH=1 by Luis. ponytail: one gate covers all seats.
-for seat in "$FRONTIER" "$ECONOMY" "$WATCHER"; do
+# Circuit breaker: Claude models run only inside Claude Code (--harness claude).
+# On any other harness (pi/hermes/codex/langgraph) a Claude seat is allowed only
+# with a real ANTHROPIC_API_KEY (billed API use). Subscription login through a
+# third-party tool is blocked outright: no prompt, and BM_ALLOW_CLAUDE_OAUTH
+# does not override it. The old profile-watcher exception is gone because it only
+# ever applied to non-claude harnesses, which is exactly what this blocks.
+CLAUDE_SEAT_ANY=0
+# LIMIT_FALLBACK is resolved above; it and anything forwarded via --on count too.
+for seat in "$FRONTIER" "$ECONOMY" "$WATCHER" "$LIMIT_FALLBACK"; do
   [ -z "$seat" ] && continue
   case "$seat" in
-    anthropic/*|*claude*) ;;
+    anthropic/*|*claude*) CLAUDE_SEAT_ANY=1 ;;
     *) continue ;;
   esac
   [ -n "${ANTHROPIC_API_KEY:-}" ] && continue          # API-key billing: fine
-  [ "${BM_ALLOW_CLAUDE_OAUTH:-0}" = "1" ] && continue  # pre-authorized by Luis
-  if [ -t 0 ] && [ -t 1 ]; then
-    printf 'bm: BREAKER: seat "%s" is a Claude model on subscription OAuth (no ANTHROPIC_API_KEY).\n' "$seat" >&2
-    printf 'bm: Fan-out of Claude seats on OAuth risks the Anthropic ToS ban. Authorize this run? [y/N] ' >&2
-    read -r _bm_oauth_ok
-    case "$_bm_oauth_ok" in y|Y|yes) continue ;; esac
-  fi
-  echo "bm: BREAKER: blocked Claude OAuth seat '$seat'. Luis must re-run with BM_ALLOW_CLAUDE_OAUTH=1 after approval." >&2
+  [ "$HARNESS" = "claude" ] && continue                # first-party Claude Code use
+  echo "bm: BREAKER: blocked Claude seat '$seat' on subscription login through --harness $HARNESS: that routes subscription credentials through a non-Anthropic tool, which Anthropic terms do not permit. Run Claude seats with --harness claude (Claude Code), or set ANTHROPIC_API_KEY for billed API use." >&2
   exit 3
 done
 
-if [ "$HARNESS" = "codex" ] && [ -z "$FRONTIER" ]; then
-  echo "bm: --harness codex requires --frontier <alias|provider/model> so the model is pinned" >&2
-  exit 2
-fi
+case "$HARNESS" in
+  codex|hermes)
+    if [ -z "$FRONTIER" ]; then
+      echo "bm: --harness $HARNESS requires --frontier <alias|provider/model> so the model is pinned" >&2
+      exit 2
+    fi ;;
+esac
 
 # Resolve --on auto: prefer remote if BM_AUTO_TARGET is set, else local.
 if [ "$ON" = "auto" ]; then
   ON="${BM_AUTO_TARGET:-local}"
+fi
+if [ "$ON" = "local" ] && [ "$HARNESS" = "langgraph" ] && [ -n "$LIMIT_FALLBACK" ]; then
+  echo "bm: --limit-fallback is not supported by the local LangGraph runner, which does not consume the shared seat prompt" >&2
+  exit 2
+fi
+
+if [ "$ON" = "local" ] && [ "$HARNESS" = "langgraph" ] && { [ "$ECONOMY_THINKING" != "-" ] || [ "$WATCHER_THINKING" != "-" ]; }; then
+  echo "bm: --economy-thinking/--watcher-thinking are not supported by the local LangGraph runner, which does not consume the shared seat prompt" >&2
+  exit 2
 fi
 
 # ponytail: a goal is the only input before design. Print a transparent rough
@@ -467,7 +775,35 @@ GATE_PROMPT="$(bm_gate_prompt "$AUTONOMY")"
 INTERVIEW_PROMPT=""
 [ "$INTERVIEW_MODE" != "off" ] && INTERVIEW_PROMPT="$(bm_interview_prompt "$INTERVIEW_MODE")"
 [ "$GSD" = "1" ] && PHASE_PROMPT="Use GSD phase gating: gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-ship. $PHASE_PROMPT"
-SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
+SEAT_PROMPT="Seats: director=$FRONTIER economy=$ECONOMY watcher=${WATCHER:-unset} limit-fallback=${LIMIT_FALLBACK:-unset}. Pin the executor model on every child; never let economy work inherit a session default. Each child returns meta.json with requested_model and actual_model."
+if [ "$WORKER_FALLBACK_USED" = "1" ]; then
+  SEAT_PROMPT="$SEAT_PROMPT Worker routing: the implicit economy seat $WORKER_FALLBACK_FROM was unavailable, so use the reviewed fallback $ECONOMY for worker tasks. Keep the frontier director on $FRONTIER. Preserve requested_model=$ECONOMY and the provider-reported actual_model in each child receipt."
+  if [[ "$ECONOMY" == anthropic/* ]]; then
+    if [ "$HARNESS" = "claude" ]; then
+      SEAT_PROMPT="$SEAT_PROMPT For Claude Task workers, pass model=${WORKER_FALLBACK_ALIAS} explicitly on every worker invocation; do not let workers inherit the director model."
+    else
+      SEAT_PROMPT="$SEAT_PROMPT For Anthropic worker tasks, pass model=${WORKER_FALLBACK_ALIAS} explicitly through the selected harness; do not let workers inherit the director model."
+    fi
+  else
+    SEAT_PROMPT="$SEAT_PROMPT Use the selected external economy lane for workers; do not substitute a Claude Task worker for this provider-qualified seat."
+  fi
+fi
+if [ -n "$LIMIT_FALLBACK" ]; then
+  SEAT_PROMPT="$SEAT_PROMPT Only a recorded provider quota/rate-limit failure authorizes one agent-level retry of the same bounded contract with $LIMIT_FALLBACK. Preserve the original failure and requested_model/actual_model receipts for both attempts; if the fallback is also limited, report failure. Authentication or network errors, missing provenance, unsupported models, invalid output, and other failures do not authorize fallback. This is routing guidance only; bm does not automatically retry provider subprocesses."
+else
+  SEAT_PROMPT="$SEAT_PROMPT No fallback is authorized when unset; preserve explicit seat failure behavior and report the failure."
+fi
+if [ "$WATCHER" = "xai/grok-4.7" ] || [ "$LIMIT_FALLBACK" = "xai/grok-4.7" ]; then
+  SEAT_PROMPT="$SEAT_PROMPT For Grok 4.7 validator/fallback work, use the first-party Grok CLI through bin/beast-validator with model grok-4.7 and effort xhigh; require modelUsage evidence of the served model. If the native lane or provenance is unavailable, report failure and do not substitute."
+fi
+[ "$ECONOMY_THINKING" = "-" ] || SEAT_PROMPT="$SEAT_PROMPT Run economy workers at reasoning effort $ECONOMY_THINKING."
+[ "$WATCHER_THINKING" = "-" ] || SEAT_PROMPT="$SEAT_PROMPT Run the watcher at reasoning effort $WATCHER_THINKING."
+if [ "$HARNESS" = "claude" ] && [[ "$ECONOMY" == anthropic/?* ]]; then
+  SEAT_PROMPT="$SEAT_PROMPT Claude Code workers: pass model=${ECONOMY#*/} explicitly on every Task subagent and every \`claude -p --model ${ECONOMY#*/}\`; never inherit the director model."
+fi
+if [ "$HARNESS" != "claude" ] && [ "$CLAUDE_SEAT_ANY" = "1" ]; then
+  SEAT_PROMPT="$SEAT_PROMPT Claude seats on this harness must authenticate with ANTHROPIC_API_KEY (billed API); never use a Claude subscription login. If API auth is unavailable, fail."
+fi
 # Under `bm goal run` the supervisor exports BM_RUN_DIR; the director then
 # writes receipts and durable gate/review handshakes there instead of
 # reporting them only in the transcript.
@@ -501,6 +837,17 @@ done
 # The required project permission policy still governs writes, edits, and shell
 # commands; autonomy never bypasses that policy.
 
+# Claude models run only inside Claude Code. Any non-claude harness (and its
+# --on remote command) runs with Claude subscription credentials stripped;
+# ANTHROPIC_API_KEY is deliberately left alone.
+SCRUB_ENV=()
+if [ "$HARNESS" != "claude" ]; then
+  SCRUB_ENV=(env -u CLAUDE_CODE_OAUTH_TOKEN -u CLAUDE_CODE_OAUTH_REFRESH_TOKEN)
+  while IFS= read -r _v; do
+    case "$_v" in CLAUDE_CODE_OAUTH_TOKEN|CLAUDE_CODE_OAUTH_REFRESH_TOKEN) ;; *) SCRUB_ENV+=(-u "$_v") ;; esac
+  done < <(compgen -e | grep -E '^CLAUDE_CODE_OAUTH[A-Za-z0-9_]*$' || true)
+fi
+
 # Remote dispatch: hand the goal to the selected remote host over SSH and tail the goal log.
 # ponytail: foreground SSH so the user sees the live goal stream. If they want
 # fire-and-forget, run `bm --on $ON ... &` themselves or use --autonomy high.
@@ -526,6 +873,9 @@ if [ "$ON" != "local" ]; then
   [ -n "$FRONTIER" ] && REMOTE_CMD="$REMOTE_CMD --frontier $(shquote "$FRONTIER")"
   [ -n "$ECONOMY" ]  && REMOTE_CMD="$REMOTE_CMD --economy $(shquote "$ECONOMY")"
   [ -n "$WATCHER" ]  && REMOTE_CMD="$REMOTE_CMD --watcher $(shquote "$WATCHER")"
+  [ -n "$LIMIT_FALLBACK" ] && REMOTE_CMD="$REMOTE_CMD --limit-fallback $(shquote "$LIMIT_FALLBACK")"
+  [ "$ECONOMY_THINKING" = "-" ] || REMOTE_CMD="$REMOTE_CMD --economy-thinking $(shquote "$ECONOMY_THINKING")"
+  [ "$WATCHER_THINKING" = "-" ] || REMOTE_CMD="$REMOTE_CMD --watcher-thinking $(shquote "$WATCHER_THINKING")"
   REMOTE_CMD="$REMOTE_CMD --autonomy $(shquote "$AUTONOMY")"
   REMOTE_CMD="$REMOTE_CMD --interview $(shquote "$INTERVIEW_MODE")"
   REMOTE_CMD="$REMOTE_CMD --thinking $(shquote "$THINKING")"
@@ -536,6 +886,11 @@ if [ "$ON" != "local" ]; then
   [ -n "$REVIEWER_COMMAND" ] && REMOTE_CMD="$REMOTE_CMD --reviewer-command $(shquote "$REVIEWER_COMMAND")"
   [ "$ALLOW_WORKER_NETWORK" = "1" ] && REMOTE_CMD="$REMOTE_CMD --allow-worker-network"
   [ -n "$WORKTREE_ROOT" ] && REMOTE_CMD="$REMOTE_CMD --worktree-root $(shquote "$WORKTREE_ROOT")"
+  if [ "${#SCRUB_ENV[@]}" -gt 0 ]; then
+    REMOTE_PREFIX=""
+    for _w in "${SCRUB_ENV[@]}"; do REMOTE_PREFIX="$REMOTE_PREFIX $(shquote "$_w")"; done
+    REMOTE_CMD="${REMOTE_PREFIX# } $REMOTE_CMD"
+  fi
   exec ssh -- "$ON" "$REMOTE_CMD"
 fi
 
@@ -581,7 +936,7 @@ case "$HARNESS" in
     [ -n "${BM_LANGGRAPH_DB:-}" ] && LG_ARGS+=(--database "$BM_LANGGRAPH_DB")
     [ -n "${BM_RUN_DIR:-}" ] && LG_ARGS+=(--run-dir "$BM_RUN_DIR")
     [ -n "${BM_RESUME:-}" ] && LG_ARGS+=(--resume "$BM_RESUME")
-    exec "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
+    exec "${SCRUB_ENV[@]}" "$LANGGRAPH_PYTHON" "${LG_ARGS[@]}"
     ;;
   pi)
     # `bm` is commonly launched from a shell home directory (especially via
@@ -610,7 +965,7 @@ case "$HARNESS" in
       echo "bm: canonical Pi permission extension is not installed and active" >&2
       exit 2
     fi
-    exec pi "${PI_ARGS[@]}" "$GOAL"
+    exec "${SCRUB_ENV[@]}" pi "${PI_ARGS[@]}" "$GOAL"
     ;;
   hermes)
     # Hermes ACN: one-shot Hermes agent preloaded with the beastmode skill.
@@ -623,7 +978,7 @@ case "$HARNESS" in
     [ -n "$FRONTIER" ]   && H_ARGS+=(--model "${FRONTIER#*/}")
     [ -n "$H_PROVIDER" ] && H_ARGS+=(--provider "$H_PROVIDER")
     # Autonomy controls phase progression, never tool permissions.
-    exec hermes "${H_ARGS[@]}"
+    exec "${SCRUB_ENV[@]}" hermes "${H_ARGS[@]}"
     ;;
   claude)
     # Reuse the read-only wrapper: it scrubs ambient API credentials, pins the
@@ -656,6 +1011,6 @@ case "$HARNESS" in
       XDG_DATA_HOME="$CODEX_WORKER_ROOT/data" \
       XDG_STATE_HOME="$CODEX_WORKER_ROOT/state" \
       XDG_CONFIG_HOME="$CODEX_WORKER_ROOT/config" \
-      exec codex "${X_ARGS[@]}"
+      exec "${SCRUB_ENV[@]}" codex "${X_ARGS[@]}"
     ;;
 esac

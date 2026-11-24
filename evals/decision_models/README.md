@@ -7,6 +7,18 @@ is unchanged. The synthetic cases test the supplied policies, not an entire agen
 
 Read [RESULTS.md](RESULTS.md) for the completed five-model comparison (300 calls).
 
+The separate [agent-folder follow-up](AGENT_FOLDER_RESULTS.md) covers next-worker
+selection, relevance, completion and side-effect classification. Its
+[protocol](AGENT_FOLDER_PROTOCOL.md) and `agent_folder_cases.json` preserve the
+original study. Recompute the follow-up report with:
+
+```bash
+python evals/decision_models/analyze_agent_folder.py \
+  --cases evals/decision_models/agent_folder_cases.json \
+  --results evals/decision_models/results/2026-09-27-agent-folder \
+  --output /tmp/agent-folder-analysis.json
+```
+
 ## Run the checks
 
 From the repository root:

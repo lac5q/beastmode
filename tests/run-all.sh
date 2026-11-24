@@ -65,7 +65,10 @@ run_step "JSON validity (schema/ + tier-aliases)" json_check
 run_step "phase-estimate self-test" python3 scripts/phase-estimate --self-test
 run_step "ACN parity" ./tests/test-acn-parity.sh
 run_step "bm model preflight" ./tests/test-bm-model-check.sh
+run_step "bm worker fallback" ./tests/test-bm-worker-fallback.sh
 run_step "bm thinking passthrough" ./tests/test-bm-thinking.sh
+run_step "bm Claude-led seats" ./tests/test-bm-seats.sh
+run_step "bm relay (Fable -> Neon -> Opus)" ./tests/test-bm-relay.sh
 run_step "shell security regressions" ./tests/test-shell-security.sh
 run_step "installer integrity" ./tests/test-installer-integrity.sh
 run_step "installer lifecycle" ./tests/test-install-beastmode.sh

@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+BM_DEFAULTS_FILE="$TMP/defaults.json"
+printf '%s\n' '{"schema_version":1}' > "$BM_DEFAULTS_FILE"
+export BM_DEFAULTS_FILE
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/pi" <<'EOF'
 #!/usr/bin/env bash
@@ -12,7 +15,7 @@ cat > "$TMP/bin/pi" <<'EOF'
 if [ "$1" = "--list-models" ]; then
   cat <<TABLE
 provider      model                                      context  max-out  thinking  images
-openai-codex  gpt-5.6-sol                                200K     64K      yes       no
+openai-codex  gpt-6.1-sol                                200K     64K      yes       no
 openai-codex  gpt-5.6-terra                              200K     64K      yes       no
 openai-codex  gpt-6-luna                                1M       128K     yes       yes
 vibeproxy     gpt-6-luna                                1M       128K     yes       yes
@@ -40,7 +43,7 @@ args = Path(sys.argv[1]).read_text().splitlines()
 def value(flag):
     return args[args.index(flag) + 1]
 
-assert value("--model") == "openai-codex/gpt-5.6-sol", args
+assert value("--model") == "openai-codex/gpt-6.1-sol", args
 assert value("--thinking") == "medium", args
 PY
 

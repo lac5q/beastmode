@@ -35,8 +35,11 @@ Task tool plus parallel `claude -p` invocations.
 Task spawns an in-session subagent (multiple Task calls in one turn run
 sequentially). `/batch` fans worktree-isolated tasks out across separate
 sessions for large parallel changes; each task gets its own branch and
-worktree. Other economy workers may run in parallel background shells, but
-the subscription-backed `claude -p` lane is one director/watcher seat only.
+worktree. When no marked non-Anthropic economy provider is available, an
+Anthropic frontier director may pin Task workers to the lower `haiku` or `sonnet`
+model. The director remains on the requested frontier model and every child
+still returns requested/actual model provenance. The subscription-backed
+`claude -p` lane is never an unpinned worker lane.
 The director (this session) is always the merge gate; workers never apply
 their own patches back without explicit approval.
 
@@ -62,17 +65,22 @@ draft lane, never validated.
 ## Claude Pro lane note
 
 `claude -p` draws from the Pro/Max quota on claude.ai, not the
-rate-limited API OAuth pool. Reserve it for **watcher judgment** and
-**verifier review** — never bulk cheap work. For bulk economy workers,
-route through a different lane (qwen, MiniMax via API, droid MiniMax)
-and pin the model explicitly so the run record proves the actual model.
+rate-limited API OAuth pool. Reserve the frontier process for **watcher
+judgment** and **verifier review**. When no marked non-Anthropic economy
+provider is live, bounded Task workers may use the lower Haiku or Sonnet seat
+selected by `bm`; pin the model explicitly so the run record proves the actual
+model.
 
-The `bm` runner automatically selects this single-seat lane on the default Pi
-or Claude harness when the active director belongs to the Anthropic family. It fails closed on multiple
-Anthropic seats and does not use API OAuth as a fallback.
+The `bm` runner automatically selects this lane on the default Pi or Claude
+harness when the active director belongs to the Anthropic family. If the
+implicit Luna economy seat is unavailable and no other economy provider is
+live, it records a reviewed lower Anthropic worker seat (`haiku`, then
+`sonnet-worker`) in the worker contract. Explicit `--economy` and trusted
+profile selections remain fail-closed, and the runner does not use API OAuth
+as a fallback.
 
 When the operator wants the subscription choice explicit in the command line,
-use the single-seat switch below. It routes through `claude -p` and the
+use the switch below. It routes through `claude -p` and the
 signed-in claude.ai Pro/Max quota, not the Anthropic API OAuth pool:
 
 ```bash
@@ -81,10 +89,21 @@ bm "read-only review of the phase report and diff" \
   --autonomy high --interview off
 ```
 
-`--claude-subscription` requires exactly one Claude seat and fails closed for
-multi-seat fan-out. Keep Luna Max (`gpt-6-luna`, reasoning `max`) as the
-parallel economy/executor lane; reserve this Claude invocation for one
-watcher/verifier pass.
+Under `--harness claude`, `--claude-subscription` accepts one or more Claude
+seats (director, economy, optionally watcher); all run inside Claude Code.
+Keep each Task call explicitly pinned and preserve the child receipt; never let
+a worker inherit the frontier model silently.
+
+Claude workers are Claude Code Task subagents with `model` pinned to the economy
+seat, or `claude -p --model <id>`. Never run a Claude seat on a subscription
+login through Pi, Hermes, Codex or LangGraph; `bm` blocks that (exit 3). A real
+`ANTHROPIC_API_KEY` (billed API use) is the only exception. Non-Claude seats
+(e.g. a Codex watcher) use their own vendor CLI.
+
+For `claude -p`, put the prompt before variadic flags such as `--allowedTools`,
+or after `--` (otherwise it is read as a tool name, observed 2026-11-24), and
+use `</dev/null` for stdin when scripted. Record requested vs actual model;
+for `claude -p` use `--output-format json` and read `modelUsage`.
 
 ## Autonomy mapping
 
