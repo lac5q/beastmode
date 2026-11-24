@@ -19,7 +19,7 @@ expected_hash() {
   sed -n "s|^[[:space:]]*${name}) HASH=\"\([0-9a-f]\{64\}\)\" ;*|\1|p" "$INSTALLER"
 }
 
-for name in bm claude-pro check-pi-agent-policy lib/prompts.sh bm-goal lib/goal_lifecycle.py lib/acn_meta.py; do
+for name in bm claude-pro check-pi-agent-policy lib/prompts.sh bm-goal bm-relay lib/goal_lifecycle.py lib/acn_meta.py; do
   expected="$(expected_hash "$name")"
   [ -n "$expected" ] || fail "installer has no pinned hash for $name"
   actual="$(sha256sum "$ROOT/scripts/$name" | awk '{print $1}')"

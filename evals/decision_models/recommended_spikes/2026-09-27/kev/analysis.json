@@ -1,0 +1,17 @@
+{
+  "status": "incomplete_quota",
+  "planned_measured_calls": 64,
+  "attempted_measured_calls": 3,
+  "valid_measured_responses": 2,
+  "matching_completed_labels": 2,
+  "full_corpus_accuracy": null,
+  "excluded_warmups": 1,
+  "cost_usd": null,
+  "client_latency_ms_completed_median": 1155.6147169321775,
+  "model_reported_latency_ms_completed_median": 121.1,
+  "reported_input_tokens_completed": 385,
+  "reported_output_tokens_completed": 146,
+  "reason": "You have exceeded your ZeroGPU runs limit. Authenticate with a Hugging Face token for more quota - https://huggingface.co/settings/tokens",
+  "backend_weights_attested": false,
+  "audit": "Raw events, semantic labels, exact frozen payloads and hashes independently checked."
+}

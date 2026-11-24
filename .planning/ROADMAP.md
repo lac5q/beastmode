@@ -21,7 +21,7 @@ Unify beastmode under one set of **scales** (autonomy levels) and **families** (
 
 ## Circuit breakers
 
-- **Claude OAuth fan-out is blocked.** `bm` refuses to spawn any seat resolving to a Claude/Anthropic model when `ANTHROPIC_API_KEY` is unset (subscription OAuth path — the Anthropic ToS-ban pattern). Interactive runs may approve via prompt; subagent/Codex runs must be pre-authorized by Luis with `BM_ALLOW_CLAUDE_OAUTH=1` (exit 3 otherwise). Fable watcher via the official Claude Code Desktop bridge is unaffected (it is not a `bm` seat).
+- **Claude subscription use on third-party harnesses is blocked.** Several Claude seats are fine under `--harness claude` (first-party Claude Code). An Anthropic director under `pi` is re-routed to `claude -p`. Otherwise, on any non-`claude` harness (`pi`, `hermes`, `codex`, `langgraph`), any seat resolving to a Claude/Anthropic model requires `ANTHROPIC_API_KEY` (billed API use) or `bm` exits 3 — no interactive prompt and no bypass (`BM_ALLOW_CLAUDE_OAUTH` is ignored). Fable watcher via the official Claude Code Desktop bridge is unaffected (it is not a `bm` seat).
 
 ## Role Routing
 

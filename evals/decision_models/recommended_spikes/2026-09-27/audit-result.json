@@ -1,0 +1,31 @@
+{
+  "audit": "passed",
+  "files_verified": 69,
+  "kev": {
+    "measured_attempts": 3,
+    "valid": 2,
+    "full_corpus_accuracy": null
+  },
+  "compaction": {
+    "required_evidence_retention": {
+      "required-old-failure-receipt": true,
+      "contradictory-old-evidence": true,
+      "approval-scope-constraint": false,
+      "long-middle-evidence": false
+    },
+    "identical_critical_benign_requests": true,
+    "request_count": 9,
+    "median_request_ms": 152,
+    "input_tokens": 6069
+  },
+  "browser": {
+    "trials": 3,
+    "successes": 2,
+    "logical_provider_calls": 16,
+    "jev_calls": 13,
+    "writer_cost_usd_reported": 9.905000000000001e-05,
+    "jev_input_tokens": 36408
+  },
+  "clm_semantic_inference": false,
+  "laya_semantic_inference": false
+}

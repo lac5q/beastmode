@@ -1,0 +1,22 @@
+moving target clicked at its current location
+unrelated offscreen text does not invalidate
+visible context invalidates
+accessible label invalidates
+field property invalidates
+checkbox property invalidates
+disabled target invalidates
+read-only field invalidates
+hidden target invalidates
+replaced node invalidates
+dropdown option invalidates
+overlay blocked before input
+click guard accepts unrelated visible updates; terminal guard rejects them
+nearby price invalidates action-specific guard
+form value invalidates action-specific guard
+form toggle invalidates action-specific guard
+target replacement invalidates action-specific guard
+native controls expose only supported operations and safe values
+native dropdown selects an observed option
+real text input waits for asynchronous combobox suggestions
+navigation invalidates the old document
+PASS: 21 browser guard checks; no model calls

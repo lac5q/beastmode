@@ -17,7 +17,147 @@ Three consequences fall out of the principle:
 2. **When no verifier exists, the first question is not "which model does the work?" but "can the frontier model create a verifier?"** Writing characterization tests, tightening the contract, or producing a review checklist is usually cheaper than having the frontier model do the task — and it pays off on every future task of the same shape.
 3. **Frontier review reads compressed evidence, not raw output.** Judgment is expensive; spend it on the decision (report + diff), never on re-deriving the evidence (logs, test runs).
 
+## Per-user `bm` defaults
+
+`bm` optionally reads a trusted JSON profile from `~/.beastmode/defaults.json`;
+set `BM_DEFAULTS_FILE` to select another explicit file. A present profile must
+use `schema_version: 1`. Supported fields are `harness`, provider-qualified
+`frontier`, `economy`, `watcher`, and optional `limit_fallback` model IDs,
+`thinking`, the optional `economy_thinking` and `watcher_thinking` (same values
+as `thinking`; when set, the seat prompt tells economy workers or the watcher to
+run at that reasoning effort), and the boolean `claude_subscription_watcher`.
+CLI flags override
+the profile; otherwise trusted profile seats remain standing selections until
+changed. Profiles in a checkout are ignored, an absent default file keeps the
+built-in behavior, and invalid or explicitly missing profiles stop before
+dispatch. Profiles cannot skip model preflight or change harness
+tool/sandbox policy. Economy provider names are kept as written; `bm` does not
+translate a fully qualified profile value to another provider namespace.
+
+Example `~/.beastmode/defaults.json` for a Codex Sol director, Luna worker, and
+Grok 4.7 validator and authorized limit fallback:
+
+```json
+{
+  "schema_version": 1,
+  "harness": "codex",
+  "frontier": "openai-codex/gpt-6.1-sol",
+  "economy": "openai-codex/gpt-6-luna",
+  "watcher": "xai/grok-4.7",
+  "limit_fallback": "xai/grok-4.7",
+  "thinking": "max"
+}
+```
+
+Example for a Claude-led operator (director and workers run through first-party
+Claude Code, `claude -p`, on the operator's own subscription):
+
+```json
+{
+  "schema_version": 1,
+  "harness": "claude",
+  "frontier": "anthropic/claude-opus-5-5",
+  "economy": "anthropic/claude-sonnet-5-5",
+  "watcher": "openai-codex/gpt-6.2-astra",
+  "thinking": "max",
+  "watcher_thinking": "high"
+}
+```
+
+Claude models run only inside Claude Code (`--harness claude`: Task subagents
+with a pinned model, or `claude -p --model <id>`). `--harness pi` with an
+Anthropic director is rewritten to `--harness claude` (first-party Claude Code).
+Exit 3 is the case where a Claude economy, watcher or limit-fallback seat sits
+under a non-Claude director (or on hermes/codex/langgraph) and `ANTHROPIC_API_KEY`
+is not set. With a key, the seat prompt tells the director that Claude seats must
+use the API key and never a subscription login. `BM_ALLOW_CLAUDE_OAUTH` and
+prompts do not authorize it. Hermes and codex require an explicit `--frontier`
+so the director model is pinned. `--claude-subscription` needs an `anthropic/*`
+frontier. `--economy-thinking` and `--watcher-thinking` override the profile
+values and are not supported by the local LangGraph runner. The legacy
+`claude_subscription_watcher: true` flag is still parsed but does nothing.
+
+### Explicit quota/rate-limit recovery
+
+Seat failure is explicit by default. A trusted profile's optional
+`limit_fallback`, or the current task's `--limit-fallback <alias|provider/model>`,
+authorizes exactly one agent-level retry of the same bounded contract after a
+provider records a quota or rate-limit failure. Keep the original failure and
+requested/actual model receipts for both attempts; report failure if the
+fallback is also limited. Authentication or network errors, missing
+provenance, unsupported models, invalid output, and other failures do not
+authorize this route. With no configured fallback, report the seat failure.
+
+When the built-in economy seat is implicit and local availability proves that
+no configured economy provider is live, Beastmode may first use an external
+economy alias explicitly marked `worker_fallback: true` in a trusted user or
+shipped alias file. If no marked external lane is live, it may use a reviewed
+lower same-provider worker seat for an Anthropic frontier director: `haiku`
+first, then `sonnet-worker`. The director remains on the requested Fable/Opus
+seat; the worker model is pinned on every child and its requested/actual
+provenance is retained. An explicit `--economy` or trusted profile economy
+selection is never silently changed. Claude Code has no portable model listing,
+so its automatic Anthropic lane uses `haiku` unless `BM_CLAUDE_WORKER_MODEL`
+selects `sonnet-worker`, `sonnet`, or `sonnet5`.
+
+`bm` resolves the selected fallback, forwards it to remote dispatch, and puts
+the instruction in the seat prompt. It does not automatically retry a provider
+subprocess. In this operating setup, Grok 4.7 is the authorized validator and
+quota fallback: use the first-party Grok CLI through `bin/beast-validator`, pin
+`grok-4.7` with `xhigh` effort, and require `modelUsage` as evidence of the
+served model. The native regular Grok 4.7 route can report `grok-4.7-build`;
+retain that observed identity separately from requested `grok-4.7`, and reject
+older, fast or mixed model usage. If the native lane or its provenance is unavailable, report
+failure and do not substitute. This routing choice is not a portable `bm`
+default; when no trusted profile is present, the caller keeps the built-in
+defaults.
+
 The per-phase table below is what this principle implies for a standard beastmode run — it's the default mapping, not the rule. When a task doesn't fit the table, apply the principle directly.
+
+## Optional decision providers: preferred when proven better
+
+The operator's default is conditional preference, not a required dependency.
+For each bounded use case, prefer a configured, available decision provider once
+reviewed evidence shows better quality within the accepted latency/cost budget,
+or lower latency/cost at an accepted quality level. Compare against the actual
+existing path, including deterministic code when its inputs are already known.
+Do not infer whole-workflow savings from an isolated API call.
+
+Qualification belongs to a specific model version, question/criteria version,
+input shape and use case. Use reviewed representative labels, a held-out set,
+error severity, abstention/coverage and complete request accounting. A small
+synthetic spike, leaderboard position, credential presence or an arbitrary
+confidence threshold does not qualify a new default. Revalidate material model
+or criteria changes; keep previous evidence and support rollback.
+
+Once qualified, select it automatically where its evidence applies. Respect an
+explicit disable setting. Missing keys/dependencies, unavailable service,
+timeout, rate limits, invalid output, version mismatch, out-of-scope input or
+confidence below a validated threshold use the existing deterministic/director
+path. Record why; never disguise provider failure as a confident task answer.
+This optional decision-provider rule is separate from the explicit model-seat
+quota fallback described above.
+This policy does not introduce a mandatory package, network call or account.
+The current runtime remains unchanged until a provider integration is qualified.
+
+| Decision | Deterministic responsibility | Possible model contribution |
+|---|---|---|
+| Model tier | Apply verification-cost policy to known flags | Extract or classify ambiguous task requirements |
+| Next worker | Dependencies, active ownership, allowed stages and action budget | Rank several eligible workers when a fixed schedule is insufficient |
+| Tool-output relevance | Retain original receipts and required evidence | Rank optional context; an uncertain drop keeps the evidence available |
+| Goal completion | Check the acceptance contract, current receipts and remaining work | Identify possible semantic gaps; never substitute for final verification |
+| Side-effect risk | Check actual tool/arguments, scope and authorization | Flag suspicious or unclear intent for additional review |
+
+Thresholds are use-case-specific evidence, not permission grants. A quoted
+"fraud needs 0.95" rule does not authorize payments or certify calibration.
+Compute counts, dates and budget predicates in code. Preserve input provenance,
+allowed options, chosen ID, model/criteria versions, score semantics, re-check,
+fallback, latency and usage in decision receipts. Do not treat Jev's confidence
+field as identical to maximum option probability or cross-provider confidence.
+
+The September 26 spike and the separate agent-folder follow-up are under
+`evals/decision_models/`. Their results inform qualification; they do not replace
+it or install a general-purpose control plane.
 
 ## Tier Definitions
 

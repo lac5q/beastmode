@@ -1,0 +1,36 @@
+{
+  "advertised_model_inference": false,
+  "cache": {
+    "arena_budget": "1MiB",
+    "embedding_calls_first_request": 2,
+    "embedding_calls_after_identical_request": 2,
+    "identical_request_reused_vectors": true,
+    "second_request_input_tokens": 0
+  },
+  "invalid_inputs": {
+    "bad_temperature": "ValueError",
+    "empty_choice": "ValueError",
+    "empty_questions": "ValueError",
+    "one_level_score": "ValueError",
+    "unknown_model": "ModelNotFound",
+    "unknown_type": "ValueError"
+  },
+  "projection": {
+    "action_shape": [5, 512],
+    "finite": true,
+    "head_generation": 1,
+    "n_params": 18887680,
+    "projection_dim": 512,
+    "scale": 100.0,
+    "state_action_norm_max_error": 1.1920928955078125e-07,
+    "state_shape": [3, 512]
+  },
+  "schema": {
+    "types": ["noul", "choice", "score"],
+    "validated": true
+  },
+  "semantic_status": "FAKE NONSEMANTIC: deterministic synthetic embeddings; no task accuracy claim",
+  "status": "pass",
+  "torch_force_weights_only_load": "1",
+  "torch_version": "2.14.0+cpu"
+}

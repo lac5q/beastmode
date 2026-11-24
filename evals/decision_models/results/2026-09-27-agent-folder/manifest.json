@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-09-27T15:28:07.084179+00:00",
+  "measured_attempts": 192,
+  "excluded_warmups": 3,
+  "sha256": {
+    "evals/decision_models/AGENT_FOLDER_PROTOCOL.md": "90cf284eae3fa315e7c0dabc33f75a98341ee8ac1277ef623f5bc5441918139c",
+    "evals/decision_models/AGENT_FOLDER_RESULTS.md": "c219c31511cbe7f9c7f838b3e4c493f9bdd8f340725808620efa5299e30fbf5d",
+    "evals/decision_models/agent_folder_cases.json": "4d2210f5e9cc9051cccb5998495ce5d9e2780daea9df8780b4560fffd45205df",
+    "evals/decision_models/analyze_agent_folder.py": "544f37c8aca229a44b2cbebd9e764d1e1c478f5bf2b8ffe7766f7cc5688113eb",
+    "evals/decision_models/benchmark_api.py": "21f7749b3b02961226b7623dacefd3cf71e49de843b31432e83977a56d297487",
+    "evals/decision_models/results/2026-09-27-agent-folder/analysis.json": "b3545232b96f3ab596fa3c5b54cb9cb85e860ca5cfd3baab44fd6e2d9de5cf08",
+    "evals/decision_models/results/2026-09-27-agent-folder/commands.json": "11eebd687d675cf9ea5d5afcf9f94896e9b03e880e6cd7d4fe995df42f3f3ad0",
+    "evals/decision_models/results/2026-09-27-agent-folder/freeze.json": "ed3eb95249ec34da5cb358ffb0b25a25a73eda2b7a6820caf05434e485d18d31",
+    "evals/decision_models/results/2026-09-27-agent-folder/graph-changes.json": "3cbe6cae713213133344c2a1dc16ca65ec05c60a6af5798394404e741c39fbf8",
+    "evals/decision_models/results/2026-09-27-agent-folder/jev.jsonl.gz": "dcb65e2e6a6459526e3285a00c0999f482eea787bb8b0b3e01d10c678dd9ac89",
+    "evals/decision_models/results/2026-09-27-agent-folder/jev.meta.json": "d85a3d94ceb9cea45a3135ea0590f04b05c8d6471114bc8284c7dfcd99482fcb",
+    "evals/decision_models/results/2026-09-27-agent-folder/jev.summary.json": "7222dd806fa18e2853cc7895f18a0cc08858846a69ac24029a2d283db0a65b8b",
+    "evals/decision_models/results/2026-09-27-agent-folder/jev.warmup.json": "71766c9c6e0a3b8117c1b53e9668896e993ea696d3baa4634697b373d1f052f4",
+    "evals/decision_models/results/2026-09-27-agent-folder/openrouter.jsonl.gz": "d986ec3748f5f808fb653f1376e164114154d51bc69ba150240fa0a7423f01c1",
+    "evals/decision_models/results/2026-09-27-agent-folder/openrouter.meta.json": "1a54e2d78dc70a974c38d409eef24a3a018fe5bc16121fe28507d5e7575b154b",
+    "evals/decision_models/results/2026-09-27-agent-folder/openrouter.summary.json": "3578d69b554a1aa26da3771d7338e5e7705187e4edffeeb3fd410690db152d51",
+    "evals/decision_models/results/2026-09-27-agent-folder/openrouter.warmup.json": "5f1f3d18712f5cd78d6e37754ceca7074c499b89bf22ff1f82521e930e8585c1",
+    "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.jsonl.gz": "c50b2d57065ef8b0e98a900e2e4b3ef0b9e8c3e9d2a29a480909aa75ca015f00",
+    "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.meta.json": "639e27b4ecb912456f7dd235c96eb0aa855006bd5c5975d037974cd790cc4375",
+    "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.summary.json": "1e5b878f383a4d31972935fab7daa82151433ee013683ba11e354ab21407b632",
+    "evals/decision_models/results/2026-09-27-agent-folder/simplejev-identified.warmup.json": "4a8a56317ff65528291d97ed62ea051b05a595b1f804c9ae47d2e751c5514e48",
+    "evals/decision_models/test_agent_folder_analysis.py": "9ead6ae90c471d3ff896b1ac7bf35f9f1df9b83b5d090012e6f5cd1a4ec30ebb"
+  }
+}

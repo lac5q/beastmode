@@ -116,7 +116,7 @@ mkdir -p "$SKILL_DIR"
 # Pull from the immutable release ref and verify the downloaded bytes.
 URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/SKILL.md"
 DEST="${SKILL_DIR}/SKILL.md"
-fetch_pinned "$URL" "$DEST" "b1175f475963ae3b6da8211b8663d90998af2582d03b3ec969e79538f9bac4d9" \
+fetch_pinned "$URL" "$DEST" "43d3f35ee78a910f92136518f10b3cfe47f90e1ffe99358e71cf9e7ed581a17c" \
   && ok "skill fetched and verified from $URL" \
   || { err "could not fetch or verify $URL"; exit 1; }
 
@@ -148,18 +148,19 @@ pi -p "Without calling any tools, list tool names starting with goal_ or workflo
 bold "Install bm runner + support files"
 BM_DIR="${HOME}/.local/bin"
 mkdir -p "$BM_DIR"
-for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy lib/prompts.sh bm-goal lib/goal_lifecycle.py lib/acn_meta.py; do
+for f in bm tier-aliases.json phase-estimate claude-pro check-pi-agent-policy lib/prompts.sh bm-goal bm-relay lib/goal_lifecycle.py lib/acn_meta.py; do
   URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/scripts/${f}"
   DEST="${BM_DIR}/${f}"
   mkdir -p "$(dirname "$DEST")"
   case "$f" in
-    bm) HASH="f0fdcf93ec3e5619e92d9e9651a537d7e870ba957a1865f84f188d9c9f0e4d4a" ;;
-    tier-aliases.json) HASH="6b1f6dab171d73f8a2df3d45e17ed565bfb9b01d83ff86dd5e4ad86a1f6e645c" ;;
+    bm) HASH="90c350974365b87024cef65fbd21a2d6d8ea7489f8b95a1f40c01b418f4e90e7" ;;
+    tier-aliases.json) HASH="8f3d26d01bdb1d238d16d6f6bde0df18eb7ed5bd23c9024fb0a4d263d2cc2a98" ;;
     phase-estimate) HASH="8ccadec0811cd8c326f697fd72ed73b766565bfbdc0e1253d89771eadab99d53" ;;
     claude-pro) HASH="68dadf141030bf3c3c6b00c332a5528582d2532e1d8aa06ed67fae66b364ef15" ;;
     check-pi-agent-policy) HASH="0173f561520831381738f955fb8fb2eda9c33ab2ecc4637f263a1ca579deac23" ;;
     lib/prompts.sh) HASH="57a7c988e1c7ad2976b65f80cb7956ffab755339e4917f51b66e062b3ab0823f" ;;
     bm-goal) HASH="802d339dff89c07ddd21b44be216c3d65a74a57a9a857c4b43297bd505734542" ;;
+    bm-relay) HASH="534d894fa9624b6f296a8aeaf56798a48d2d959838cc01020448f018c7b7cad6" ;;
     lib/goal_lifecycle.py) HASH="573c110ca7a7f358b0eab4750885050753c2069ce4f38d72cb08eba6b4981fc0" ;;
     lib/acn_meta.py) HASH="31b7443c1533293582b9fd349b12e8a389b3efac01acd0d952827a3cce1f106a" ;;
   esac
@@ -187,16 +188,16 @@ for f in goal-lifecycle.json acn-contract.json; do
     || { err "could not fetch or verify $f from $URL"; exit 1; }
 done
 
-# 7. agentType marker for the Claude Pro lane (pi workflow subagent registry)
-# Workflow scripts may write `agentType: "claude-cli"` to flag a slot as
-# "Claude Pro work goes here, director invokes the lane directly." See
-# pi/agents/claude-cli.md and pi/SKILL.md "Claude routing rule (hard rule)".
-bold "Install Claude Pro lane agentType marker"
+# 7. deny-all agentType marker (pi workflow subagent registry)
+# `agentType: "claude-cli"` is a deny-all marker: Pi never runs or launches
+# Claude work; use `bm --harness claude`. See pi/agents/claude-cli.md and
+# pi/SKILL.md "Claude routing rule (hard rule)".
+bold "Install claude-cli deny-all agentType marker"
 AGENT_DIR="${HOME}/.pi/agent/agents"
 mkdir -p "$AGENT_DIR"
 AGENT_URL="https://raw.githubusercontent.com/lac5q/beastmode/${REF}/pi/agents/claude-cli.md"
 AGENT_DEST="${AGENT_DIR}/claude-cli.md"
-fetch_pinned "$AGENT_URL" "$AGENT_DEST" "77a2f36eba09242090bca70c53bcc3cf1db455ca757f7fc4c2da89a2ae9d68bd" \
+fetch_pinned "$AGENT_URL" "$AGENT_DEST" "22a272731b540a780b366f313d19230ce09c15e7f6781794c5185feef083a0c6" \
   && ok "fetched and verified claude-cli.md agentType marker" \
   || { err "could not fetch or verify $AGENT_URL"; exit 1; }
 

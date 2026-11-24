@@ -9,6 +9,10 @@ Exact search aliases: **beastmode**, **MofA**, **Mixture of Agents**, **memroos*
 **In plain English, Beastmode:**
 
 - 💸 **Saves you a small fortune** — routes implementation *and mechanical validation* to the pinned Luna Max economy lane (`gpt-6-luna`) while keeping frontier models (Claude Fable, Kimi 3, Opus, Codex) for the design, judgment, and review only geniuses should sign off on.
+- When the implicit Luna seat is unavailable, a reviewed external worker alias
+  may be selected; otherwise an Anthropic worker seat can fall back to pinned
+  Haiku or Sonnet workers. Every child still records requested and actual model
+  IDs for the provenance gate.
 - 🧠 **Improves quality** — mandatory acceptance contracts, adversarial review, and merge gates that actually mean something.
 - 📈 **Gets better over time** — a self-improvement loop that writes down its lessons and promotes the patterns that keep winning into skills/config.
 - 🧩 **Works anywhere** — harness-agnostic across Ultraswarm, GSD, `delegate_task`, Claude Code subagents, LangGraph, manual git, or `pi-coding-agent`.
@@ -108,7 +112,7 @@ scripts/enforce-models --check-meta <run-dir> --attestations <trusted.json> --tr
 scripts/acn-report <dir-of-meta.json> --attestations <trusted.json> --trust-attestations   # usage + MODEL DRIFT
 ```
 
-On the default Pi or Claude harness, Anthropic director aliases (`fable`, `opus`, `opus5`, `sonnet`, `haiku`) automatically use the single-seat `claude -p` plan-mode lane. Multiple Anthropic seats fail closed; Beastmode does not fall back to API OAuth for subscription seats. Explicit Hermes, Codex, and LangGraph harness choices keep their own dispatch and authorization checks.
+On the default Pi or Claude harness, Anthropic director aliases (`fable`, `opus`, `opus5`, `sonnet`, `haiku`) automatically use the `claude -p` plan-mode lane. If the implicit Luna seat is unavailable, Beastmode may use a live external economy alias marked `worker_fallback: true`; if none is live, the worker contract may carry one lower pinned Anthropic Task seat. Explicit economy selections remain unchanged. Beastmode does not fall back to API OAuth for subscription seats. Explicit Hermes, Codex, and LangGraph harness choices keep their own dispatch and authorization checks.
 
 Grok requires `BEASTMODE_GROK_WEEKLY_REMAINING_PCT` of at least 40 and `BEASTMODE_GROK_WEEKLY_REMAINING_AT` as a Unix timestamp no more than seven days old. Missing, stale, future, or malformed timestamps switch the Grok seats to Luna Max. The 40% floor cannot be lowered.
 

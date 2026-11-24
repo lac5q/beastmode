@@ -234,7 +234,7 @@ chmod +x "$HOST_REPO/scripts/public-artifact-guard"
 
 # Allowlisted public hosts must still pass.
 printf '%s\n' 'see https://github.com/lac5q/beastmode and https://registry.npmjs.org/' \
-  'https://api.typesafe.ai https://docs.typesafe.ai https://benchmarkheaven.com https://huggingface.co' \
+  'https://api.typesafe.ai https://docs.typesafe.ai https://benchmarkheaven.com https://huggingface.co https://jaredpalmer-kev.hf.space https://download.pytorch.org' \
   'https://openrouter.ai https://simple-jev-demo-api.featherless.ai https://simple-jev.featherless.ai https://x.com' \
   > "$HOST_REPO/notes.md"
 git -C "$HOST_REPO" add -A

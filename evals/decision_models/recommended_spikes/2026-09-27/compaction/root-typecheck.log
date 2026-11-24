@@ -1,0 +1,8 @@
+
+> fast-jev-compaction@0.2.0 typecheck
+> tsc --noEmit && npm run typecheck:hooks
+
+
+> fast-jev-compaction@0.2.0 typecheck:hooks
+> tsc -p tsconfig.hooks.json
+

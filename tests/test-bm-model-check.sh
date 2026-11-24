@@ -14,6 +14,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+BM_DEFAULTS_FILE="$TMP/defaults.json"
+printf '%s\n' '{"schema_version":1}' > "$BM_DEFAULTS_FILE"
+export BM_DEFAULTS_FILE
 
 # Fake pi that only knows anthropic/claude-opus-4-7 + the approved Luna Max
 # economy alias.
@@ -21,9 +24,6 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/pi" <<'EOF'
 #!/usr/bin/env bash
-if [ -n "${BM_TEST_PI_ARGS:-}" ]; then
-  printf '%s\n' "$@" > "$BM_TEST_PI_ARGS"
-fi
 if [ "$1" = "--list-models" ]; then
   cat <<TABLE
 provider      model                                      context  max-out  thinking  images
@@ -35,6 +35,9 @@ openai-codex  gpt-6-luna                              1M       128K     yes     
 vibeproxy     gpt-6-luna                              1M       128K     yes       yes
 TABLE
   exit 0
+fi
+if [ -n "${BM_TEST_PI_ARGS:-}" ]; then
+  printf '%s\n' "$@" > "$BM_TEST_PI_ARGS"
 fi
 if [ "$1" = "list" ]; then
   printf '%s\n' '  npm:@gotgenes/pi-permission-system'
@@ -54,7 +57,7 @@ chmod +x "$TMP/bin/hermes"
 mkdir -p "$TMP/hermes-home/.hermes"
 printf '%s\n%s\n' 'vibeproxy:' 'openai-codex:' > "$TMP/hermes-home/.hermes/config.yaml"
 
-# Fake Claude for the single-seat subscription lane tests. It never contacts
+# Fake Claude for the subscription lane tests. It never contacts
 # Anthropic; it records the argv/stdin contract and proves bm uses the safe
 # external lane instead of the Pi provider path.
 cat > "$TMP/bin/claude" <<'EOF'
@@ -99,7 +102,7 @@ grep -Fxq -- '--model' "$claude_args" || fail "Claude route omitted the model pi
 grep -Fxq 'claude-opus-4-7' "$claude_args" || fail "Claude route lost the resolved model"
 grep -q 'GOAL: do a thing' "$claude_stdin" || fail "Claude prompt was not supplied on stdin"
 [ ! -e "$pi_args" ] || fail "Anthropic route incorrectly invoked Pi"
-ok "Anthropic director used the single-seat Claude print lane"
+ok "Anthropic director used the Claude print lane"
 
 # Test 2: the automatic route remains usable with both OAuth-bypass and API
 # credentials absent; it must not fall back to an API-style Anthropic seat.
@@ -112,7 +115,7 @@ out="$(env -u BM_ALLOW_CLAUDE_OAUTH -u ANTHROPIC_API_KEY \
 code=$?
 set -e
 [ "$code" = "0" ] || fail "automatic Claude print route returned $code"
-echo "$out" | grep -q "BREAKER: blocked Claude OAuth seat" \
+echo "$out" | grep -q "BREAKER: blocked Claude seat" \
   && fail "Anthropic route fell through to the API OAuth breaker"
 ok "Claude print preference held without API OAuth authorization"
 
@@ -129,7 +132,7 @@ out="$(env -u BM_ALLOW_CLAUDE_OAUTH -u ANTHROPIC_API_KEY \
 code=$?
 set -e
 [ "$code" = "3" ] || fail "expected OAuth breaker exit 3, got $code"
-echo "$out" | grep -q "BREAKER: blocked Claude OAuth seat" \
+echo "$out" | grep -q "BREAKER: blocked Claude seat" \
   || fail "unauthorized worker did not trigger the OAuth breaker"
 [ ! -e "$claude_args" ] && [ ! -e "$claude_stdin" ] && [ ! -e "$pi_args" ] \
   || fail "a provider launched before worker authorization"
@@ -231,7 +234,7 @@ ok "Pi high autonomy retained bash/edit/write"
 echo "Test 9: Hermes friendly Luna alias uses vibeproxy"
 hermes_args="$TMP/hermes-args"
 out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
-  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes --economy luna-max 2>&1)"
+  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes --frontier openai-codex/gpt-6.1-sol --economy luna-max 2>&1)"
 grep -q 'economy=vibeproxy/gpt-6-luna' "$hermes_args" \
   || fail "friendly Luna alias did not translate to vibeproxy in the worker seat"
 ok "Hermes friendly Luna alias translated to vibeproxy"
@@ -240,7 +243,7 @@ ok "Hermes friendly Luna alias translated to vibeproxy"
 # not be rewritten for Hermes.
 echo "Test 10: Hermes qualified Luna provider remains explicit"
 out="$(HOME="$TMP/hermes-home" PATH="$TMP/bin:$PATH" BM_TEST_ARGS="$hermes_args" \
-  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes \
+  BM_SKIP_MODEL_CHECK=0 run_bm "do a thing" --harness hermes --frontier openai-codex/gpt-6.1-sol \
     --economy openai-codex/gpt-6-luna 2>&1)"
 grep -q 'economy=openai-codex/gpt-6-luna' "$hermes_args" \
   || fail "explicit Hermes provider was rewritten"
@@ -249,7 +252,7 @@ if grep -q 'economy=vibeproxy/gpt-6-luna' "$hermes_args"; then
 fi
 ok "Hermes qualified provider remained explicit"
 
-# Test 11: the subscription lane is explicit and single-seat.
+# Test 11: the subscription lane is explicit; several Claude seats are allowed.
 echo "Test 11: Claude subscription watcher uses one pinned seat"
 out="$(PATH="$TMP/bin:$PATH" "$ROOT/scripts/bm" "review the phase report" \
   --harness claude --frontier opus --claude-subscription --autonomy high --interview off 2>&1)"
@@ -257,17 +260,16 @@ echo "$out" | grep -q "FAKE CLAUDE SUBSCRIPTION WATCHER" \
   || fail "Claude subscription watcher did not dispatch"
 ok "Claude subscription watcher dispatched"
 
-# Test 12: automatic subscription routing rejects a second Claude seat.
-echo "Test 12: Claude multi-seat fan-out rejected"
+# Test 12: under --harness claude several Claude seats are first-party use.
+echo "Test 12: Claude multi-seat accepted inside Claude Code"
 set +e
 out="$(run_bm "review the phase report" --frontier opus --economy haiku \
   --autonomy high --interview off 2>&1)"
 code=$?
 set -e
-[ "$code" = "2" ] || fail "expected automatic multi-seat rejection, got $code"
-echo "$out" | grep -q "exactly one seat" \
-  || fail "multi-seat rejection did not explain the seat limit"
-ok "Claude multi-seat fan-out rejected"
+[ "$code" = "0" ] || fail "expected Claude multi-seat to run, got $code: $out"
+echo "$out" | grep -q "exactly one seat" && fail "single-seat rule still enforced"
+ok "Claude multi-seat accepted"
 
 # Test 13: --on remote skips the local check (remote host owns availability).
 echo "Test 13: --on remote-host skips the local check"
@@ -312,11 +314,11 @@ echo "$out" | grep -q "pip install.*beastmode.*langgraph" || fail "missing LangG
 echo "$out" | grep -q "Traceback" && fail "missing LangGraph runtime exposed a traceback"
 ok "absent LangGraph runtime failed cleanly with an install hint"
 
-# Test 16: Grok is fail-closed when the weekly budget reading is absent.
-echo "Test 16: Grok without a verified budget reading switches to Luna Max"
+# Test 16: legacy Grok 4.5 is fail-closed when the weekly budget reading is absent.
+echo "Test 16: legacy Grok 4.5 without a verified budget reading switches to Luna Max"
 grok_args="$TMP/grok-args"
 out="$(BM_SKIP_MODEL_CHECK=1 BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" \
-  --frontier grok --autonomy low --interview off 2>&1)"
+  --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 echo "$out" | grep -q "Grok weekly budget is below 40% or unverified" \
   || fail "missing Grok fail-closed guard message"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
@@ -325,30 +327,30 @@ grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" \
   || fail "Grok seat did not switch to Luna Max"
 ok "unverified Grok budget switched to Luna Max"
 
-# Test 17: 39% remains below the hard floor, while exactly 40% is allowed
+# Test 17: legacy Grok 4.5 remains below the hard floor at 39%, while exactly 40% is allowed
 # when the reading is current.
-echo "Test 17: Grok 39% switches and 40% remains eligible"
+echo "Test 17: legacy Grok 4.5 at 39% switches and 40% remains eligible"
 grok_now="$(date +%s)"
 out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=39 BEASTMODE_GROK_WEEKLY_REMAINING_AT="$grok_now" BM_SKIP_MODEL_CHECK=1 \
-  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 echo "$out" | grep -q "Grok weekly budget is below 40%" \
   || fail "39% did not trigger the Grok floor"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
   && fail "39% Grok seat was not replaced"
 
 out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=40 BEASTMODE_GROK_WEEKLY_REMAINING_AT="$grok_now" BM_SKIP_MODEL_CHECK=1 \
-  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 echo "$out" | grep -q "Grok weekly budget is below" \
   && fail "40% incorrectly triggered the Grok floor"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
   || fail "40% did not preserve the explicitly requested Grok seat"
 ok "39% switched and 40% preserved the Grok seat"
 
-# Test 18: stale readings fail closed even when their percentage is above the floor.
-echo "Test 18: stale Grok budget readings switch to Luna Max"
+# Test 18: legacy Grok 4.5 stale readings fail closed above the floor.
+echo "Test 18: stale legacy Grok 4.5 budget readings switch to Luna Max"
 grok_old="$((grok_now - 604801))"
 out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=90 BEASTMODE_GROK_WEEKLY_REMAINING_AT="$grok_old" BM_SKIP_MODEL_CHECK=1 \
-  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 echo "$out" | grep -q "Grok weekly budget is below 40% or unverified/stale" \
   || fail "stale Grok reading did not fail closed"
 grep -Fxq 'xai/grok-4.5' "$grok_args" \
@@ -357,11 +359,11 @@ grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" \
   || fail "stale Grok reading did not switch to Luna Max"
 ok "stale Grok reading switched to Luna Max"
 
-# Test 19: malformed readings fail before any provider invocation.
-echo "Test 19: malformed Grok budget readings are rejected"
+# Test 19: malformed legacy Grok 4.5 readings fail before any provider invocation.
+echo "Test 19: malformed legacy Grok 4.5 budget readings are rejected"
 set +e
 out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=unknown BM_SKIP_MODEL_CHECK=1 \
-  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 code=$?
 set -e
 [ "$code" = "2" ] || fail "malformed Grok budget reading returned $code"
@@ -369,24 +371,24 @@ echo "$out" | grep -q "must be a number from 0 to 100" \
   || fail "malformed Grok budget reading was not explained"
 ok "malformed Grok budget reading rejected"
 
-# Test 20: a percentage alone, a future timestamp, or malformed time is unverified.
-echo "Test 20: unusable Grok timestamps fail closed"
+# Test 20: legacy Grok 4.5 timestamps need to be present, current, and numeric.
+echo "Test 20: unusable legacy Grok 4.5 timestamps fail closed"
 for observed in "" "$((grok_now + 3600))" "not-a-timestamp"; do
   out="$(BEASTMODE_GROK_WEEKLY_REMAINING_PCT=90 BEASTMODE_GROK_WEEKLY_REMAINING_AT="$observed" \
     BM_SKIP_MODEL_CHECK=1 BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" \
-    --frontier grok --autonomy low --interview off 2>&1)"
+    --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
   grep -Fxq 'xai/grok-4.5' "$grok_args" && fail "unusable Grok timestamp was accepted"
   grep -Fxq 'openai-codex/gpt-6-luna' "$grok_args" || fail "unusable timestamp did not select Luna"
 done
 ok "missing, future, and malformed Grok timestamps fail closed"
 
-# Test 21: an environment override cannot lower the budget floor.
-echo "Test 21: Grok budget floor cannot be lowered"
+# Test 21: an environment override cannot lower the legacy Grok 4.5 budget floor.
+echo "Test 21: legacy Grok 4.5 budget floor cannot be lowered"
 rm -f "$grok_args"
 set +e
 out="$(BEASTMODE_GROK_MIN_WEEKLY_REMAINING_PCT=0 BEASTMODE_GROK_WEEKLY_REMAINING_PCT=39 \
   BEASTMODE_GROK_WEEKLY_REMAINING_AT="$grok_now" BM_SKIP_MODEL_CHECK=1 \
-  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier grok --autonomy low --interview off 2>&1)"
+  BM_TEST_PI_ARGS="$grok_args" run_bm "do a thing" --frontier xai/grok-4.5 --autonomy low --interview off 2>&1)"
 code=$?
 set -e
 [ "$code" = "2" ] || fail "lowered Grok floor returned $code"

@@ -108,6 +108,13 @@ run_goal() { # run_goal <goal-id> [args...]  -> stdout captured, rc in $RC
   OUT="$("$BG" run "goal $id" --goal-id "$id" --repo "$REPO" "$@" 2>&1)"; RC=$?
 }
 state_of() { "$BG" inspect "$1" --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["state"], d.get("outcome") or "-")'; }
+harness_group_gone() {
+  local goal_id="$1" pgid
+  pgid="$({ "$BG" inspect "$goal_id" --json 2>/dev/null || true; } \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("attempt_records", [{}])[-1].get("pgid") or "")' 2>/dev/null)"
+  [ -n "$pgid" ] || return 1
+  ! kill -0 -- "-$pgid" 2>/dev/null
+}
 
 cd "$REPO"
 
@@ -227,7 +234,7 @@ for _ in $(seq 1 50); do [ "$(state_of g-cancel 2>/dev/null)" = "running -" ] &&
 "$BG" cancel g-cancel --grace-seconds 1 >"$TMP/cancel-out" 2>&1; rc_cancel=$?
 wait
 if [ "$rc_cancel" = 0 ] && [ "$(cat "$TMP/cancel-run-rc")" = 5 ] && [ "$(state_of g-cancel)" = "cancelled cancelled" ] \
-   && grep -q "cleanup: confirmed" "$TMP/cancel-out" && ! pgrep -f "sleep 300" >/dev/null; then
+   && grep -q "cleanup: confirmed" "$TMP/cancel-out" && harness_group_gone g-cancel; then
   pass "cancel: supervisor exits 5, process group gone, cleanup=confirmed recorded"
 else fail "cancel: rc=$rc_cancel run_rc=$(cat "$TMP/cancel-run-rc") state=$(state_of g-cancel) out=$(cat "$TMP/cancel-out")"; pkill -f "sleep 300" 2>/dev/null; fi
 
@@ -247,7 +254,7 @@ rec_out="$("$BG" reconcile)"; rc_rec=$?
 sleep 0.3
 if [ "$rc_rec" = 0 ] && echo "$runs_out" | grep -q "supervisor lost" && [ "$(state_of g-lost)" = "failed supervisor_lost" ] \
    && echo "$rec_out" | grep -q '"harness_was_running": true' && echo "$rec_out" | grep -q '"cleanup": "confirmed"' \
-   && ! pgrep -f "sleep 300" >/dev/null; then
+   && harness_group_gone g-lost; then
   pass "GL3 reconcile: lost supervisor detected, orphan harness stopped, effects recorded"
 else fail "reconcile: rc=$rc_rec state=$(state_of g-lost) runs=$runs_out rec=$rec_out"; pkill -f "sleep 300" 2>/dev/null; fi
 

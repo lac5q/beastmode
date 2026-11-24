@@ -22,7 +22,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | Alias | Provider | Model | Tier | Family | Notes |
 |---|---|---|---|---|---|
 | `kimi3` | `kimi-coding` | `k3` | frontier | kimi | K3, the current flagship. Use for design + judgment. |
-| `k2` | `kimi-coding` | `k2p7` | frontier | kimi | K2.7, fallback if K3 quota gone. |
+| `k2` | `kimi-coding` | `k2p7` | frontier | kimi | K2.7, explicit alternate if K3 quota is gone. |
 | `fable` | `anthropic` | `claude-fable-5` | frontier | anthropic | 1M ctx, strongest judgment for product/creative. |
 | `opus` | `anthropic` | `claude-opus-4-7` | frontier | anthropic | 1M ctx; current production Opus. |
 | `opus5` | `anthropic` | `claude-opus-4-8` | frontier | anthropic | Bleeding edge; quotas tighter. |
@@ -33,7 +33,7 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `gpt5.6` | `openai-codex` | `gpt-5.6-luna` | frontier | openai-codex | Previous Codex frontier (luna profile); explicit legacy lane. |
 | `sol` | `openai-codex` | `gpt-5.6-sol` | frontier | openai-codex | Validator profile; use `--thinking medium`. |
 | `terra` | `openai-codex` | `gpt-5.6-terra` | frontier | openai-codex | Lead profile; use `--thinking high`. |
-| `grok` | `xai` | `grok-4.5` | frontier | xai | Grok via the installed xAI OAuth/API provider; cross-family watcher/validator. |
+| `grok` | `xai` | `grok-4.7` | frontier | xai | Validator/fallback lane uses native first-party CLI at `xhigh`; require `modelUsage` proof. |
 | `glm` | `zai` | `glm-5.2` | frontier | zai | GLM validator lane. |
 | `luna-max` | `openai-codex` | `gpt-6-luna` | economy | openai-codex | Approved low-cost worker; reasoning `max`. Use for independent ACN slices. |
 | `luna-5.6` | `openai-codex` | `gpt-5.6-luna` | economy | openai-codex | Previous Luna Max pin; explicit rollback lane only. |
@@ -42,7 +42,8 @@ harness invocation. Project-local override: `<repo>/.beastmode/tier-aliases.json
 | `qwen` | `openai-codex` | `gpt-6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
 | `gwen` | `openai-codex` | `gpt-6-luna` | economy | openai-codex | Deprecated compatibility alias; use `luna-max`. |
 | `haiku` | `anthropic` | `claude-haiku-4-5` | economy | anthropic | Anthropic-native cheap tier. |
-| `gemini-flash` | `vibeproxy` | `gemini-3.6-flash-high` | economy | google | Opt-in worker lane. Requires the `vibeproxy` provider in host-local `~/.pi/agent/models.json`; see below. |
+| `sonnet-worker` | `anthropic` | `claude-sonnet-4-6` | economy | anthropic | Worker-role alias for the lower Sonnet fallback; the `sonnet` alias remains a frontier seat. |
+| `gemini-flash` | `vibeproxy` | `gemini-3.6-flash-high` | economy | google | Explicit/manual lane; its proxy reports a different served model, so it is not an automatic worker fallback. Requires the `vibeproxy` provider in host-local `~/.pi/agent/models.json`; see below. |
 
 ## JSON shape (used by `scripts/bm`)
 
@@ -74,15 +75,22 @@ add a row to one, add it to the other in the same PR.
 4. Unresolved alias → passes through unchanged so the user sees the real
    `pi` error and can fix the alias instead of silently mapping wrong.
 
-Anthropic aliases (`fable`, `opus`, `opus5`, `sonnet`, `sonnet5`, and `haiku`)
-are the exception to the Pi invocation above: when one is the active director
-seat, `bm` uses the single-seat `claude -p --permission-mode plan` lane,
-supplies the prompt on stdin, and rejects multiple Anthropic seats instead of
-using an API OAuth fallback. This holds for *any* `--harness`; an Anthropic seat
-under `--harness pi` is re-routed to `claude -p` rather than the API pool.
+Anthropic aliases (`fable`, `opus`, `opus5`, `sonnet`, `sonnet5`, `haiku`, and
+`sonnet-worker`) are the exception to the Pi invocation above: when an
+Anthropic seat is the active director under `--harness pi` (the default) or
+`--harness claude`, `bm` routes the run through `claude -p --permission-mode
+plan` with the prompt on stdin. Several Claude seats are fine under
+`--harness claude` (first-party Claude Code use). On any non-`claude` harness
+(including `pi` when a Claude seat sits under a non-Anthropic director, or
+`hermes`/`codex`/`langgraph`), a Claude seat requires `ANTHROPIC_API_KEY` for
+billed API use or `bm` exits 3 — no interactive prompt and no bypass.
 
-Reasoning effort is independent of the model alias. For the Terra lead and
-Sol validator split, run the lead through Hermes as Terra/high, then run the
+Reasoning effort is independent of model alias resolution; alias metadata does
+not prove that a launcher applied the effort. Grok 4.7 validator/fallback work
+uses the first-party CLI through `bin/beast-validator`, pins `grok-4.7` at
+`xhigh`, and requires `modelUsage` proof. The legacy explicit `xai/grok-4.5`
+quota guard remains separate from the `grok` alias. For the Terra lead and Sol
+validator split, run the lead through Hermes as Terra/high, then run the
 validation goal with `bm "<validation goal>" --frontier sol --thinking medium`.
 
 On the Claude lane, `--thinking` maps onto the CLI's `--effort`. That scale has
@@ -146,4 +154,11 @@ pi --list-models | awk 'NR>3 {print $1, $2}' > "$host_models"
 - New model release (`k4`, `opus-4-9`, `MiniMax-M4`) → add a row.
 - Host drops a provider entirely → mark alias `unavailable` and pick a
   fallback in the same tier.
+- When the built-in economy seat is implicit and no other economy provider is
+  live, `bm` may select `haiku` or `sonnet-worker` for an Anthropic frontier
+  director. Explicit `--economy` and profile selections remain fail-closed.
+- An external alias is eligible for automatic recovery only when its entry
+  also sets `"worker_fallback": true` and the host reports the exact
+  provider/model pair. Use that marker only after the provider's serving
+  identity is stable and its receipts pass the provenance gate.
 - Provider renames a model ID → update `model` field; alias name stays stable.

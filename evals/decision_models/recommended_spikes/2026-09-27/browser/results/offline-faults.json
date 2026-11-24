@@ -1,0 +1,11 @@
+{
+  "live": false,
+  "checks": [
+    {"case": "exact expected DOM accepted", "passed": true},
+    {"case": "false DONE with wrong hash rejected", "passed": true},
+    {"case": "malicious page text cannot replace the exact goal outcome (validator-only offline check)", "passed": true},
+    {"case": "external or publish navigation rejected (validator-only offline check)", "passed": true},
+    {"case": "unsupported model action rejected by code gate", "passed": true}
+  ],
+  "passed": true
+}

@@ -1,0 +1,8 @@
+{
+  "recorded_at": "2026-09-27T19:58:17.598692+00:00",
+  "script_sha256": "723cf4dc98b6a2a4abaf370a6cbc17ecf1fd77ca0c7065306cc45e92fbaf7205",
+  "source_commit": "e3f262a7f4d42bd8dd32ced30d26176f7cb545b0",
+  "model": "jev-1.13.0",
+  "scope": "eight histories plus matched benign body; required-text preservation",
+  "timing_note": "Fixture hashes and assertions were embedded and checked before live calls. Separate pre-run manifest command failed due to relative cwd; this script hash was recorded after launching live calls. No script edits during run."
+}

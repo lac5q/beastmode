@@ -1,0 +1,14 @@
+{
+  "frozen_at_utc": "2026-09-27T15:15:48.331084+00:00",
+  "source_commit": "4efeb0a660a408d22e756e8629f5027a7148dff0",
+  "cases": 32,
+  "repeats": 2,
+  "canonical_cases_sha256": "b63467b6332c161b045dda0c615dd5e46e33b88945e33d4738287c2a0010bb69",
+  "sha256": {
+    "evals/decision_models/agent_folder_cases.json": "4d2210f5e9cc9051cccb5998495ce5d9e2780daea9df8780b4560fffd45205df",
+    "evals/decision_models/AGENT_FOLDER_PROTOCOL.md": "90cf284eae3fa315e7c0dabc33f75a98341ee8ac1277ef623f5bc5441918139c",
+    "evals/decision_models/benchmark_api.py": "21f7749b3b02961226b7623dacefd3cf71e49de843b31432e83977a56d297487"
+  },
+  "review": "Director reviewed all 32 labels before inference. Clarified gatherable facts versus blocked dependencies, stale evidence versus concretely absent deliverables, possible relevance versus known coincidence, stdout versus file logging, and non-mutating public GET versus message delivery. No labels changed after inference.",
+  "worker_provenance": "Requested available fallback GPT-5.6 Luna max; backend identity not independently attested."
+}

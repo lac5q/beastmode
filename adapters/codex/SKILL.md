@@ -14,20 +14,50 @@ This skill is **only the harness mechanics**. The framework, tier-routing
 rule, verifier-first design principle, and self-improvement loop live in
 the canonical `beastmode` skill (v2.5.0) — load it first and follow it.
 This adapter tells you which Codex primitives implement which seat and
-which external lanes the bounded workers can call.
+which configured lanes the bounded workers can call.
 
 **Note**: the legacy `beastmode-qwen-cloud` skill is superseded by this
 adapter. The Qwen / MiniMax API / Droid / GLM lanes that used to live
 there are listed as worker lanes below; the same contracts and smoke
 gates apply.
 
+## Trusted seat selection
+
+When this skill loads, first resolve the trusted per-user profile: a non-empty
+`BM_DEFAULTS_FILE`, otherwise `~/.beastmode/defaults.json`. Never read
+checkout-local defaults. Saved model seats and harness choices are standing
+explicit selections until changed; a current task request or CLI flag wins.
+The profile records requested routing only. It cannot change Codex sandbox or
+tool policy, and it cannot prove which model or effort is actually serving.
+
+This operator's standing selections are `openai-codex/gpt-6.1-sol` at `max`
+for the director, `openai-codex/gpt-6-luna` at `max` for economy work, and
+`xai/grok-4.7` at `xhigh` for validation. A current task choice overrides the
+trusted profile. These are requested seats, not evidence of what the active
+session served; keep the portable built-in `bm` defaults when no user profile
+is present.
+
+If the running director cannot match the configured model or effort, report
+the mismatch and identify the actual serving model if known. Use the matching
+launcher on the next run; never claim the current session switched itself.
+Cheapest-worker fallback is available only when no explicit standing/current
+choice applies to the assignment. An explicitly pinned validator fails closed
+by default. The sole exception is a configured `limit_fallback` or current
+`--limit-fallback`, and only after a recorded provider quota/rate-limit
+failure: route one agent-level retry of the same bounded contract, preserve
+the original failure and requested/actual model receipts, and report failure
+if the fallback is also limited. Authentication/network errors, missing
+provenance, unsupported models, invalid output, and other failures do not
+authorize it. `bm` supplies this routing instruction but does not retry
+provider subprocesses.
+
 ## Only the harness mechanics
 
 | Universal seat | Codex implementation |
 |---|---|
-| Director (frontier) | The Codex session itself — frontier model, owns intent, design, merge gate |
-| Watcher (frontier) | A Codex-side validator, or a second frontier session via an external lane |
-| Executor (economy) | External cheap lanes (Qwen, MiniMax API, Droid MiniMax, GLM, custom Droid models) |
+| Director (frontier) | The Codex session itself when selected by the current task or trusted profile; owns intent, design, merge gate |
+| Watcher (validator) | The selected Codex-side validator; Claude seats are not run from Codex on subscription login (use `--harness claude`, or an `ANTHROPIC_API_KEY`) |
+| Executor (economy) | Native Codex child `openai-codex/gpt-6-luna` at max reasoning is preferred when approved; otherwise use the selected economy seat |
 | Loop engine | Director self-prompts between worker results |
 | Anti-spin | Director judgment + usage budget; abort on 3 identical blockers |
 | Worker-contract enforcer | Codex sandbox defaults + starter worker contract; autonomy never weakens the sandbox |
@@ -35,24 +65,33 @@ gates apply.
 | Goal record | `<repo>/GOAL.md` (universal fallback) |
 | Self-improvement log | `<repo>/.learnings/BEASTMODE.md` (universal) |
 
-## Worker lanes (absorbed from beastmode-cloud)
+When `codex exec` runs in the background or from a script, redirect stdin from
+`/dev/null` (`codex exec ... </dev/null`). Otherwise it waits forever on
+"Reading additional input from stdin..." (observed 2026-11-24).
 
-External cheap lanes the Codex director routes bounded workers into.
-Smoke-gate every lane before routing; failed lane = installed-but-not-live,
-route elsewhere.
+## Worker lanes
 
-| Lane | Default model | Command | Smoke gate |
-|------|---------------|---------|------------|
-| Qwen | `qwen3.7-plus` | `~/.local/bin/qwen-agent` | Reply exactly `QWEN OK` |
-| MiniMax API | `MiniMax-M3` | `curl https://api.minimax.io/v1/chat/completions` | Reply exactly `MINIMAX OK` (never print the key) |
-| Droid MiniMax | `minimax-m3` | `~/.local/bin/droid exec --model minimax-m3` | Reply exactly `MINIMAX OK` |
-| Droid custom | any `droid exec --list-tools` model id | `~/.local/bin/droid exec --model <id>` | Model-specific exact reply |
-| GLM | `glm-4.6` | `~/.local/bin/droid exec --model glm-4.6` (or direct API) | Reply exactly `GLM OK` |
+Smoke-gate every lane before routing; failed lane = installed-but-not-live.
+The trusted profile or current task selects a standing seat; these launchers
+must pin that requested model and effort on every invocation.
 
-Prefer the direct MiniMax API lane when `MINIMAX_API_KEY` is present and
-the worker only needs a patch, plan, or analysis. Use Droid MiniMax when
-you specifically need Factory's agent runtime or tool access. Use Qwen or
-GLM when an independent cross-family validator is wanted.
+| Lane | Model / effort | Launcher | Selection and smoke gate |
+|------|---------------|---------|--------------------------|
+| Native Codex worker (preferred) | `openai-codex/gpt-6-luna`, max reasoning | `codex exec --model gpt-6-luna -c 'model_reasoning_effort="max"'` | Use when the current task or trusted profile selects this seat and the model is available |
+| Grok validator / authorized quota fallback | `xai/grok-4.7`, `xhigh` | `bin/beast-validator` (first-party Grok CLI) | Use when selected as validator or by the explicit quota fallback; pin `grok-4.7`, require `modelUsage` proof, and report failure if the native lane or provenance is unavailable |
+| Qwen (legacy explicit override) | `qwen3.7-plus` | `~/.local/bin/qwen-agent` | Reply exactly `QWEN OK` |
+| MiniMax API (legacy explicit override) | `MiniMax-M3` | `curl https://api.minimax.io/v1/chat/completions` | Reply exactly `MINIMAX OK` (never print the key) |
+| Droid MiniMax (legacy explicit override) | `minimax-m3` | `~/.local/bin/droid exec --model minimax-m3` | Reply exactly `MINIMAX OK` |
+| Droid custom | any `droid exec --list-tools` model id | `~/.local/bin/droid exec --model <id>` | Model-specific exact reply; select explicitly |
+| GLM (legacy explicit override) | `glm-4.6` | `~/.local/bin/droid exec --model glm-4.6` (or direct API) | Reply exactly `GLM OK` |
+
+The Qwen, MiniMax, and GLM rows are legacy explicit overrides, not fallback
+choices. Use the selected lane only. Without an explicit standing/current
+choice, use native Luna Max/max as the economy default; if that lane is down,
+the existing cheapest-live-worker fallback may run. A selected validator is
+never replaced for authentication/network errors, missing provenance,
+unsupported models, invalid output, or other failures. Only the configured
+quota/rate-limit fallback above can authorize the single bounded retry.
 
 ### Lane smoke gates
 
@@ -100,12 +139,16 @@ and usage).
 
 ## MODEL PINNING (hard rule)
 
-Every worker invocation names its model explicitly:
+Every worker invocation pins the model selected by the current task or trusted
+profile. The saved choice determines the requested model, but each command must
+still pass its model and effort explicitly:
 
 - CLI lanes: `--model <id>` on the invocation (e.g. `droid exec --model
   minimax-m3`).
 - Direct MiniMax API: the `model` field in the JSON body.
-- Codex children: `codex exec --model <provider/model>`.
+- Codex children: pass the selected CLI model id with `--model` (for example,
+  `codex exec --model gpt-6-luna`); record the provider-qualified requested
+  model and actual served model in the receipt.
 
 Never rely on the harness default for economy work. Pin it. After each
 worker returns, persist a `meta.json` in the run record with the shape

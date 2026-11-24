@@ -1,0 +1,19 @@
+{
+  "frozen_at_utc": "2026-09-27T19:39:21.757132+00:00",
+  "cases_file": "evals/decision_models/agent_folder_cases.json",
+  "cases_sha256": "4d2210f5e9cc9051cccb5998495ce5d9e2780daea9df8780b4560fffd45205df",
+  "case_count": 32,
+  "repeats": 2,
+  "model": "jaredpalmer/kev-4b",
+  "model_selection": "Kev-4B",
+  "calibrated": true,
+  "date_facts": false,
+  "check_stability": false,
+  "transport": "public Gradio Space; client latency includes queue and network, not self-hosted latency",
+  "timeout_seconds": 120,
+  "stop_on": "warmup failure, authorization, quota/rate limit, malformed transport; preserve failure no hidden retries",
+  "warmup": "one excluded first case",
+  "scope": "existing exact state/question/options; gold and rationale not sent",
+  "production_default_changed": false,
+  "space_source_commit": "bc58df8299d0bcaaa6cf5466bdc48bb4a30dd961"
+}
